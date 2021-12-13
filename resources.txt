@@ -1,0 +1,19 @@
+
+статья про сервер на коленке
+
+https://medium.com/from-the-scratch/http-server-what-do-you-need-to-know-to-build-a-simple-http-server-from-scratch-d1ef8945e4fa
+
+Common Gateway Interface
+https://lectureswww.readthedocs.io/5.web.server/cgi.html
+
+
+
+https://habr.com/ru/post/254621/
+
+
+http://www.whizkidtech.redprince.net/cgi-bin/tutorial
+
+
+https://www.youtube.com/watch?v=YwHErWJIh6Y
+
+https://www.youtube.com/watch?v=ixfnxLqcLOs

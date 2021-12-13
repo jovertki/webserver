@@ -1,0 +1,10 @@
+Screenshot.png
+webserv
+*.o
+*.d
+
+*.DS_Store
+*.dSYM
+
+cmake-build-debug
+CMakeLists.txt
