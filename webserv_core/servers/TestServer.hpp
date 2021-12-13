@@ -5,7 +5,7 @@ namespace ft {
 	class TestServer : public SimpleServer {
 	private:
 		char** envp;
-		char buffer[30000];
+		char buffer[30000] = {0};
 		int new_socket;
 		std::string buffer_s;
 		Request request;

@@ -6,7 +6,6 @@
 
 #define SERVER_DIR "/Users/jovertki/school21projects/webserv_project/webserv_core/html"
 ft::TestServer::TestServer(char **envp) : SimpleServer( AF_INET, SOCK_STREAM, 0, 80, INADDR_ANY, 10 ), envp(envp) {
-	bzero( buffer, 30000 );
 	launch();
 }
 
@@ -15,8 +14,8 @@ void ft::TestServer::accepter() {
 	int addrlen = sizeof( address );
 	new_socket = accept( get_socket()->get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen );
 	long end = read( new_socket, buffer, 30000 );
-	buffer[end] = '\0';
 	buffer_s = buffer;
+	
 
 	//fix windows endlines
 	std::size_t n = buffer_s.find( (char)13 );
