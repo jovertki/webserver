@@ -3,3 +3,5 @@ webserv
 *.o
 *.d
 
+*.DS_Store
+*.dSYM
