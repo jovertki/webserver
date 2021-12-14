@@ -1,0 +1,12 @@
+{
+	"configurations": [
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Launch",
+			"program": "/Users/jovertki/webserver_shared_repo/webserv_core/webserv",
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		}
+	]
+}

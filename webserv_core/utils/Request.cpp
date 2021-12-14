@@ -4,7 +4,7 @@
 #include <fstream>
 #include <iostream>
 
-#define MIME_FILE "resources/mime.types"
+#define MIME_FILE "/Users/jovertki/webserver_shared_repo/webserv_core/resources/mime.types"
 //#define MIME_FILE "../resources/mime.types"
 
 int ft::Request::get_method() const {

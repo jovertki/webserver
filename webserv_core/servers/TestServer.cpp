@@ -4,7 +4,7 @@
 #include "../resources/lex_defines.h"
 #include <fstream>
 
-#define SERVER_DIR "./html"
+#define SERVER_DIR "/Users/jovertki/webserver_shared_repo/webserv_core/html"
 ft::TestServer::TestServer(char **envp) : SimpleServer( AF_INET, SOCK_STREAM, 0, 80, INADDR_ANY, 10 ), envp(envp) {
 	launch();
 }
@@ -14,6 +14,8 @@ void ft::TestServer::accepter() {
 	int addrlen = sizeof( address );
 	new_socket = accept( get_socket()->get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen );
 	long end = read( new_socket, buffer, 30000 );
+	if(end != 0)
+		buffer[end] = '\0';
 	buffer_s = buffer;
 
 
@@ -74,13 +76,42 @@ void ft::TestServer::handler() {
 }
 void ft::TestServer::response_post() {
 	std::cout << "========RESPONSE POST IS ACTIVE========" << std::endl;
+
+
+	char** my_envp = new char* [5];
+
+	std::string myWord = "REQUEST_METHOD=POST";
+	my_envp[0] = new char[myWord.size() + 1];
+	strcpy( my_envp[0], myWord.c_str() );
+	myWord = "SERVER_PROTOCOL=HTTP/1.1";
+	my_envp[1] = new char[myWord.size() + 1];
+	strcpy( my_envp[1], myWord.c_str() );
+	myWord = "PATH_INFO=/Users/jovertki/webserver_shared_repo/webserv_core/html/add.cgi?num1=2&num2=5";
+	my_envp[2] = new char[myWord.size() + 1];
+	strcpy( my_envp[2], myWord.c_str() );
+	myWord = "PATH=/Users/jovertki/.brew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet:/usr/local/munk";
+	my_envp[3] = new char[myWord.size() + 1];
+	strcpy( my_envp[3], myWord.c_str() );
+
+	my_envp[4] = NULL;
+	
+
+
+	// int i = 0;
+	// for(; envp[i] != NULL; i++) {}
+	// std::string* str = new std::string( "REQUEST_METHOD=POST" );
+	// envp[i] = const_cast<char*>(str->c_str());
+	// envp[i + 1] = NULL;
+
+
+	
 	int ret = fork();
 	if(ret == 0)
 	{
 		std::cout << "Trying to execute " << request.get_requested_filename() << std::endl;
 		std::string filename = SERVER_DIR + request.get_requested_filename();
-
-		if(execve( filename.c_str(), NULL, envp ) < 0)
+		write( 0, (request.get_args()).c_str(), (request.get_args()).size() );
+		if(execve( filename.c_str(), NULL, my_envp ) < 0)
 			std::cout << "ERRRPR" << std::endl;
 		exit( 234 );
 	}
@@ -129,6 +160,7 @@ void ft::TestServer::responder() {
 void ft::TestServer::launch() {
 	while(true) {
 		std::cout << "waiting" << std::endl;
+		//poll will be here
 		accepter();
 		handler();
 		responder();
