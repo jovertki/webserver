@@ -6,5 +6,5 @@ webserv
 *.DS_Store
 *.dSYM
 
-#cmake-build-debug
-#CMakeLists.txt
+cmake-build-debug
+CMakeLists.txt
