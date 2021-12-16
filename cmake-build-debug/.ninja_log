@@ -1,11 +1,10 @@
 # ninja log v5
-1	92	1639661930000000000	build.ninja	aa5ae66552803f2e
-0	89	1639661930000000000	build.ninja	aa5ae66552803f2e
-1	1481	1639661932000000000	CMakeFiles/webserver.dir/webserv_core/sockets/BindingSocket.cpp.o	385788e05002b16b
+0	89	1639662159000000000	build.ninja	aa5ae66552803f2e
 2	1495	1639661932000000000	CMakeFiles/webserver.dir/webserv_core/sockets/ListeningSocket.cpp.o	c55eda5ec1202933
 3	1495	1639661932000000000	CMakeFiles/webserver.dir/webserv_core/sockets/SimpleSocket.cpp.o	b7e91af1912bbd7
 5	1495	1639661932000000000	CMakeFiles/webserver.dir/webserv_core/servers/SimpleServer.cpp.o	8c65daf1028ffc76
+1	1481	1639661932000000000	CMakeFiles/webserver.dir/webserv_core/sockets/BindingSocket.cpp.o	385788e05002b16b
 0	1495	1639661932000000000	CMakeFiles/webserver.dir/webserv_core/main.cpp.o	435315006f387e71
 1	1577	1639661932000000000	CMakeFiles/webserver.dir/webserv_core/utils/Request.cpp.o	e34ff08237cd67f3
-1481	2001	1639661932000000000	CMakeFiles/webserver.dir/webserv_core/servers/TestServer.cpp.o	76d4852a645f64a4
 2001	2118	1639661932000000000	webserver	b66880d62cb5c9cd
+1481	2001	1639661932000000000	CMakeFiles/webserver.dir/webserv_core/servers/TestServer.cpp.o	76d4852a645f64a4
