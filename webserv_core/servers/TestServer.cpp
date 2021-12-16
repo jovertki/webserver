@@ -3,9 +3,18 @@
 #include <string>
 #include "../resources/lex_defines.h"
 #include <fstream>
+#include <sstream>
 
 #define SERVER_DIR "/Users/jovertki/webserver_shared_repo/webserv_core/html"
 #define ERROR404FILE "./html/error404.html"
+
+
+
+
+const char* ft::TestServer::error_request_code::what() const throw(){
+	return ("error");
+}
+
 ft::TestServer::TestServer( char** envp ) : SimpleServer( AF_INET, SOCK_STREAM, 0, 80, INADDR_ANY, 10 ), envp( envp ) {
 	launch();
 }
@@ -147,13 +156,7 @@ void ft::TestServer::response_get() {
 	//read file to string
 	std::ifstream infile( SERVER_DIR + request.get_requested_url() );
 	if(!infile.is_open()) {
-		//error 404 handle, need to make it separete method with all the nuisances and put it everythere it is needed, 
-		//or even a general error handler with error code as argument
-			infile.open( ERROR404FILE );
-		if(!infile.is_open()) {
-			std::cout << "LULKEKW" << std::endl;
-		}
-		content_type = "text/html";
+		handle_errors( 404 );
 	}
 	std::string content( (std::istreambuf_iterator<char>( infile )),
 		(std::istreambuf_iterator<char>()) );
@@ -175,17 +178,60 @@ void ft::TestServer::responder() {
 		response_get();
 	else if(request.get_method() == POST)
 		response_post();
+}
 
+void ft::TestServer::handle_errors( int error_code ) {
+	std::string response;
+	std::ostringstream header;
+	std::ostringstream body;
 
+	body <<	"<!DOCTYPE html>" << std::endl << \
+		"<html lang=\"en\">" << std::endl << std::endl << \
+		"<head>" << std::endl << \
+		"<title>"<< error_code << " Error Page</title>" << std::endl << std::endl << \
+		"<meta charset=\"utf-8\">" << std::endl << \
+		"<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">" << std::endl << \
+		"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" << std::endl << \
+		"<!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->" << std::endl << std::endl << \
+		"<!-- Bootstrap -->" << std::endl << std::endl << \
+		"<link rel = \"stylesheet\" href = \"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css\">" << std::endl << std::endl << \
+		"<!-- Custom stlylesheet -->" << std::endl << \
+		"<link type=\"text/css\" rel=\"stylesheet\" href=\"css/style.css\" />" << std::endl << std::endl << \
+		"</head>" << std::endl << std::endl << \
+		"<body>" << std::endl << \
+		"<div class=\"vertical-center\">" << std::endl << \
+		"<div class=\"container\">" << std::endl << \
+		"<div id=\"notfound\" class=\"text-center\">" << std::endl << \
+		"<h1>😮</h1>"  <<std::endl << \
+		"<h1>" << error_code << "</h1>"  << std::endl << \
+		"<p> An error occured.</p>" << std::endl << \
+		"<a href=\"index.html\">Back to homepage</a>" << std::endl << \
+		"</div>" << std::endl << \
+		"</div>" << std::endl << \
+		"</div>" << std::endl << \
+		"</body>" << std::endl << \
+		"</html>" << std::endl;
+	
+	header << request.get_httpver() << " " << error_code << " " << "KO" << std::endl <<//<- needs elaboration
+		"Content-Type: text/html;" << std::endl << \
+		"Content-Length: " << body.str().size() << std::endl << std::endl;
+	response = header.str() + body.str();
+	write( new_socket, response.c_str(), response.size() );
+	std::cout << "RESPONSE IS \n" << response << "===end of response===" << std::endl;
+	close( new_socket );
+	throw (error_request_code());
 }
 
 void ft::TestServer::launch() {
 	while(true) {
 		std::cout << "waiting" << std::endl;
 		//poll will be here
-		accepter();
-		handler();
-		responder();
+		try {
+			accepter();
+			handler();
+			responder();
+		}
+		catch(error_request_code& e) {}
 		std::cout << "==== DONE ====" << std::endl;
 	}
 }
