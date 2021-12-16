@@ -15,7 +15,7 @@ void ft::TestServer::accepter() {
 	new_socket = accept( get_socket()->get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen );
 	long end = read( new_socket, buffer, 30000 );
 	buffer_s = buffer;
-	
+
 
 	//fix windows endlines
 	std::size_t n = buffer_s.find( (char)13 );
@@ -79,7 +79,7 @@ void ft::TestServer::response_post() {
 	{
 		std::cout << "Trying to execute " << request.get_requested_filename() << std::endl;
 		std::string filename = SERVER_DIR + request.get_requested_filename();
-		
+
 		if(execve( filename.c_str(), NULL, envp ) < 0)
 			std::cout << "ERRRPR" << std::endl;
 		exit( 234 );
@@ -123,7 +123,7 @@ void ft::TestServer::responder() {
 	else if(request.get_method() == POST)
 		response_post();
 
-	
+
 }
 
 void ft::TestServer::launch() {
