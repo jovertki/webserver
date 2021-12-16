@@ -5,6 +5,8 @@
 #include <fstream>
 #include <sstream>
 
+#include <sys/stat.h>
+
 #define SERVER_DIR "/Users/jovertki/webserver_shared_repo/webserv_core/html"
 #define ERROR404FILE "./html/error404.html"
 
@@ -87,7 +89,6 @@ void ft::TestServer::handler() {
 void ft::TestServer::response_post() {
 	std::cout << "========RESPONSE POST IS ACTIVE========" << std::endl;
 
-
 	char** my_envp = new char* [10];
 
 	std::string myWord = "REQUEST_METHOD=POST";
@@ -140,32 +141,39 @@ void ft::TestServer::response_post() {
 }
 
 void ft::TestServer::response_get() {
-	std::string hello;
-	//first response line
-	hello = hello + request.get_httpver() + " 200 OK\n";
 
-	//check if file exists
 	//check if rights are correct
 
 	//response header
 	if(request.get_requested_url() == "/")
 		request.set_requested_url("/index.html");
 
-	std::string content_type = request.get_content_type();
 
-	//read file to string
-	std::ifstream infile( SERVER_DIR + request.get_requested_url() );
-	if(!infile.is_open()) {
-		handle_errors( 404 );
+	std::string response;
+	if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS ON*/) {
+	//list contents
+		response = list_contents( SERVER_DIR + request.get_requested_url() );
 	}
-	std::string content( (std::istreambuf_iterator<char>( infile )),
-		(std::istreambuf_iterator<char>()) );
-	//write file to string
-	hello = hello + "Content-Type: " + content_type + ";\nContent-Length:" + std::to_string( content.size() ) + "\n\n" + content;
+	else {
+	//proceed with request
+		std::string content_type = request.get_content_type();
 
+		//read file to string
+		std::ifstream infile( SERVER_DIR + request.get_requested_url() );
+		if(!infile.is_open()) {
+			handle_errors( 404 );
+		}
+		std::string content( (std::istreambuf_iterator<char>( infile )),
+			(std::istreambuf_iterator<char>()) );
+
+		//first response line
+		response = response + request.get_httpver() + " 200 OK\n";
+		//write file to string
+		response = response + "Content-Type: " + content_type + ";\nContent-Length:" + std::to_string( content.size() ) + "\n\n" + content;
+	}
 	//write string to socket
-	write( new_socket, hello.c_str(), hello.size() );
-	std::cout << "RESPONSE IS \n" << hello << "===end of response===" << std::endl;
+	write( new_socket, response.c_str(), response.size() );
+	std::cout << "RESPONSE IS \n" << response << "===end of response===" << std::endl;
 	close( new_socket );
 }
 
@@ -180,6 +188,33 @@ void ft::TestServer::responder() {
 		response_post();
 }
 
+
+bool ft::TestServer::is_directory( const std::string& path )const {
+	struct stat s;
+	if(stat( path.c_str(), &s ) == 0)
+	{
+		if(s.st_mode & S_IFDIR)
+		{
+			//it's a directory
+			return 1;
+		}
+		else if(s.st_mode & S_IFREG)
+		{
+			//it's a file
+			return 0;
+		}
+		else
+		{
+			//something else
+			return 0;
+		}
+	}
+	else
+	{
+		//error
+	}
+	return 0;
+}
 void ft::TestServer::handle_errors( int error_code ) {
 	std::string response;
 	std::ostringstream header;
@@ -221,12 +256,42 @@ void ft::TestServer::handle_errors( int error_code ) {
 	close( new_socket );
 	throw (error_request_code());
 }
+std::string ft::TestServer::list_contents(const std::string& path)const {
+	std::string response;
+	std::ostringstream header;
+	std::ostringstream body;
 
+	body << "<!DOCTYPE html>" << std::endl << \
+		"<html lang=\"en\">" << std::endl << std::endl << \
+		"<head>" << std::endl << \
+		"<title>" << " Error Page</title>" << std::endl << std::endl << \
+		"<meta charset=\"utf-8\">" << std::endl << \
+		"<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">" << std::endl << \
+		"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" << std::endl << \
+		"<!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->" << std::endl << std::endl << \
+		"<!-- Bootstrap -->" << std::endl << std::endl << \
+		"<link rel = \"stylesheet\" href = \"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css\">" << std::endl << std::endl << \
+		"<!-- Custom stlylesheet -->" << std::endl << \
+		"<link type=\"text/css\" rel=\"stylesheet\" href=\"css/style.css\" />" << std::endl << std::endl << \
+		"</head>" << std::endl << std::endl << \
+		"<body>" << std::endl << \
+		"Contents " << std::endl << \
+
+		//open directory and list all the files here
+
+		"</body>" << std::endl << \
+		"</html>" << std::endl;
+
+	header << request.get_httpver() << " 200 " << "OK" << std::endl <<
+		"Content-Type: text/html;" << std::endl << \
+		"Content-Length: " << body.str().size() << std::endl << std::endl;
+	response = header.str() + body.str();
+}
 void ft::TestServer::launch() {
 	while(true) {
 		std::cout << "waiting" << std::endl;
-		//poll will be here
 		try {
+			//poll will be here
 			accepter();
 			handler();
 			responder();

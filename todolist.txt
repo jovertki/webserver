@@ -13,3 +13,4 @@ SERVER_DIR должен быть в конфиге
 генерация ответа
 
 автоиндекс
++general error handler

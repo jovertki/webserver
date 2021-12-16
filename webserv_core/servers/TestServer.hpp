@@ -17,6 +17,8 @@ namespace ft {
 		void handler();
 		void responder();
 
+		bool is_directory( const std::string& path )const;
+		std::string list_contents( const std::string& path )const;
 		void handle_errors( int error_code );
 		void response_post();
 		void response_get();
