@@ -5,7 +5,8 @@
 #include <fstream>
 
 #define SERVER_DIR "/Users/jovertki/webserver_shared_repo/webserv_core/html"
-ft::TestServer::TestServer(char **envp) : SimpleServer( AF_INET, SOCK_STREAM, 0, 80, INADDR_ANY, 10 ), envp(envp) {
+#define ERROR404FILE "./html/error404.html"
+ft::TestServer::TestServer( char** envp ) : SimpleServer( AF_INET, SOCK_STREAM, 0, 80, INADDR_ANY, 10 ), envp( envp ) {
 	launch();
 }
 
@@ -78,7 +79,7 @@ void ft::TestServer::response_post() {
 	std::cout << "========RESPONSE POST IS ACTIVE========" << std::endl;
 
 
-	char** my_envp = new char* [5];
+	char** my_envp = new char* [10];
 
 	std::string myWord = "REQUEST_METHOD=POST";
 	my_envp[0] = new char[myWord.size() + 1];
@@ -86,36 +87,49 @@ void ft::TestServer::response_post() {
 	myWord = "SERVER_PROTOCOL=HTTP/1.1";
 	my_envp[1] = new char[myWord.size() + 1];
 	strcpy( my_envp[1], myWord.c_str() );
-	myWord = "PATH_INFO=/Users/jovertki/webserver_shared_repo/webserv_core/html/add.cgi?num1=2&num2=5";
+	myWord = "PATH_INFO=/Users/jovertki/webserver_shared_repo/webserv_core/html/cgi_tester";
 	my_envp[2] = new char[myWord.size() + 1];
 	strcpy( my_envp[2], myWord.c_str() );
 	myWord = "PATH=/Users/jovertki/.brew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet:/usr/local/munk";
 	my_envp[3] = new char[myWord.size() + 1];
 	strcpy( my_envp[3], myWord.c_str() );
 
-	my_envp[4] = NULL;
+	myWord = "ARGS=" + request.get_args();
+	my_envp[4] = new char[myWord.size() + 1];
+	strcpy( my_envp[4], myWord.c_str() );
+	my_envp[5] = NULL;
 	
-
-
-	// int i = 0;
-	// for(; envp[i] != NULL; i++) {}
-	// std::string* str = new std::string( "REQUEST_METHOD=POST" );
-	// envp[i] = const_cast<char*>(str->c_str());
-	// envp[i + 1] = NULL;
-
-
-	
+	int fdpipe[2];
+	pipe( fdpipe );
 	int ret = fork();
 	if(ret == 0)
 	{
-		std::cout << "Trying to execute " << request.get_requested_filename() << std::endl;
+		dup2( fdpipe[1], 1 );
+		//std::cout << "Trying to execute " << request.get_requested_filename() << std::endl;
 		std::string filename = SERVER_DIR + request.get_requested_filename();
-		write( 0, (request.get_args()).c_str(), (request.get_args()).size() );
-		if(execve( filename.c_str(), NULL, my_envp ) < 0)
-			std::cout << "ERRRPR" << std::endl;
+		execve( filename.c_str(), NULL, my_envp );
+		std::cout << "ERRRPR" << std::endl;
 		exit( 234 );
 	}
+	else {
+		waitpid( ret, NULL, 0 );
+	}
+	char buff[30000] = { 0 };
+	int len = read( fdpipe[0], buff, 30000 ) - strlen( "Content-Type: text/html\n\n" );
+	close( fdpipe[0] );
+	close( fdpipe[1] );
+	std::cout << "BUFF IS " << buff << std::endl;
+	std::string out = request.get_httpver() + " 200 OK\n" + "Content-Length:" + std::to_string( len ) + "\n" + static_cast<std::string>(buff);
+	for(int i = 0; i < 6; i++) {
+		delete my_envp[i];
+	}
+	delete[] my_envp;
+
+	write( new_socket, out.c_str(), out.size() );
+	std::cout << "RESPONSE IS \n" << out << "===end of response===" << std::endl;
+	close( new_socket );
 }
+
 void ft::TestServer::response_get() {
 	std::string hello;
 	//first response line
@@ -132,9 +146,17 @@ void ft::TestServer::response_get() {
 
 	//read file to string
 	std::ifstream infile( SERVER_DIR + request.get_requested_url() );
+	if(!infile.is_open()) {
+		//error 404 handle, need to make it separete method with all the nuisances and put it everythere it is needed, 
+		//or even a general error handler with error code as argument
+			infile.open( ERROR404FILE );
+		if(!infile.is_open()) {
+			std::cout << "LULKEKW" << std::endl;
+		}
+		content_type = "text/html";
+	}
 	std::string content( (std::istreambuf_iterator<char>( infile )),
 		(std::istreambuf_iterator<char>()) );
-
 	//write file to string
 	hello = hello + "Content-Type: " + content_type + ";\nContent-Length:" + std::to_string( content.size() ) + "\n\n" + content;
 
