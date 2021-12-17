@@ -6,8 +6,12 @@ ft::SimpleSocket::SimpleSocket( int domain, int service, int protocol, int port,
 	address.sin_port = htons(port);
 	address.sin_addr.s_addr = htonl(interface);
 	//establish socket
-	sock = socket(domain, service, protocol);
-	//confirm the connection is successful
+	sock = socket( domain, service, protocol );
+
+	
+	int yes = 1;//no idea how this works
+	setsockopt( sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof( yes ) );
+	//confirm the connection to be successful
 	test_connection(sock);
 }
 

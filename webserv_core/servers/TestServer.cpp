@@ -296,12 +296,6 @@ std::string ft::TestServer::list_contents(const std::string& path)const {
 		/* could not open directory */
 	}
 	
-	//DIR* opendir( path.c_str() );
-	
-
-	//	body << "<a href=\"error404.html\">link text</a>" << std::endl << \
-		//open directory and list all the files here
-
 	body <<	"</body>" << std::endl << \
 		"</html>" << std::endl;
 
