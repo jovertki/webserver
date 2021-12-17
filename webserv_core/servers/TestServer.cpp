@@ -4,7 +4,8 @@
 #include "../resources/lex_defines.h"
 #include <fstream>
 #include <sstream>
-
+#include <sys/types.h>
+#include <dirent.h>
 #include <sys/stat.h>
 
 #define SERVER_DIR "/Users/jovertki/webserver_shared_repo/webserv_core/html"
@@ -240,7 +241,7 @@ void ft::TestServer::handle_errors( int error_code ) {
 		"<h1>😮</h1>"  <<std::endl << \
 		"<h1>" << error_code << "</h1>"  << std::endl << \
 		"<p> An error occured.</p>" << std::endl << \
-		"<a href=\"index.html\">Back to homepage</a>" << std::endl << \
+		"<a href=\"/index.html\">Back to homepage</a>" << std::endl << \
 		"</div>" << std::endl << \
 		"</div>" << std::endl << \
 		"</div>" << std::endl << \
@@ -264,7 +265,7 @@ std::string ft::TestServer::list_contents(const std::string& path)const {
 	body << "<!DOCTYPE html>" << std::endl << \
 		"<html lang=\"en\">" << std::endl << std::endl << \
 		"<head>" << std::endl << \
-		"<title>" << " Error Page</title>" << std::endl << std::endl << \
+		"<title>Folder contents</title>" << std::endl << std::endl << \
 		"<meta charset=\"utf-8\">" << std::endl << \
 		"<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">" << std::endl << \
 		"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" << std::endl << \
@@ -272,20 +273,43 @@ std::string ft::TestServer::list_contents(const std::string& path)const {
 		"<!-- Bootstrap -->" << std::endl << std::endl << \
 		"<link rel = \"stylesheet\" href = \"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css\">" << std::endl << std::endl << \
 		"<!-- Custom stlylesheet -->" << std::endl << \
-		"<link type=\"text/css\" rel=\"stylesheet\" href=\"css/style.css\" />" << std::endl << std::endl << \
+		"<link type=\"text/css\" rel=\"stylesheet\" href=\"/css/listing.css\" />" << std::endl << std::endl << \
 		"</head>" << std::endl << std::endl << \
 		"<body>" << std::endl << \
-		"Contents " << std::endl << \
+		"<h1>Contents\n\n</h1> " << std::endl;
 
+
+	DIR* dir;
+	struct dirent* ent;
+	if((dir = opendir( path.c_str() )) != NULL) {
+		/* print all the files and directories within directory */
+		ent = readdir( dir );
+		while((ent = readdir( dir )) != NULL) {
+			body << "<a href=\"" << request.get_requested_url();
+			if(request.get_requested_url()[request.get_requested_url().size() - 1] != '/')
+				body << "/";
+			body << ent->d_name << "\">" << ent->d_name << "</a><br>";
+		}
+		closedir( dir );
+	}
+	else {
+		/* could not open directory */
+	}
+	
+	//DIR* opendir( path.c_str() );
+	
+
+	//	body << "<a href=\"error404.html\">link text</a>" << std::endl << \
 		//open directory and list all the files here
 
-		"</body>" << std::endl << \
+	body <<	"</body>" << std::endl << \
 		"</html>" << std::endl;
 
 	header << request.get_httpver() << " 200 " << "OK" << std::endl <<
 		"Content-Type: text/html;" << std::endl << \
 		"Content-Length: " << body.str().size() << std::endl << std::endl;
 	response = header.str() + body.str();
+	return response;
 }
 void ft::TestServer::launch() {
 	while(true) {
