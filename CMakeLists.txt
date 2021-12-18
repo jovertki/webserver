@@ -16,4 +16,4 @@ add_executable(webserver webserv_core/main.cpp
         webserv_core/sockets/SimpleSocket.hpp
         webserv_core/servers/SimpleServer.hpp
         webserv_core/servers/TestServer.hpp
-        )
+        webserv_core/config_parser/Server_info.cpp webserv_core/config_parser/Server_info.hpp webserv_core/config_parser/Config_info.cpp webserv_core/config_parser/Config_info.hpp)
