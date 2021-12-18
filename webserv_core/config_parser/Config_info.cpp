@@ -42,7 +42,7 @@ void Config_info::makeTokens(std::ifstream& input) {
         std::cout << "Error config: empty file!" << std::endl;
         exit(-1); // make some smart stuff
     }
-    else if (tokens.size() < 3) {
+    else if (tokens.size() < 3) {  // how many minimum?
         std::cout << "Error config: empty file!" << std::endl;
         exit(-1); // make some smart stuff
     }
@@ -56,7 +56,7 @@ void Config_info::find_servers() {
         iter = tokens.begin() + 1;
         while (iter != tokens.end() && *iter != "server")
             ++iter;
-        servers.push_back(Server_info(tokens.begin(), iter));
+        servers.push_back(Server_info(tokens.begin(), iter)); // нужно отправить отдельный вектор, чтобы в конце проверять его на пустоту
         tokens.erase(tokens.begin(), iter);
     }
 }
