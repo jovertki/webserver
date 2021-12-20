@@ -12,5 +12,5 @@ int main(int argc, char** argv, char **envp) {
         std::cout << "Wrong arguments" << std::endl;
         exit(-1);
     }
-	ft::TestServer t(envp);
+//	ft::TestServer t(envp);
 }

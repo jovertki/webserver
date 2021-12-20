@@ -3,13 +3,16 @@ SRC		= $(wildcard *.cpp)
 SERV 	= $(wildcard servers/*.cpp)
 SOCK 	= $(wildcard sockets/*.cpp)
 UTIL	= $(wildcard utils/*.cpp)
+CONF	= $(wildcard config_parser/*.cpp)
 
 HDR		= $(wildcard *.hpp)
 
 OBJ		= $(patsubst %.cpp, obj/%.o,$(SRC)) \
 		  $(patsubst %.cpp, obj/%.o,$(SERV)) \
 		  $(patsubst %.cpp, obj/%.o,$(SOCK)) \
-		  $(patsubst %.cpp, obj/%.o,$(UTIL))
+		  $(patsubst %.cpp, obj/%.o,$(UTIL)) \
+		  $(patsubst %.cpp, obj/%.o,$(CONF))
+
 DEP		= $(patsubst %.o, %.d,$(OBJ))
 CFLAGS	= -g -std=c++98
 #CFLAGS	= -Wall -Werror -Wextra -Wshadow -Wno-shadow -std=c++98
@@ -37,6 +40,7 @@ obj:
 	mkdir -p obj/servers
 	mkdir -p obj/sockets
 	mkdir -p obj/utils
+	mkdir -p obj/config_parser
 
 clean:
 	$(RM) $(DEP)
@@ -44,6 +48,7 @@ clean:
 	rmdir obj/servers
 	rmdir obj/sockets
 	rmdir obj/utils
+	rmdir obj/config_parser
 	rmdir obj
 
 fclean: clean

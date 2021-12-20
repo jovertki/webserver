@@ -7,11 +7,13 @@
 class Config_info {
 private:
     std::vector<Server_info> servers;
-    std::vector<std::string> tokens;
+//    std::vector<std::string> tokens;
 public:
     Config_info(const char* arg);
     ~Config_info() {};
 private:
-    void find_servers();
-    void makeTokens(std::ifstream& input);
+    void find_servers(std::vector<std::string>& lines);
+    void make_tokens(std::ifstream& input);
+    std::vector<std::string> make_lines(std::ifstream& input);
+    void delete_lines();
 };
