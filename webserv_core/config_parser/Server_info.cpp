@@ -1,7 +1,7 @@
 #include "Server_info.hpp"
 
 Server_info::Server_info(std::vector<std::string> tokens) : listen(), name(), root(), autoindex(true),
-                         methods(), error_page(), cgi() {
+                         methods(), error_page(), body_size(), cgi() {
     std::cout << "Server :" << std::endl; // delete
     for (std::vector<std::string>::iterator iter = tokens.begin(); iter != tokens.end(); ++iter)
         std::cout << *iter << std::endl; // delete

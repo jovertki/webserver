@@ -13,7 +13,7 @@ public:
     ~Config_info() {};
 private:
     void find_servers(std::vector<std::string>& lines);
-    void make_tokens(std::ifstream& input);
+    std::vector<std::string> make_tokens(std::ifstream& input);
     std::vector<std::string> make_lines(std::ifstream& input);
     void delete_lines();
 };

@@ -11,6 +11,7 @@ private:
     bool autoindex;
     std::vector<int> methods; // ?? enum
     std::map<int, std::string> error_page;
+    int body_size;
     std::map<std::string, std::string> cgi;
 //    std::map<std::string, Location_info> locations; // make it
 public:
