@@ -1,9 +1,12 @@
-Thinvbgs to discuss:
+Things to discuss:
 
-
-
-
-
-Kamil:
 Emil:
+
+body_size проверка на дублирование
+autoindex
+
+перенос строк
+дулирование функций
+функц поле или класс UTILS
+
 Pasha:

@@ -34,7 +34,7 @@ Config_info::Config_info(const char* arg) : servers() {
 //    return lines;
 //    for (std::vector<std::string>::iterator iter = tokens.begin(); iter != tokens.end(); ++iter)
 //        std::cout << *iter << std::endl; // delete
-}
+//}
 
 //void Config_info::find_servers(std::vector<std::string>& lines) {
 //    std::vector<std::string>::iterator iter;
@@ -65,17 +65,15 @@ std::vector<std::string> Config_info::make_tokens(std::ifstream& input) {
     std::string oneToken;
     std::vector<std::string> tokens;
     char c;
-//    std::cout << oneToken << " Onetoken" << std::endl; // delete
     while (input.good())
     {
         c = input.get();
-//        std::cout << ((int)c) << " last token "<< std::endl; // delete
         if (std::isspace(c) || c == ';' || c == '\n' || c == EOF) {
            if (!oneToken.empty()) {
                tokens.push_back(std::string(oneToken));
                oneToken.clear();
            }
-           if (c == ';') // exclude/include  ';' ? // delete
+           if (c == ';')
                tokens.push_back(std::string(&c, 1));
         }
         else if (c == '#')
@@ -85,17 +83,9 @@ std::vector<std::string> Config_info::make_tokens(std::ifstream& input) {
     }
 //    for (std::vector<std::string>::iterator iter = tokens.begin(); iter != tokens.end(); ++iter)
 //        std::cout << *iter << std::endl; // delete
-    if (c != EOF) {
-        std::cout << "Error config: EOF not reached!" << std::endl;
-        exit(-1); // make some smart stuff
-    }
-    else if (tokens.empty()) {
-        std::cout << "Error config: empty file!" << std::endl;
-        exit(-1); // make some smart stuff
-    }
-    else if (tokens.size() < 3) {  // how many minimum? check it here?
-        std::cout << "Error config: empty file!" << std::endl;
-        exit(-1); // make some smart stuff
+    if (c != EOF || tokens.empty() || tokens.size() < 3) {
+        std::cout << "Error config!" << std::endl;
+        exit(-1); // make exeption
     }
     else
         input.close();

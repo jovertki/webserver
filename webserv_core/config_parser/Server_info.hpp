@@ -2,11 +2,12 @@
 #include <vector>
 #include <iostream>
 #include <map>
+#include <sstream>
 
 class Server_info {
 private:
     std::vector<int> listen;
-    std::string name;
+    std::string serv_name;
     std::string root;
     bool autoindex;
     std::vector<int> methods; // ?? enum
@@ -19,13 +20,14 @@ public:
 
 private:
     void find_values(std::vector<std::string>& tokens);
-    void find_listen(std::vector<std::string>& tokens);
-    void find_name(std::vector<std::string>& tokens);
-    void find_root(std::vector<std::string>& tokens);
-    void find_autoindex(std::vector<std::string>& tokens);
-    void find_methods(std::vector<std::string>& tokens);
-    void find_error_page(std::vector<std::string>& tokens);
-    void find_cgi(std::vector<std::string>& tokens);
-    void find_locations(std::vector<std::string>& tokens);
+    void find_listen(std::vector<std::string>::iterator& iter, std::vector<std::string>::iterator& end);
+    void find_serv_name(std::vector<std::string>::iterator& iter, std::vector<std::string>::iterator& end);
+    void find_root(std::vector<std::string>::iterator& iter, std::vector<std::string>::iterator& end);
+    void find_autoindex(std::vector<std::string>::iterator& iter, std::vector<std::string>::iterator& end);
+    void find_methods(std::vector<std::string>::iterator& iter, std::vector<std::string>::iterator& end);
+    void find_error_page(std::vector<std::string>::iterator& iter, std::vector<std::string>::iterator& end);
+    void find_body_size(std::vector<std::string>::iterator& iter, std::vector<std::string>::iterator& end);
+    void find_cgi(std::vector<std::string>::iterator& iter, std::vector<std::string>::iterator& end);
+    void find_locations(std::vector<std::string>::iterator& iter, std::vector<std::string>::iterator& end);
 
 };
