@@ -1,16 +1,20 @@
 #pragma once
-#include <vector>
-#include <iostream>
-#include <map>
-#include <sstream>
+#include "Utils_parse_config.hpp"
+
+enum methods {
+    GET,
+    POST,
+    DELETE,
+    PUT
+};
 
 class Server_info {
 private:
     std::vector<int> listen;
-    std::string serv_name;
+    std::vector<std::string> serv_name;
     std::string root;
     bool autoindex;
-    std::vector<int> methods; // ?? enum
+    std::vector<methods> methods; // ?? enum
     std::map<int, std::string> error_page;
     int body_size;
     std::map<std::string, std::string> cgi;

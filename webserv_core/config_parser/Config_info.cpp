@@ -92,9 +92,6 @@ std::vector<std::string> Config_info::make_tokens(std::ifstream& input) {
     return tokens;
 }
 
-
-
-//
 void Config_info::find_servers(std::vector<std::string>& tokens) {
     std::vector<std::string>::iterator iter;
     while (tokens.size()) {
