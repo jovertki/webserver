@@ -10,7 +10,7 @@ namespace ft {
 			virtual const char* what() const throw();
 		};
 		char** envp;
-		char buffer[30000] = {0};
+		char buffer[30001] = {0};
 		int new_socket;
 		std::string buffer_s;
 		Request request;

@@ -24,10 +24,17 @@ void ft::TestServer::accepter() {
 	struct sockaddr_in address = get_socket()->get_address();
 	int addrlen = sizeof( address );
 	new_socket = accept( get_socket()->get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen );
+
+	std::ofstream last_request( "last_request.txt" );
+	if(last_request.is_open())
+		std::cout << "open" << std::endl;
 	long end;
-	end = read( new_socket, buffer, 30000 );
-	if(end != 0)
-		buffer[end] = '\0';
+
+	for(end = 1; end > 0; end = read( new_socket, buffer, 30000 )){
+		if(end != 0)
+			buffer[end] = '\0';
+		last_request << buffer;
+	}
 	buffer_s = buffer;
 
 
