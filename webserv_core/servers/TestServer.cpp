@@ -10,12 +10,13 @@
 #include <sys/wait.h>
 #include <cstdio>
 
+#include <errno.h>
 
 const char* ft::TestServer::error_request_code::what() const throw(){
 	return ("error");
 }
 
-ft::TestServer::TestServer( char** envp ) : SimpleServer( AF_INET, SOCK_STREAM, 0, 8080, INADDR_ANY, 10 ), envp( envp ) {
+ft::TestServer::TestServer( char** envp ) : SimpleServer( AF_INET, SOCK_STREAM, 0, 4242, INADDR_ANY, 10 ), envp( envp ) {
 	launch();
 }
 
@@ -23,25 +24,24 @@ void ft::TestServer::accepter() {
 	struct sockaddr_in address = get_socket()->get_address();
 	int addrlen = sizeof( address );
 	new_socket = accept( get_socket()->get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen );
-	long end = read( new_socket, buffer, 30000 );
+	long end;
+	end = read( new_socket, buffer, 30000 );
 	if(end != 0)
 		buffer[end] = '\0';
 	buffer_s = buffer;
 
 
 	//fix windows endlines
-	std::size_t n = buffer_s.find( (char)13 );
-	while(n != std::string::npos) {
-		buffer_s.replace( n, 1, "" );
-		n = buffer_s.find( (char)13 );
-	}
+	// std::size_t n = buffer_s.find( (char)13 );
+	// while(n != std::string::npos) {
+	// 	buffer_s.replace( n, 1, "" );
+	// 	n = buffer_s.find( (char)13 );
+	// }
 }
 
 void ft::TestServer::handler() {
 	std::cout << "buffer is \n" << buffer_s << std::endl;
-	std::cout << "first is \"" << buffer_s[0] << "\"" << std::endl;
 	std::string line = buffer_s.substr( 0, buffer_s.find( "\n" ) );
-	std::cout << "line is \n" << line << std::endl;
 
 	//HTTP request parser
 	//find method
@@ -72,13 +72,13 @@ void ft::TestServer::handler() {
 	std::cout << "URL is |" << request.get_requested_url() << "|" << std::endl;
 
 	//find httpver
-	request.set_httpver( line.substr( new_endline + 1, line.size() - (new_endline + 1) ) );
+	request.set_httpver( line.substr( new_endline + 1, line.size() - (new_endline + 2) ) );
 	std::cout << "HTTPVER is |" << request.get_httpver() << "|" << std::endl;
 
 
 	//find body
-	if(buffer_s.find( "\n\n", 0, 2 ) != std::string::npos)
-		request.set_body( buffer_s.substr( buffer_s.find( "\n\n" ) + 2 ) );
+	if(buffer_s.find( "\r\n\r\n") != std::string::npos)
+		request.set_body( buffer_s.substr( buffer_s.find( "\r\n\r\n" ) + 4 ) );
 	std::cout << "BODY is |" << request.get_body() << "|" << std::endl;
 
 	//set args to body if method is POST
@@ -105,11 +105,17 @@ void ft::TestServer::response_POST() {
 	my_envp[3] = new char[myWord.size() + 1];
 	strcpy( my_envp[3], myWord.c_str() );
 
-	myWord = "ARGS=" + request.get_args();
+	myWord = "SOCKET=" + std::to_string( new_socket );
 	my_envp[4] = new char[myWord.size() + 1];
 	strcpy( my_envp[4], myWord.c_str() );
-	my_envp[5] = NULL;
 	
+	myWord = "ARGS=" + request.get_args() + "\0";
+	my_envp[5] = new char[myWord.size() + 1];
+	strcpy( my_envp[5], myWord.c_str() );
+
+	
+	my_envp[6] = NULL;
+
 	int fdpipe[2];
 	pipe( fdpipe );
 	int ret = fork();
@@ -117,9 +123,10 @@ void ft::TestServer::response_POST() {
 	{
 		dup2( fdpipe[1], 1 );
 		//std::cout << "Trying to execute " << request.get_requested_filename() << std::endl;
-		std::string filename = SERVER_DIR + request.get_requested_filename();
+		std::string filename = SERVER_DIR + request.get_requested_url();
 		execve( filename.c_str(), NULL, my_envp );
 		std::cout << "ERRRPR" << std::endl;
+		std::cout << strerror( errno ) << std::endl;
 		exit( 234 );
 	}
 	else {
@@ -137,7 +144,7 @@ void ft::TestServer::response_POST() {
 	delete[] my_envp;
 
 	write( new_socket, out.c_str(), out.size() );
-	std::cout << "RESPONSE IS \n" << out << "===end of response===" << std::endl;
+	std::cout << "RESPONSE IS \n" << out << "\n===end of response===" << std::endl;
 	close( new_socket );
 }
 
@@ -174,7 +181,7 @@ void ft::TestServer::response_GET() {
 	}
 	//write string to socket
 	write( new_socket, response.c_str(), response.size() );
-	std::cout << "RESPONSE IS \n" << response << "===end of response===" << std::endl;
+	std::cout << "RESPONSE IS \n" << response << "\n===end of response===" << std::endl;
 	close( new_socket );
 }
 
@@ -196,7 +203,7 @@ void ft::TestServer::response_DELETE() {
 	}
 	response = sresponse.str();
 	write( new_socket, response.c_str(), response.size() );
-	std::cout << "RESPONSE IS \n" << response << "===end of response===" << std::endl;
+	std::cout << "RESPONSE IS \n" << response << "\n===end of response===" << std::endl;
 	close( new_socket );
 }
 
