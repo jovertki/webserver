@@ -2,6 +2,7 @@
 #include <string>
 #include "../utils/Request.hpp"
 #include <exception>
+#include "../resources/defines.hpp"
 namespace ft {
 	class TestServer : public SimpleServer {
 	private:
@@ -20,8 +21,9 @@ namespace ft {
 		bool is_directory( const std::string& path )const;
 		std::string list_contents( const std::string& path )const;
 		void handle_errors( int error_code );
-		void response_post();
-		void response_get();
+		void response_POST();
+		void response_GET();
+		void response_DELETE();
 	public:
 		TestServer(char **envp);
 		void launch();

@@ -12,7 +12,7 @@ ft::SimpleSocket::SimpleSocket( int domain, int service, int protocol, int port,
 	int yes = 1;//no idea how this works
 	setsockopt( sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof( yes ) );
 	//confirm the connection to be successful
-	test_connection(sock);
+	test_connection( sock );
 }
 
 void ft::SimpleSocket::test_connection( int item_to_test){

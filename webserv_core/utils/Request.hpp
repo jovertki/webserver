@@ -1,5 +1,5 @@
 #include <string>
-
+#include "../resources/defines.hpp"
 namespace ft {
 	class Request {
 	private:

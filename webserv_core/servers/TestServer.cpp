@@ -7,18 +7,15 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <sys/stat.h>
-
-#define SERVER_DIR "/Users/jovertki/webserver_shared_repo/webserv_core/html"
-#define ERROR404FILE "./html/error404.html"
-
-
+#include <sys/wait.h>
+#include <cstdio>
 
 
 const char* ft::TestServer::error_request_code::what() const throw(){
 	return ("error");
 }
 
-ft::TestServer::TestServer( char** envp ) : SimpleServer( AF_INET, SOCK_STREAM, 0, 80, INADDR_ANY, 10 ), envp( envp ) {
+ft::TestServer::TestServer( char** envp ) : SimpleServer( AF_INET, SOCK_STREAM, 0, 8080, INADDR_ANY, 10 ), envp( envp ) {
 	launch();
 }
 
@@ -55,6 +52,9 @@ void ft::TestServer::handler() {
 	else if(line.substr( 0, endline ) == "POST") {
 		request.set_method( POST );
 	}
+	else if(line.substr( 0, endline ) == "DELETE") {
+		request.set_method( DELETE );
+	}
 	std::cout << "Method is " << request.get_method() << std::endl;
 
 
@@ -87,7 +87,7 @@ void ft::TestServer::handler() {
 	}
 	std::cout << "ARGS is |" << request.get_args() << "|" << std::endl;
 }
-void ft::TestServer::response_post() {
+void ft::TestServer::response_POST() {
 	std::cout << "========RESPONSE POST IS ACTIVE========" << std::endl;
 
 	char** my_envp = new char* [10];
@@ -141,7 +141,7 @@ void ft::TestServer::response_post() {
 	close( new_socket );
 }
 
-void ft::TestServer::response_get() {
+void ft::TestServer::response_GET() {
 
 	//check if rights are correct
 
@@ -178,15 +178,41 @@ void ft::TestServer::response_get() {
 	close( new_socket );
 }
 
+void ft::TestServer::response_DELETE() {
+
+	//do smth
+	// if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS ON*/) {
+	// 	//list contents
+	// 	response = list_contents( SERVER_DIR + request.get_requested_url() );
+	// }
+	
+	std::string response;
+	std::ostringstream sresponse;
+	if(std::remove( (SERVER_DIR + request.get_requested_url()).c_str() ) < 0) {
+		//error
+	}
+	else {
+		sresponse << "HTTP/1.1 200 OK\n\nFile " << request.get_requested_url() << " was successfully DELETED" << std::endl;
+	}
+	response = sresponse.str();
+	write( new_socket, response.c_str(), response.size() );
+	std::cout << "RESPONSE IS \n" << response << "===end of response===" << std::endl;
+	close( new_socket );
+}
+
 void ft::TestServer::responder() {
 
 
 	//pack appropriate stuff to GET_RESPONSE function
 	//create a responder for every request-type
+
+	//check availability of method in location
 	if(request.get_method() == GET)
-		response_get();
+		response_GET();
 	else if(request.get_method() == POST)
-		response_post();
+		response_POST();
+	else if(request.get_method() == DELETE)
+		response_DELETE();
 }
 
 
