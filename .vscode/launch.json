@@ -4,9 +4,9 @@
 			"type": "lldb",
 			"request": "launch",
 			"name": "Launch",
-			"program": "/Users/jovertki/webserver_shared_repo/webserv_core/webserv",
+			"program": "/home/jovertki/webserver/webserv_core/webserv",
 			"args": [],
-			"cwd": "${workspaceFolder}"
+			"cwd": "${workspaceFolder}/webserv_core"
 		}
 	]
 }

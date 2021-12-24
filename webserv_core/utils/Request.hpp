@@ -8,11 +8,11 @@ namespace ft {
 		std::string httpver;
 		std::string body;
 		std::string args;
+		std::string get_requested_filename() const;
 	public:
 		int get_method() const;
 		std::string get_requested_url() const;
 		std::string get_httpver() const;
-		std::string get_requested_filename() const;
 		std::string get_requested_url_extention() const;
 		std::string get_content_type() const;
 		std::string get_body() const;
