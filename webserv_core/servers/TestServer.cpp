@@ -30,12 +30,15 @@ void ft::TestServer::accepter() {
 		std::cout << "open" << std::endl;
 	long end;
 
-	for(end = 1; end > 0; end = read( new_socket, buffer, 30000 )){
+
+	while((end = read( new_socket, buffer, 30000 )) > 0){
 		if(end != 0)
 			buffer[end] = '\0';
 		last_request << buffer;
+		buffer_s += buffer;
+		if(end < 30000)
+			break;
 	}
-	buffer_s = buffer;
 
 
 	//fix windows endlines
