@@ -29,27 +29,27 @@ void Server_info::find_values(std::vector<std::string>& tokens) {
             root_check = false;
         }
         else if (*iter == "autoindex" && *(iter + 2) == ";" && autoind_check) {
-            find_autoindex(++iter, end);
+            autoindex = find_autoindex(++iter, end);
             autoind_check = false;
         }
         else if (*iter == "allow_methods" && methods_check) {
-            find_methods(++iter, end);
+            methods = find_methods(++iter, end);
             methods_check = false;
         }
         else if (*iter == "error_page" && *(iter + 3) == ";")
             find_error_page(++iter, end);
         else if (*iter == "body_size" && *(iter + 2) == ";" && size_check) {
-            find_body_size(++iter, end);
+            body_size = find_int(++iter, end);
             size_check = false;
         }
         else if (*iter == "cgi" && *(iter + 3) == ";")
             find_cgi(++iter, end);
-//      else if (*iter == "location" && *(iter + 2) == "{")
-//    find_locations(++iter, end);
-//      else {
-//          std::cout << "Config error Server_info::find_values !" << std::endl; // delete
-//          exit(-1); // make smart
-//    }
+        else if (*iter == "location" && *(iter + 2) == "{")
+            find_locations(++iter, end);
+        else {
+          std::cout << "Config error Server_info::find_values !" << std::endl; // delete
+          exit(-1); // make smart
+        }
     }
     if (*iter != "}") {
         std::cout << "Config error Server_info::find_values!" << std::endl; // delete
@@ -87,14 +87,14 @@ void Server_info::find_serv_name(std::vector<std::string>::iterator& iter,
     " iter = " << *iter  << std::endl; // delete
 }
 
-void Server_info::find_body_size(std::vector<std::string>::iterator& iter,
-                                 std::vector<std::string>::iterator& end) {
+int Server_info::find_int(std::vector<std::string>::iterator& iter,
+                          std::vector<std::string>::iterator& end) {
     int res;
 
     res = utils::str_to_num(*iter);
-    body_size = res;
     iter += 2;
     std::cout << "result body_size = " << res << " iter = " << *iter  << std::endl; // delete
+    return res;
 }
 
 void Server_info::find_root(std::vector<std::string>::iterator& iter,
@@ -110,39 +110,42 @@ void Server_info::find_root(std::vector<std::string>::iterator& iter,
 }
 
 
-void Server_info::find_autoindex(std::vector<std::string>::iterator& iter,
+bool Server_info::find_autoindex(std::vector<std::string>::iterator& iter,
                                  std::vector<std::string>::iterator& end) {
+    bool result;
     if (*iter == "on")
-        autoindex = false;
+        result = false;
     else if(*iter == "off")
-        autoindex = true;
+        result = true;
     else {
         std::cout << "Config error Server_info::autoindex !" << std::endl; // delete
         exit(-1); // make smart
     }
     iter += 2;
+    return result;
 }
 
-void Server_info::find_methods(std::vector<std::string>::iterator& iter,
+std::vector<method> Server_info::find_methods(std::vector<std::string>::iterator& iter,
                                std::vector<std::string>::iterator& end) {
     bool get_check, post_check, del_check, put_check;
+    std::vector<method> result;
 
     get_check = post_check = del_check = put_check = true;
     while (iter + 1 < end && *iter != ";") {
         if (*iter == "GET" && get_check) {
-            methods.push_back(GET);
+            result.push_back(GET);
             get_check = false;
         }
         else if(*iter == "POST" && post_check) {
-            methods.push_back(POST);
+            result.push_back(POST);
             post_check = false;
         }
         else if(*iter == "DELETE" && del_check) {
-            methods.push_back(DELETE);
+            result.push_back(DELETE);
             del_check = false;
         }
         else if(*iter == "PUT" && put_check) {
-            methods.push_back(PUT);
+            result.push_back(PUT);
             put_check = false;
         }
         else {
@@ -152,8 +155,9 @@ void Server_info::find_methods(std::vector<std::string>::iterator& iter,
         ++iter;
     }
     ++iter;
-    for (int i = 0; methods.begin() + i != methods.end(); ++i)
+    for (int i = 0; result.begin() + i != result.end(); ++i)
         std::cout << "method find n " << i << std::endl;
+    return result;
 }
 
 void Server_info::find_error_page(std::vector<std::string>::iterator& iter,
@@ -183,3 +187,42 @@ void Server_info::find_cgi(std::vector<std::string>::iterator& iter,
     iter += 2;
     std::cout << "cgi[*iter] " << cgi[key] << " iter = " << *iter << std::endl;
 }
+
+void Server_info::find_locations(std::vector<std::string>::iterator& iter,
+                           std::vector<std::string>::iterator& end) {
+    std::string locationName = *iter;
+    bool autoind_check, methods_check, size_check;
+
+    autoind_check = methods_check = size_check = true;
+    if (locations.find(locationName) != locations.end() || *(iter + 1) != "{") {
+        std::cout << "Config error Server_info::duplicate locations!" << std::endl; // delete
+        exit(-1); // make smart
+    }
+    iter += 2;
+    while (iter + 2 < end && *iter != "}") {
+        if (*iter == "body_size" && *(iter + 2) == ";" && size_check) {
+            locations[locationName].body_size = find_int(++iter, end);
+            size_check = false;
+        }
+        else if (*iter == "allow_methods" && methods_check) {
+            locations[locationName].methods = find_methods(++iter, end);
+            methods_check = false;
+        }
+        else if (*iter == "autoindex" && *(iter + 2) == ";" && autoind_check) {
+            locations[locationName].autoindex = find_autoindex(++iter, end);
+            autoind_check = false;
+        }
+        else if (*iter == "return" && *(iter + 2) == ";" && locations[locationName].ret_num == -1)
+            locations[locationName].ret_num = find_int(++iter, end);
+        else {
+            std::cout << "Config error Locations parse!" << std::endl; // delete
+            exit(-1); // make smart
+        }
+    }
+    if (*iter != "}") {
+        std::cout << "Config error Locations!" << std::endl; // delete
+        exit(-1); // make smart
+    }
+    iter++;
+}
+

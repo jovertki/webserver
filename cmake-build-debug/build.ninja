@@ -126,6 +126,18 @@ build CMakeFiles/webserver.dir/webserv_core/config_parser/Config_info.cpp.o: CXX
   OBJECT_DIR = CMakeFiles/webserver.dir
   OBJECT_FILE_DIR = CMakeFiles/webserver.dir/webserv_core/config_parser
 
+build CMakeFiles/webserver.dir/webserv_core/config_parser/Utils_parse_config.cpp.o: CXX_COMPILER__webserver_Debug /Users/mdewayne/Desktop/CLionProjects/webserver/webserv_core/config_parser/Utils_parse_config.cpp || cmake_object_order_depends_target_webserver
+  DEP_FILE = CMakeFiles/webserver.dir/webserv_core/config_parser/Utils_parse_config.cpp.o.d
+  FLAGS = -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -mmacosx-version-min=10.14 -std=gnu++98
+  OBJECT_DIR = CMakeFiles/webserver.dir
+  OBJECT_FILE_DIR = CMakeFiles/webserver.dir/webserv_core/config_parser
+
+build CMakeFiles/webserver.dir/webserv_core/config_parser/Location_info.cpp.o: CXX_COMPILER__webserver_Debug /Users/mdewayne/Desktop/CLionProjects/webserver/webserv_core/config_parser/Location_info.cpp || cmake_object_order_depends_target_webserver
+  DEP_FILE = CMakeFiles/webserver.dir/webserv_core/config_parser/Location_info.cpp.o.d
+  FLAGS = -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -mmacosx-version-min=10.14 -std=gnu++98
+  OBJECT_DIR = CMakeFiles/webserver.dir
+  OBJECT_FILE_DIR = CMakeFiles/webserver.dir/webserv_core/config_parser
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target webserver
@@ -134,7 +146,7 @@ build CMakeFiles/webserver.dir/webserv_core/config_parser/Config_info.cpp.o: CXX
 #############################################
 # Link the executable webserver
 
-build webserver: CXX_EXECUTABLE_LINKER__webserver_Debug CMakeFiles/webserver.dir/webserv_core/main.cpp.o CMakeFiles/webserver.dir/webserv_core/utils/Request.cpp.o CMakeFiles/webserver.dir/webserv_core/sockets/BindingSocket.cpp.o CMakeFiles/webserver.dir/webserv_core/sockets/ListeningSocket.cpp.o CMakeFiles/webserver.dir/webserv_core/sockets/SimpleSocket.cpp.o CMakeFiles/webserver.dir/webserv_core/servers/SimpleServer.cpp.o CMakeFiles/webserver.dir/webserv_core/servers/TestServer.cpp.o CMakeFiles/webserver.dir/webserv_core/config_parser/Server_info.cpp.o CMakeFiles/webserver.dir/webserv_core/config_parser/Config_info.cpp.o
+build webserver: CXX_EXECUTABLE_LINKER__webserver_Debug CMakeFiles/webserver.dir/webserv_core/main.cpp.o CMakeFiles/webserver.dir/webserv_core/utils/Request.cpp.o CMakeFiles/webserver.dir/webserv_core/sockets/BindingSocket.cpp.o CMakeFiles/webserver.dir/webserv_core/sockets/ListeningSocket.cpp.o CMakeFiles/webserver.dir/webserv_core/sockets/SimpleSocket.cpp.o CMakeFiles/webserver.dir/webserv_core/servers/SimpleServer.cpp.o CMakeFiles/webserver.dir/webserv_core/servers/TestServer.cpp.o CMakeFiles/webserver.dir/webserv_core/config_parser/Server_info.cpp.o CMakeFiles/webserver.dir/webserv_core/config_parser/Config_info.cpp.o CMakeFiles/webserver.dir/webserv_core/config_parser/Utils_parse_config.cpp.o CMakeFiles/webserver.dir/webserv_core/config_parser/Location_info.cpp.o
   FLAGS = -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -mmacosx-version-min=10.14
   OBJECT_DIR = CMakeFiles/webserver.dir
   POST_BUILD = :

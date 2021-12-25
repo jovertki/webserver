@@ -5,7 +5,6 @@
 class Config_info {
 private:
     std::vector<Server_info> servers;
-//    std::vector<std::string> tokens;
 public:
     Config_info(const char* arg);
     ~Config_info() {};
