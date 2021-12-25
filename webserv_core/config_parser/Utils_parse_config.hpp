@@ -12,18 +12,19 @@ enum method {
     PUT
 };
 
-
-struct Location_info {
-public:
-    bool autoindex;
-    std::vector<method> methods;
-    int ret_num;
-    int body_size;
-    Location_info() : autoindex(true), methods(), ret_num(-1), body_size(200000) {}
-};
-
 namespace utils {
+    class MyException : public std::exception {
+        const std::string m_msg;
+    public:
+        MyException(const std::string &msg);
+
+        ~MyException() throw();
+
+        const char *what() const throw();
+    };
+
     int str_to_num(const std::string& to_convert);
+    std::vector<std::string> make_tokens(std::ifstream& input);
 
 };
 
