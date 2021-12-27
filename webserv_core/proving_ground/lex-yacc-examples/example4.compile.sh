@@ -1,0 +1,4 @@
+#!/bin/bash
+lex example4.l
+yacc -d example4.y
+cc lex.yy.c y.tab.c -o example4 
