@@ -4,7 +4,7 @@
 			"type": "lldb",
 			"request": "launch",
 			"name": "Launch",
-			"program": "/home/jovertki/webserver/webserv_core/webserv",
+			"program": "${workspaceFolder}/webserv_core/webserv",
 			"args": [],
 			"cwd": "${workspaceFolder}/webserv_core"
 		}
