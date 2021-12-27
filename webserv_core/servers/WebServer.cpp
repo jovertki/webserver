@@ -1,4 +1,4 @@
-#include "TestServer.hpp"
+#include "WebServer.hpp"
 #include <cstring>
 #include <string>
 #include "../resources/lex_defines.h"
@@ -12,15 +12,18 @@
 
 #include <errno.h>
 
-const char* ft::TestServer::error_request_code::what() const throw() {
+const char* ft::WebServer::error_request_code::what() const throw() {
 	return ("error");
 }
 
-ft::TestServer::TestServer( char** envp ) : SimpleServer( AF_INET, SOCK_STREAM, 0, 4242, INADDR_ANY, 10 ), envp( envp ) {
+ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), config(config.get_servers()){
+
+	
+	socket = new ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, 4242, INADDR_ANY, 10 );
 	launch();
 }
 
-void ft::TestServer::accepter() {
+void ft::WebServer::accepter() {
 	struct sockaddr_in address = get_socket()->get_address();
 	int addrlen = sizeof( address );
 	new_socket = accept( get_socket()->get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen );
@@ -39,7 +42,7 @@ void ft::TestServer::accepter() {
 	// }
 }
 
-void ft::TestServer::handler() {
+void ft::WebServer::handler() {
 	std::cout << "buffer is \n" << buffer_s << std::endl;
 	std::string line = buffer_s.substr( 0, buffer_s.find( "\n" ) );
 
@@ -87,7 +90,7 @@ void ft::TestServer::handler() {
 	}
 	std::cout << "ARGS is |" << request.get_args() << "|" << std::endl;
 }
-void ft::TestServer::response_POST() {
+void ft::WebServer::response_POST() {
 	std::cout << "========RESPONSE POST IS ACTIVE========" << std::endl;
 
 	char** my_envp = new char* [10];
@@ -153,7 +156,7 @@ void ft::TestServer::response_POST() {
 	close( new_socket );
 }
 
-void ft::TestServer::response_GET() {
+void ft::WebServer::response_GET() {
 
 	//check if rights are correct
 
@@ -190,7 +193,7 @@ void ft::TestServer::response_GET() {
 	close( new_socket );
 }
 
-void ft::TestServer::response_DELETE() {
+void ft::WebServer::response_DELETE() {
 
 	//do smth
 	// if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS ON*/) {
@@ -212,7 +215,7 @@ void ft::TestServer::response_DELETE() {
 	close( new_socket );
 }
 
-void ft::TestServer::responder() {
+void ft::WebServer::responder() {
 
 
 	//pack appropriate stuff to GET_RESPONSE function
@@ -228,7 +231,7 @@ void ft::TestServer::responder() {
 }
 
 
-bool ft::TestServer::is_directory( const std::string& path )const {
+bool ft::WebServer::is_directory( const std::string& path )const {
 	struct stat s;
 	if(stat( path.c_str(), &s ) == 0)
 	{
@@ -254,7 +257,7 @@ bool ft::TestServer::is_directory( const std::string& path )const {
 	}
 	return 0;
 }
-void ft::TestServer::handle_errors( int error_code ) {
+void ft::WebServer::handle_errors( int error_code ) {
 	std::string response;
 	std::ostringstream header;
 	std::ostringstream body;
@@ -295,7 +298,7 @@ void ft::TestServer::handle_errors( int error_code ) {
 	close( new_socket );
 	throw (error_request_code());
 }
-std::string ft::TestServer::list_contents( const std::string& path )const {
+std::string ft::WebServer::list_contents( const std::string& path )const {
 	std::string response;
 	std::ostringstream header;
 	std::ostringstream body;
@@ -343,7 +346,7 @@ std::string ft::TestServer::list_contents( const std::string& path )const {
 	response = header.str() + body.str();
 	return response;
 }
-void ft::TestServer::launch() {
+void ft::WebServer::launch() {
 	while(true) {
 		std::cout << "waiting" << std::endl;
 		try {
@@ -355,4 +358,9 @@ void ft::TestServer::launch() {
 		catch(error_request_code& e) {}
 		std::cout << "==== DONE ====" << std::endl;
 	}
+}
+
+
+ft::ListeningSocket* ft::WebServer::get_socket()const {
+	return socket;
 }

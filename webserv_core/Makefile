@@ -37,6 +37,9 @@ obj/sockets/%.o: sockets/%.cpp $(HDR) | obj
 obj/utils/%.o: utils/%.cpp $(HDR) | obj
 	$(CC) $(CFLAGS) -MMD -c $< -o $@
 
+obj/config_parser/%.o: config_parser/%.cpp $(HDR) | obj
+	$(CC) $(CFLAGS) -MMD -c $< -o $@
+
 obj:
 	mkdir -p obj
 	mkdir -p obj/servers
