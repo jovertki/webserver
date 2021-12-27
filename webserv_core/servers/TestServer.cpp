@@ -12,7 +12,7 @@
 
 #include <errno.h>
 
-const char* ft::TestServer::error_request_code::what() const throw(){
+const char* ft::TestServer::error_request_code::what() const throw() {
 	return ("error");
 }
 
@@ -24,21 +24,11 @@ void ft::TestServer::accepter() {
 	struct sockaddr_in address = get_socket()->get_address();
 	int addrlen = sizeof( address );
 	new_socket = accept( get_socket()->get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen );
-
-	std::ofstream last_request( "last_request.txt" );
-	if(last_request.is_open())
-		std::cout << "open" << std::endl;
 	long end;
-
-
-	while((end = read( new_socket, buffer, 30000 )) > 0){
-		if(end != 0)
-			buffer[end] = '\0';
-		last_request << buffer;
-		buffer_s += buffer;
-		if(end < 30000)
-			break;
-	}
+	end = read( new_socket, buffer, 30000 );
+	if(end != 0)
+		buffer[end] = '\0';
+	buffer_s = buffer;
 
 
 	//fix windows endlines
@@ -57,7 +47,7 @@ void ft::TestServer::handler() {
 	//find method
 	std::size_t endline = line.find( " " );
 	if(line.substr( 0, endline ) == "GET") {
-		request.set_method(GET);
+		request.set_method( GET );
 	}
 	else if(line.substr( 0, endline ) == "POST") {
 		request.set_method( POST );
@@ -87,12 +77,12 @@ void ft::TestServer::handler() {
 
 
 	//find body
-	if(buffer_s.find( "\r\n\r\n") != std::string::npos)
+	if(buffer_s.find( "\r\n\r\n" ) != std::string::npos)
 		request.set_body( buffer_s.substr( buffer_s.find( "\r\n\r\n" ) + 4 ) );
 	std::cout << "BODY is |" << request.get_body() << "|" << std::endl;
 
 	//set args to body if method is POST
-	if (request.get_method() == POST){
+	if(request.get_method() == POST) {
 		request.set_body_args();
 	}
 	std::cout << "ARGS is |" << request.get_args() << "|" << std::endl;
@@ -118,12 +108,12 @@ void ft::TestServer::response_POST() {
 	myWord = "SOCKET=" + std::to_string( new_socket );
 	my_envp[4] = new char[myWord.size() + 1];
 	strcpy( my_envp[4], myWord.c_str() );
-	
+
 	myWord = "ARGS=" + request.get_args() + "\0";
 	my_envp[5] = new char[myWord.size() + 1];
 	strcpy( my_envp[5], myWord.c_str() );
 
-	
+
 	my_envp[6] = NULL;
 
 	int fdpipe[2];
@@ -164,16 +154,16 @@ void ft::TestServer::response_GET() {
 
 	//response header
 	if(request.get_requested_url() == "/")
-		request.set_requested_url("/index.html");
+		request.set_requested_url( "/index.html" );
 
 
 	std::string response;
 	if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS ON*/) {
-	//list contents
+		//list contents
 		response = list_contents( SERVER_DIR + request.get_requested_url() );
 	}
 	else {
-	//proceed with request
+		//proceed with request
 		std::string content_type = request.get_content_type();
 
 		//read file to string
@@ -202,7 +192,7 @@ void ft::TestServer::response_DELETE() {
 	// 	//list contents
 	// 	response = list_contents( SERVER_DIR + request.get_requested_url() );
 	// }
-	
+
 	std::string response;
 	std::ostringstream sresponse;
 	if(std::remove( (SERVER_DIR + request.get_requested_url()).c_str() ) < 0) {
@@ -264,10 +254,10 @@ void ft::TestServer::handle_errors( int error_code ) {
 	std::ostringstream header;
 	std::ostringstream body;
 
-	body <<	"<!DOCTYPE html>" << std::endl << \
+	body << "<!DOCTYPE html>" << std::endl << \
 		"<html lang=\"en\">" << std::endl << std::endl << \
 		"<head>" << std::endl << \
-		"<title>"<< error_code << " Error Page</title>" << std::endl << std::endl << \
+		"<title>" << error_code << " Error Page</title>" << std::endl << std::endl << \
 		"<meta charset=\"utf-8\">" << std::endl << \
 		"<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">" << std::endl << \
 		"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" << std::endl << \
@@ -281,8 +271,8 @@ void ft::TestServer::handle_errors( int error_code ) {
 		"<div class=\"vertical-center\">" << std::endl << \
 		"<div class=\"container\">" << std::endl << \
 		"<div id=\"notfound\" class=\"text-center\">" << std::endl << \
-		"<h1>😮</h1>"  <<std::endl << \
-		"<h1>" << error_code << "</h1>"  << std::endl << \
+		"<h1>😮</h1>   <<std::endl << \
+		"<h1>" << error_code << "</h1>" << std::endl << \
 		"<p> An error occured.</p>" << std::endl << \
 		"<a href=\"/index.html\">Back to homepage</a>" << std::endl << \
 		"</div>" << std::endl << \
@@ -290,7 +280,7 @@ void ft::TestServer::handle_errors( int error_code ) {
 		"</div>" << std::endl << \
 		"</body>" << std::endl << \
 		"</html>" << std::endl;
-	
+
 	header << request.get_httpver() << " " << error_code << " " << "KO" << std::endl <<//<- needs elaboration
 		"Content-Type: text/html;" << std::endl << \
 		"Content-Length: " << body.str().size() << std::endl << std::endl;
@@ -300,7 +290,7 @@ void ft::TestServer::handle_errors( int error_code ) {
 	close( new_socket );
 	throw (error_request_code());
 }
-std::string ft::TestServer::list_contents(const std::string& path)const {
+std::string ft::TestServer::list_contents( const std::string& path )const {
 	std::string response;
 	std::ostringstream header;
 	std::ostringstream body;
@@ -338,8 +328,8 @@ std::string ft::TestServer::list_contents(const std::string& path)const {
 	else {
 		/* could not open directory */
 	}
-	
-	body <<	"</body>" << std::endl << \
+
+	body << "</body>" << std::endl << \
 		"</html>" << std::endl;
 
 	header << request.get_httpver() << " 200 " << "OK" << std::endl <<

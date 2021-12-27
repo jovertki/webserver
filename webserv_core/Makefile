@@ -11,7 +11,7 @@ OBJ		= $(patsubst %.cpp, obj/%.o,$(SRC)) \
 		  $(patsubst %.cpp, obj/%.o,$(SOCK)) \
 		  $(patsubst %.cpp, obj/%.o,$(UTIL))
 DEP		= $(patsubst %.o, %.d,$(OBJ))
-CFLAGS	= -g
+CFLAGS	= -g -fstandalone-debug
 #CFLAGS	= -Wall -Werror -Wextra -Wshadow -Wno-shadow -std=c++98
 CC		= clang++
 
