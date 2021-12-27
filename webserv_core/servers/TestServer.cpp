@@ -117,10 +117,15 @@ void ft::TestServer::response_POST() {
 	my_envp[6] = NULL;
 
 	int fdpipe[2];
+	int fdpipein[2];
 	pipe( fdpipe );
+	pipe( fdpipein );
+	std::string str = "MY String for cgi script\n";
+	write( fdpipein[1], str.c_str(), str.size() );
 	int ret = fork();
 	if(ret == 0)
 	{
+		dup2( fdpipein[0], 0 );
 		dup2( fdpipe[1], 1 );
 		//std::cout << "Trying to execute " << request.get_requested_filename() << std::endl;
 		std::string filename = SERVER_DIR + request.get_requested_url();
@@ -271,7 +276,7 @@ void ft::TestServer::handle_errors( int error_code ) {
 		"<div class=\"vertical-center\">" << std::endl << \
 		"<div class=\"container\">" << std::endl << \
 		"<div id=\"notfound\" class=\"text-center\">" << std::endl << \
-		"<h1>😮</h1>   <<std::endl << \
+		"<h1>:-(</h1>"   <<std::endl << \
 		"<h1>" << error_code << "</h1>" << std::endl << \
 		"<p> An error occured.</p>" << std::endl << \
 		"<a href=\"/index.html\">Back to homepage</a>" << std::endl << \
