@@ -1,7 +1,7 @@
 #include "WebServer.hpp"
 #include <cstring>
 #include <string>
-#include "../resources/lex_defines.h"
+// #include "../resources/lex_defines.h"
 #include <fstream>
 #include <sstream>
 #include <sys/types.h>
@@ -17,23 +17,59 @@ const char* ft::WebServer::error_request_code::what() const throw() {
 }
 
 ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), config(config.get_servers()){
-
-	
 	socket = new ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, 4242, INADDR_ANY, 10 );
 	launch();
 }
 
 void ft::WebServer::accepter() {
+	char buffer[30001] = { 0 };
+	std::string buffer_s;
 	struct sockaddr_in address = get_socket()->get_address();
 	int addrlen = sizeof( address );
+	long content_length;
 	new_socket = accept( get_socket()->get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen );
-	long end;
-	end = read( new_socket, buffer, 30000 );
-	if(end != 0)
-		buffer[end] = '\0';
+
+	//READ LOOP HERE
+	long end = recv( new_socket, buffer, 30000, 0 );
 	buffer_s = buffer;
+	std::cout << "buffer is \n" << buffer_s << std::endl;
+
+	//parse head, if not full in buffer, then error
+	//use map for storage
+	header_parse( buffer_s );
+
+	//debug only
+	std::ofstream last_request( "last_request.txt" );
+	last_request << buffer_s;
+
+	
+	content_length = atol( (request.get_param_value( "Content-length" )).c_str() );
+	//read body for content-length bytes
 
 
+	
+	//find body
+	request.set_body( buffer_s.substr( buffer_s.find( "\r\n\r\n" ) + 4 ) );
+
+	std::cout << "BODY is |\n";
+	for(int i = 0; i < request.get_body().size(); ++i)
+		std::cout << request.get_body()[i];
+	std::cout << "\n|" << std::endl;
+
+	//set args to body if method is POST
+	if(request.get_method() == POST) {
+		request.set_body_args();
+	}
+	std::cout << "ARGS is |\n";
+		for(int i = 0; i < request.get_args().size(); ++i)
+			std::cout << request.get_args()[i];
+	std::cout << "\n|" << std::endl;
+
+
+
+
+	last_request.close();
+	
 	//fix windows endlines
 	// std::size_t n = buffer_s.find( (char)13 );
 	// while(n != std::string::npos) {
@@ -42,28 +78,33 @@ void ft::WebServer::accepter() {
 	// }
 }
 
-void ft::WebServer::handler() {
-	std::cout << "buffer is \n" << buffer_s << std::endl;
-	std::string line = buffer_s.substr( 0, buffer_s.find( "\n" ) );
-
+void ft::WebServer::header_parse(std::string& buffer_s) {
+	
+	// std::string line = buffer_s.substr( 0, buffer_s.find( "\n" ) );
+	std::stringstream ss;
+	ss << buffer_s;
+	std::string token;
+	ss >> token;
 	//HTTP request parser
 	//find method
-	std::size_t endline = line.find( " " );
-	if(line.substr( 0, endline ) == "GET") {
+	// std::size_t endline = line.find( " " );
+	if(token == "GET") {
 		request.set_method( GET );
 	}
-	else if(line.substr( 0, endline ) == "POST") {
+	else if(token == "POST") {
 		request.set_method( POST );
 	}
-	else if(line.substr( 0, endline ) == "DELETE") {
+	else if(token == "DELETE") {
 		request.set_method( DELETE );
+	}
+	else {
+		//ERROR: INVALID METHOD
 	}
 	std::cout << "Method is " << request.get_method() << std::endl;
 
-
 	//find url
-	std::size_t new_endline = line.find( " ", endline + 1 );
-	request.set_requested_url( line.substr( endline + 1, new_endline - endline - 1 ) );
+	ss >> token;
+	request.set_requested_url( token );
 	//find args in url
 	std::size_t questionmark = request.get_requested_url().find( "?" );
 	if(questionmark != std::string::npos) {
@@ -75,20 +116,35 @@ void ft::WebServer::handler() {
 	std::cout << "URL is |" << request.get_requested_url() << "|" << std::endl;
 
 	//find httpver
-	request.set_httpver( line.substr( new_endline + 1, line.size() - (new_endline + 2) ) );
+	ss >> token;
+	request.set_httpver( token );
 	std::cout << "HTTPVER is |" << request.get_httpver() << "|" << std::endl;
-
-
-	//find body
-	if(buffer_s.find( "\r\n\r\n" ) != std::string::npos)
-		request.set_body( buffer_s.substr( buffer_s.find( "\r\n\r\n" ) + 4 ) );
-	std::cout << "BODY is |" << request.get_body() << "|" << std::endl;
-
-	//set args to body if method is POST
-	if(request.get_method() == POST) {
-		request.set_body_args();
+	
+	std::string buffer;
+	getline( ss, buffer ); //empty line
+	getline( ss, buffer );//first line of headers
+	while(buffer != "\r")
+	{
+		size_t colon = buffer.find( ':' );
+		if(colon == std::string::npos) {
+			//error in header
+			break;
+		}
+		request.insert_param( make_pair( buffer.substr( 0, colon ), buffer.substr( colon + 2, buffer.size() - colon - 2 ) ) );
+		if(!getline( ss, buffer )) {
+			//ERROR INVALID REQUEST
+		}
+			
 	}
-	std::cout << "ARGS is |" << request.get_args() << "|" << std::endl;
+	request.set_header_length( buffer_s.find( "\r\n\r\n" ) );
+
+	//debug only
+	request.print_params();
+
+}
+
+void ft::WebServer::handler() {
+	
 }
 void ft::WebServer::response_POST() {
 	std::cout << "========RESPONSE POST IS ACTIVE========" << std::endl;
@@ -112,7 +168,10 @@ void ft::WebServer::response_POST() {
 	my_envp[4] = new char[myWord.size() + 1];
 	strcpy( my_envp[4], myWord.c_str() );
 
-	myWord = "ARGS=" + request.get_args() + "\0";
+	myWord = "ARGS=";
+	for(int i = 0; i < request.get_args().size(); ++i)
+		myWord += request.get_args()[i];
+	myWord += "\0";
 	my_envp[5] = new char[myWord.size() + 1];
 	strcpy( my_envp[5], myWord.c_str() );
 
@@ -194,7 +253,6 @@ void ft::WebServer::response_GET() {
 }
 
 void ft::WebServer::response_DELETE() {
-
 	//do smth
 	// if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS ON*/) {
 	// 	//list contents
@@ -216,11 +274,6 @@ void ft::WebServer::response_DELETE() {
 }
 
 void ft::WebServer::responder() {
-
-
-	//pack appropriate stuff to GET_RESPONSE function
-	//create a responder for every request-type
-
 	//check availability of method in location
 	if(request.get_method() == GET)
 		response_GET();

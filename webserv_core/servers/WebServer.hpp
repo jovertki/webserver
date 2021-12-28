@@ -14,10 +14,8 @@ namespace ft {
 		ListeningSocket* socket;
 
 		std::vector<ServerConfig> config;		
-		char** envp;
-		char buffer[30001] = {0};
 		int new_socket;
-		std::string buffer_s;
+		char** envp;
 		Request request;
 	public:
 		WebServer(char **envp, Config_info &config);
@@ -33,6 +31,7 @@ namespace ft {
 		void response_POST();
 		void response_GET();
 		void response_DELETE();
+		void header_parse( std::string& );
 
 		ListeningSocket* get_socket()const;
 	};
