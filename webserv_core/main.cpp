@@ -1,16 +1,16 @@
-#include "servers/TestServer.hpp"
+#include "servers/WebServer.hpp"
 #include "config_parser/Config_info.hpp"
 
 
 int main(int argc, char** argv, char **envp) {
 
-    if (argc == 2)
-        Config_info config(argv[1]);
-    else if (argc == 1)
-        Config_info config("configs/default.conf");
-    else {
+    std::string conf_name = "configs/default.conf";
+    if(argc == 2)
+        conf_name = argv[1];
+    if (argc > 2) {
         std::cout << "Wrong arguments" << std::endl;
         exit(-1);
     }
-//	ft::TestServer t(envp);
+    Config_info config(conf_name.c_str());
+    ft::WebServer t( envp, config);
 }

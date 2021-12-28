@@ -14,7 +14,9 @@ OBJ		= $(patsubst %.cpp, obj/%.o,$(SRC)) \
 		  $(patsubst %.cpp, obj/%.o,$(CONF))
 
 DEP		= $(patsubst %.o, %.d,$(OBJ))
-CFLAGS	= -g -std=c++98
+CFLAGS	= -g -fstandalone-debug
+
+#CFLAGS	= -g -std=c++98
 #CFLAGS	= -Wall -Werror -Wextra -Wshadow -Wno-shadow -std=c++98
 CC		= clang++
 
@@ -33,6 +35,9 @@ obj/sockets/%.o: sockets/%.cpp $(HDR) | obj
 	$(CC) $(CFLAGS) -MMD -c $< -o $@
 
 obj/utils/%.o: utils/%.cpp $(HDR) | obj
+	$(CC) $(CFLAGS) -MMD -c $< -o $@
+
+obj/config_parser/%.o: config_parser/%.cpp $(HDR) | obj
 	$(CC) $(CFLAGS) -MMD -c $< -o $@
 
 obj:

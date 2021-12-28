@@ -29,3 +29,7 @@ void Config_info::identyServerValues(std::vector<std::string>& tokens) {
 //delete next line
     std::cout << "..........\n" << servers.size() << " servers successfully parsed" << std::endl;
 }
+
+std::vector<ServerConfig> Config_info::get_servers()const {
+    return servers;
+}
