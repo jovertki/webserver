@@ -6,6 +6,7 @@
 #include <fstream>
 
 enum method {
+    EMPTY,
     GET,
     POST,
     DELETE,
