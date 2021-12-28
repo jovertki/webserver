@@ -42,7 +42,6 @@ void ft::WebServer::accepter() {
 	std::ofstream last_request( "last_request.txt" );
 	last_request << buffer_s;
 
-	
 	content_length = atol( (request.get_param_value( "Content-length" )).c_str() );
 	//read body for content-length bytes
 
@@ -182,8 +181,13 @@ void ft::WebServer::response_POST() {
 	int fdpipein[2];
 	pipe( fdpipe );
 	pipe( fdpipein );
-	std::string str = "MY String for cgi script\n";
+	std::string str;
+	for(int i = 0; i < request.get_args().size(); ++i) {
+		str += request.get_args()[i];
+	}
+	// str[request.get_args().size()] = '\0';
 	write( fdpipein[1], str.c_str(), str.size() );
+	close( fdpipein[1] );
 	int ret = fork();
 	if(ret == 0)
 	{
@@ -201,8 +205,9 @@ void ft::WebServer::response_POST() {
 	}
 	char buff[30000] = { 0 };
 	int len = read( fdpipe[0], buff, 30000 ) - strlen( "Content-Type: text/html\n\n" );
-	close( fdpipe[0] );
 	close( fdpipe[1] );
+	close( fdpipe[0] );
+	close( fdpipein[0] );
 	std::cout << "BUFF IS " << buff << std::endl;
 	std::string out = request.get_httpver() + " 200 OK\n" + "Content-Length:" + std::to_string( len ) + "\n" + static_cast<std::string>(buff);
 	for(int i = 0; i < 6; i++) {
