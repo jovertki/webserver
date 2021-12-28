@@ -48,32 +48,80 @@ std::string ft::Request::get_content_type() const {
 	return "no such type";
 }
 
-std::string ft::Request::get_body() const {
+std::vector<char> ft::Request::get_body() const {
 	return body;
 }
 
-std::string ft::Request::get_args() const {
+std::vector<char> ft::Request::get_args() const {
 	return args;
 }
 
-void ft::Request::set_method( int n ) {
+std::map<std::string, std::string> ft::Request::get_params()const {
+	return params;
+}
+
+
+void ft::Request::set_method(const int &n ) {
 	method = n;
 }
-void ft::Request::set_requested_url( std::string n) {
+void ft::Request::set_requested_url( const std::string& n ) {
 	requested_url = n;
 }
-void ft::Request::set_httpver( std::string n) {
+void ft::Request::set_httpver( const std::string& n ) {
 	httpver = n;
 }
 
-void ft::Request::set_body( std::string n) {
+void ft::Request::set_body( const std::vector<char> &n ) {
 	body = n;
 }
 
+void ft::Request::set_body( const std::string& n ) {
+	body.insert( body.begin(), n.begin(), n.end() );
+}
 
-void ft::Request::set_url_args( std::string n) {
-	args = n;
+void ft::Request::set_url_args( const std::string& n ) {
+	args.insert(args.begin(), n.begin(), n.end());
 }
 void ft::Request::set_body_args() {
 	args = get_body();
+}
+
+void ft::Request::set_params( const std::map <std::string, std::string>& n ) {
+	params = n;
+}
+
+
+void ft::Request::insert_param( const std::pair<std::string, std::string>& n ) {
+	params.insert( n );
+
+}
+
+void ft::Request::print_params() {
+	//debug output
+	for(std::map<std::string, std::string>::const_iterator i = params.begin(); i != params.end(); i++) {
+		std::cout << (*i).first << ":" << (*i).second << std::endl;
+	}
+}
+
+int ft::Request::param_exists( const std::string& n) const {
+	if(params.find( n ) != params.end())
+		return 1;
+	else
+		return 0;
+}
+
+std::string ft::Request::get_param_value( const std::string& n ) {
+	if(param_exists( n )) {
+		return params[n];
+	}
+	else
+		return "";
+}
+
+void ft::Request::set_header_length( const int& n) {
+	header_length = n;
+}
+
+int ft::Request::get_header_length()const {
+	return header_length;
 }
