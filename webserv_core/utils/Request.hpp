@@ -24,6 +24,8 @@ namespace ft {
 		std::map <std::string, std::string>get_params()const;
 		std::string get_param_value( const std::string& n );
 		int get_header_length()const;
+		std::map<std::string, std::string>::iterator get_params_begin();
+		std::map<std::string, std::string>::iterator get_params_end();
 		
 		void set_method( const int& );
 		void set_requested_url(const std::string&);

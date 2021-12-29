@@ -32,7 +32,8 @@ namespace ft {
 		void response_GET();
 		void response_DELETE();
 		void header_parse( std::string& );
-
+		char** create_appended_envp();
+		
 		ListeningSocket* get_socket()const;
 	};
 }

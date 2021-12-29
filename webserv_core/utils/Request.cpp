@@ -125,3 +125,10 @@ void ft::Request::set_header_length( const int& n) {
 int ft::Request::get_header_length()const {
 	return header_length;
 }
+
+std::map<std::string, std::string>::iterator ft::Request::get_params_begin() {
+	return params.begin();
+}
+std::map<std::string, std::string>::iterator ft::Request::get_params_end() {
+	return params.end();
+}

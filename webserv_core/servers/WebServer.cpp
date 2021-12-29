@@ -9,8 +9,10 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <cstdio>
-
+#include <cctype>
 #include <errno.h>
+#include <cstdlib>
+#include <sstream>
 
 const char* ft::WebServer::error_request_code::what() const throw() {
 	return ("error");
@@ -42,7 +44,8 @@ void ft::WebServer::accepter() {
 	std::ofstream last_request( "last_request.txt" );
 	last_request << buffer_s;
 
-	content_length = atol( (request.get_param_value( "Content-length" )).c_str() );
+	content_length = atol( (request.get_param_value( "HTTP_CONTENT_LENGTH" )).c_str() );
+	std::cout << "CONTEJHBSHGFDKSJFLSKHFDKJSDLFJDSLK = " << content_length << std::endl;
 	//read body for content-length bytes
 
 
@@ -129,7 +132,14 @@ void ft::WebServer::header_parse(std::string& buffer_s) {
 			//error in header
 			break;
 		}
-		request.insert_param( make_pair( buffer.substr( 0, colon ), buffer.substr( colon + 2, buffer.size() - colon - 2 ) ) );
+		std::string key = buffer.substr( 0, colon );
+		key = "HTTP_" + key;
+		for(int i = 0; i < key.size(); i++) {
+			if(key[i] == '-')
+				key[i] = '_';
+			key[i] = std::toupper( key[i] );
+		}
+		request.insert_param( make_pair( key, buffer.substr( colon + 2, buffer.size() - colon - 2 ) ) );
 		if(!getline( ss, buffer )) {
 			//ERROR INVALID REQUEST
 		}
@@ -145,37 +155,86 @@ void ft::WebServer::header_parse(std::string& buffer_s) {
 void ft::WebServer::handler() {
 	
 }
+
+
+
+char** ft::WebServer::create_appended_envp() {
+	std::map<std::string, std::string> additions;
+	additions["REQUEST_METHOD"] = "";
+	additions["PATH_INFO"] = "";
+	additions["AUTH_TYPE"] = "";
+	additions["CONTENT_LENGTH"] = "";
+	additions["CONTENT_TYPE"] = "";
+	additions["GATEWAY_INTERFACE"] = "";
+	additions["PATH_TRANSLATED"] = "";
+	additions["QUERY_STRING"] = "";
+	additions["REMOTE_ADDR"] = "";
+	additions["REMOTE_HOST"] = "";
+	additions["REMOTE_IDENT"] = "";
+	additions["REMOTE_USER"] = "";
+	additions["REQUEST_METHOD"] = "";
+	additions["SCRIPT_NAME"] = "";
+	additions["SERVER_NAME"] = "";
+	additions["SERVER_PORT"] = "";
+	additions["SERVER_PROTOCOL"] = "";
+	additions["SERVER_SOFTWARE"] = "";
+	
+	additions["UPLOAD_PATH"] = "";
+
+	additions.insert( request.get_params_begin(), request.get_params_end() );
+
+
+	int envp_len = 0;
+	while(envp[envp_len] != NULL) {
+		envp_len++;
+	}
+
+	int new_envp_len = envp_len + additions.size() + 1;
+	char** new_envp = new char* [new_envp_len];
+	for(int i = 0; i < new_envp_len; i++) {
+		new_envp[i] = NULL;
+	}
+
+	int cur = 0;
+	for(int i = 0; envp[i] != NULL; i++) {
+		new_envp[cur] = strdup( envp[i] );
+		cur++;
+	}
+
+	for(std::map<std::string, std::string>::iterator it = additions.begin(); it != additions.end(); it++) {
+		std::stringstream ss;
+		ss << it->first << "=" << it->second << "\0";
+		new_envp[cur] = strdup(ss.str().c_str());
+		cur++;
+	}
+
+	for(int i = 0; new_envp[i] != NULL; i++) {
+		std::cout << new_envp[i] << std::endl;
+	}
+	//headers in uppercase and - changed to _ and HTTP_ added
+
+	// char** my_envp = new char* [10];
+
+	// std::string myWord = "REQUEST_METHOD=POST";
+	// my_envp[0] = new char[myWord.size() + 1];
+	// strcpy( my_envp[0], myWord.c_str() );
+	// myWord = "SERVER_PROTOCOL=HTTP/1.1";
+	// my_envp[1] = new char[myWord.size() + 1];
+	// strcpy( my_envp[1], myWord.c_str() );
+	// myWord = "PATH_INFO=/Users/jovertki/webserver_shared_repo/webserv_core/html/cgi_tester";
+	// my_envp[2] = new char[myWord.size() + 1];
+	// strcpy( my_envp[2], myWord.c_str() );
+	// myWord = "PATH=/Users/jovertki/.brew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet:/usr/local/munk";
+	// my_envp[3] = new char[myWord.size() + 1];
+	// strcpy( my_envp[3], myWord.c_str() );
+	// my_envp[4] = NULL;
+	return new_envp;
+}
+
 void ft::WebServer::response_POST() {
 	std::cout << "========RESPONSE POST IS ACTIVE========" << std::endl;
 
-	char** my_envp = new char* [10];
-
-	std::string myWord = "REQUEST_METHOD=POST";
-	my_envp[0] = new char[myWord.size() + 1];
-	strcpy( my_envp[0], myWord.c_str() );
-	myWord = "SERVER_PROTOCOL=HTTP/1.1";
-	my_envp[1] = new char[myWord.size() + 1];
-	strcpy( my_envp[1], myWord.c_str() );
-	myWord = "PATH_INFO=/Users/jovertki/webserver_shared_repo/webserv_core/html/cgi_tester";
-	my_envp[2] = new char[myWord.size() + 1];
-	strcpy( my_envp[2], myWord.c_str() );
-	myWord = "PATH=/Users/jovertki/.brew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet:/usr/local/munk";
-	my_envp[3] = new char[myWord.size() + 1];
-	strcpy( my_envp[3], myWord.c_str() );
-
-	myWord = "SOCKET=" + std::to_string( new_socket );
-	my_envp[4] = new char[myWord.size() + 1];
-	strcpy( my_envp[4], myWord.c_str() );
-
-	myWord = "ARGS=";
-	for(int i = 0; i < request.get_args().size(); ++i)
-		myWord += request.get_args()[i];
-	myWord += "\0";
-	my_envp[5] = new char[myWord.size() + 1];
-	strcpy( my_envp[5], myWord.c_str() );
-
-
-	my_envp[6] = NULL;
+	char** cgi_envp = create_appended_envp();
 
 	int fdpipe[2];
 	int fdpipein[2];
@@ -195,25 +254,28 @@ void ft::WebServer::response_POST() {
 		dup2( fdpipe[1], 1 );
 		//std::cout << "Trying to execute " << request.get_requested_filename() << std::endl;
 		std::string filename = SERVER_DIR + request.get_requested_url();
-		execve( filename.c_str(), NULL, my_envp );
+		execve( filename.c_str(), NULL, cgi_envp );
 		std::cout << "ERRRPR" << std::endl;
 		std::cout << strerror( errno ) << std::endl;
 		exit( 234 );
 	}
 	else {
+		close( fdpipein[0] );
+		close( fdpipe[1] );
 		waitpid( ret, NULL, 0 );
 	}
-	char buff[30000] = { 0 };
+	char buff[30001] = { 0 };
+	//should be in a loop
 	int len = read( fdpipe[0], buff, 30000 ) - strlen( "Content-Type: text/html\n\n" );
-	close( fdpipe[1] );
+
+
+	for(int i = 0; cgi_envp[i] != NULL; i++) {
+		delete cgi_envp[i];
+	}
+	delete[] cgi_envp;
 	close( fdpipe[0] );
-	close( fdpipein[0] );
 	std::cout << "BUFF IS " << buff << std::endl;
 	std::string out = request.get_httpver() + " 200 OK\n" + "Content-Length:" + std::to_string( len ) + "\n" + static_cast<std::string>(buff);
-	for(int i = 0; i < 6; i++) {
-		delete my_envp[i];
-	}
-	delete[] my_envp;
 
 	write( new_socket, out.c_str(), out.size() );
 	std::cout << "RESPONSE IS \n" << out << "\n===end of response===" << std::endl;
@@ -412,6 +474,7 @@ void ft::WebServer::launch() {
 			accepter();
 			handler();
 			responder();
+			system( "leaks webserv" );
 		}
 		catch(error_request_code& e) {}
 		std::cout << "==== DONE ====" << std::endl;
