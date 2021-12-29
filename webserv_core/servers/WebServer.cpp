@@ -20,6 +20,7 @@ const char* ft::WebServer::error_request_code::what() const throw() {
 
 ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), config(config.get_servers()){
 	socket = new ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, 4242, INADDR_ANY, 10 );
+	init_response_msgs();
 	launch();
 }
 
@@ -490,7 +491,7 @@ void ft::WebServer::launch() {
 			accepter(request);
 			handler(request);
 			responder(request);
-//			system( "leaks webserv" );
+			system( "leaks webserv" );
 		}
 		catch(error_request_code& e) {}
 		std::cout << "==== DONE ====" << std::endl;
@@ -507,4 +508,54 @@ void ft::WebServer::send_response( const std::string& response ) const{
 	write( new_socket, response.c_str(), response.size() );
 	std::cout << GREEN << "===RESPONSE BEGIN===\n" << response << "\n===RESPONCE END===" << RESET << std::endl;
 	close( new_socket );
+}
+
+std::string ft::WebServer::generate_response_head( const int& code ) {
+	std::stringstream ss;
+	ss << "HTTP/1.1 " << code << " " << response_messeges[code] << "\r\n";
+	return ss.str();
+}
+
+void ft::WebServer::init_response_msgs() {
+	response_messeges[100] = "Continue";
+	
+	response_messeges[200] = "OK";
+	response_messeges[202] = "Accepted";
+	response_messeges[204] = "No Content";
+	response_messeges[206] = "Partial Content";
+	response_messeges[226] = "IM used";
+	
+	response_messeges[300] = "Multiple Choices";
+	response_messeges[303] = "See Other";
+	response_messeges[308] = "Permanent Redirect";
+	
+	response_messeges[400] = "Bad Request";
+	response_messeges[403] = "Forbidden";
+	response_messeges[404] = "Not Found";
+	response_messeges[405] = "Method Not Allowed";
+	response_messeges[406] = "Not Acceptable";
+	response_messeges[408] = "Request Timeout";
+	response_messeges[410] = "Gone";
+	response_messeges[411] = "Length Required";
+	response_messeges[413] = "Payload Too Large";
+	response_messeges[414] = "URI Too Long";
+	response_messeges[415] = "Unsupported Media Type";
+	response_messeges[416] = "Range Not Satisfiable";
+	response_messeges[417] = "Expectation Failed";
+	response_messeges[421] = "Misdirected Request";
+	response_messeges[422] = "Unprocessable Entity";
+	response_messeges[423] = "Locked";
+	response_messeges[424] = "Failed Dependency";
+	response_messeges[429] = "Too Many Requests";
+	response_messeges[431] = "Request Header Fields Too Large";
+	
+	response_messeges[500] = "Internal Server Error";
+	response_messeges[501] = "Not Implemented";
+	response_messeges[502] = "Bad Gateway";
+	response_messeges[503] = "Service Unavailable";
+	response_messeges[504] = "Gateway Timeout";
+	response_messeges[505] = "HTTP Version Not Supported";
+	response_messeges[507] = "Insufficient Storage";
+	response_messeges[508] = "Loop Detected";
+	response_messeges[510] = "Not Extended ";
 }

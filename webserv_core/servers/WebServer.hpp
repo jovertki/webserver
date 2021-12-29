@@ -16,7 +16,9 @@ namespace ft {
 		std::vector<ServerConfig> config;		
 		int new_socket;
 		char** envp;
-		
+
+		std::map<int, std::string> response_messeges;
+
 	public:
 		WebServer(char **envp, Config_info &config);
 		void launch();
@@ -34,8 +36,11 @@ namespace ft {
 		void execute_cgi( Request& request );
 		void header_parse( std::string&, Request& );
 		char** create_appended_envp( Request& request );
-		void init_new_envp( std::map<std::string, std::string>&, Request&);
+		void init_new_envp( std::map<std::string, std::string>&, Request& );
 		void send_response( const std::string& response )const;
+		void init_response_msgs();
+		
+		std::string generate_response_head( const int& code );
 		ListeningSocket* get_socket()const;
 	};
 }
