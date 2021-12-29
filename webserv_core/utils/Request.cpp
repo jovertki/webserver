@@ -52,8 +52,8 @@ std::vector<char> ft::Request::get_body() const {
 	return body;
 }
 
-std::vector<char> ft::Request::get_args() const {
-	return args;
+std::string ft::Request::get_query_string() const {
+	return query_string;
 }
 
 std::map<std::string, std::string> ft::Request::get_params()const {
@@ -79,12 +79,12 @@ void ft::Request::set_body( const std::string& n ) {
 	body.insert( body.begin(), n.begin(), n.end() );
 }
 
-void ft::Request::set_url_args( const std::string& n ) {
-	args.insert(args.begin(), n.begin(), n.end());
+void ft::Request::set_query_string( const std::string& n ) {
+	query_string.insert(query_string.begin(), n.begin(), n.end());
 }
-void ft::Request::set_body_args() {
-	args = get_body();
-}
+// void ft::Request::set_body_args() {
+// 	query_string = get_body();
+// }
 
 void ft::Request::set_params( const std::map <std::string, std::string>& n ) {
 	params = n;
@@ -139,6 +139,6 @@ void ft::Request::clear() {
 	httpver = "";
 	header_length = 0;
 	body.clear();
-	args.clear();
+	query_string.clear();
 	params.clear();
 }

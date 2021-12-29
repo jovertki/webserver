@@ -60,12 +60,12 @@ void ft::WebServer::accepter(Request& request) {
 	std::cout << "\n|" << std::endl;
 
 	//set args to body if method is POST
-	if(request.get_method() == POST) {
-		request.set_body_args();
-	}
-	std::cout << "ARGS is |\n";
-		for(int i = 0; i < request.get_args().size(); ++i)
-			std::cout << request.get_args()[i];
+	// if(request.get_method() == POST) {
+	// 	request.set_body_args();
+	// }
+	std::cout << "QUERY_STRING is |\n";
+		for(int i = 0; i < request.get_query_string().size(); ++i)
+			std::cout << request.get_query_string()[i];
 	std::cout << "\n|" << std::endl;
 
 
@@ -111,11 +111,11 @@ void ft::WebServer::header_parse( std::string& buffer_s, Request& request ) {
 	//find args in url
 	std::size_t questionmark = request.get_requested_url().find( "?" );
 	if(questionmark != std::string::npos) {
-		request.set_url_args( request.get_requested_url().substr( questionmark + 1 ) );
+		request.set_query_string( request.get_requested_url().substr( questionmark + 1 ) );
 		request.set_requested_url( request.get_requested_url().substr( 0, questionmark ) );
 	}
 	else
-		request.set_url_args( "" );
+		request.set_query_string( "" );
 	std::cout << "URL is |" << request.get_requested_url() << "|" << std::endl;
 
 	//find httpver
@@ -159,31 +159,27 @@ void ft::WebServer::handler( Request& request ) {
 
 
 
-void ft::WebServer::init_new_envp( std::map<std::string, std::string>& additions ) {
+void ft::WebServer::init_new_envp( std::map<std::string, std::string>& additions, Request& request ) {
 	additions["REQUEST_METHOD"] = "";
 	additions["PATH_INFO"] = "";
-	additions["AUTH_TYPE"] = "";
+	additions["AUTH_TYPE"] = "";//not used
 	additions["CONTENT_LENGTH"] = "";//needs elaboration
 	additions["CONTENT_TYPE"] = "";
-	additions["GATEWAY_INTERFACE"] = "";
-	additions["PATH_TRANSLATED"] = "";
+	additions["GATEWAY_INTERFACE"] = "";//not used
+	additions["PATH_TRANSLATED"] = "";//not used
 	additions["QUERY_STRING"] = "";
-	additions["REMOTE_ADDR"] = "";
+	additions["REMOTE_ADDR"] = "";//not used
 	additions["REMOTE_HOST"] = "";
-	additions["REMOTE_IDENT"] = "";
-	additions["REMOTE_USER"] = "";
+	additions["REMOTE_IDENT"] = "";//not used
+	additions["REMOTE_USER"] = "";//not used
 	additions["REQUEST_METHOD"] = "";
-	additions["SCRIPT_NAME"] = "";
-	additions["SERVER_NAME"] = "";
-	additions["SERVER_PORT"] = "";
+	additions["SCRIPT_NAME"] = "";//not perfect
+	additions["SERVER_NAME"] = "";//NYI
+	additions["SERVER_PORT"] = "";//NYI
 	additions["SERVER_PROTOCOL"] = "";
-	additions["SERVER_SOFTWARE"] = "";
-	additions["UPLOAD_PATH"] = "";
-}
+	additions["SERVER_SOFTWARE"] = "";//not used
+	additions["UPLOAD_PATH"] = "";//NYI
 
-char** ft::WebServer::create_appended_envp( Request& request ) {
-	std::map<std::string, std::string> additions;
-	init_new_envp( additions );
 
 	if(request.get_method() == GET)
 		additions["REQUEST_METHOD"] = "GET";
@@ -193,12 +189,21 @@ char** ft::WebServer::create_appended_envp( Request& request ) {
 		additions["REQUEST_METHOD"] = "DELETE";
 
 	additions["PATH_INFO"] = request.get_requested_url();
-
+	additions["QUERY_STRING"] = request.get_query_string();
+	additions["SCRIPT_NAME"] = additions["PATH_INFO"];
+	additions["SERVER_PROTOCOL"] = "HTTP/1.1\0";
 	
-
 	additions.insert( request.get_params_begin(), request.get_params_end() );
 
+	additions["REMOTE_HOST"] = additions["HTTP_HOST"];
+	additions["CONTENT_TYPE"] = additions["HTTP_CONTENT_TYPE"];
+	
+}
 
+char** ft::WebServer::create_appended_envp( Request& request ) {
+	std::map<std::string, std::string> additions;
+	init_new_envp( additions, request);
+	
 	int envp_len = 0;
 	while(envp[envp_len] != NULL) {
 		envp_len++;
@@ -222,33 +227,24 @@ char** ft::WebServer::create_appended_envp( Request& request ) {
 		new_envp[cur] = strdup(ss.str().c_str());
 		cur++;
 	}
-
-	// for(int i = 0; new_envp[i] != NULL; i++) {
-	// 	std::cout << new_envp[i] << std::endl;
-	// }
-	//headers in uppercase and - changed to _ and HTTP_ added
-
-	// char** my_envp = new char* [10];
-
-	// std::string myWord = "REQUEST_METHOD=POST";
-	// my_envp[0] = new char[myWord.size() + 1];
-	// strcpy( my_envp[0], myWord.c_str() );
-	// myWord = "SERVER_PROTOCOL=HTTP/1.1";
-	// my_envp[1] = new char[myWord.size() + 1];
-	// strcpy( my_envp[1], myWord.c_str() );
-	// myWord = "PATH_INFO=/Users/jovertki/webserver_shared_repo/webserv_core/html/cgi_tester";
-	// my_envp[2] = new char[myWord.size() + 1];
-	// strcpy( my_envp[2], myWord.c_str() );
-	// myWord = "PATH=/Users/jovertki/.brew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet:/usr/local/munk";
-	// my_envp[3] = new char[myWord.size() + 1];
-	// strcpy( my_envp[3], myWord.c_str() );
-	// my_envp[4] = NULL;
 	return new_envp;
 }
 
 void ft::WebServer::response_POST( Request& request ) {
 	std::cout << "========RESPONSE POST IS ACTIVE========" << std::endl;
 
+	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > sizeof( "/cgi-bin/" )) { //if it is in /cgi-bin/
+		execute_cgi( request );
+	}
+
+	
+	// write( new_socket, out.c_str(), out.size() );
+	// std::cout << GREEN<< "===RESPONSE BEGIN===\n" << out << "\n===RESPONCE END===" << RESET << std::endl;
+	// close( new_socket );
+}
+
+
+void ft::WebServer::execute_cgi( Request& request ) {
 	char** cgi_envp = create_appended_envp( request );
 
 	int fdpipe[2];
@@ -256,8 +252,8 @@ void ft::WebServer::response_POST( Request& request ) {
 	pipe( fdpipe );
 	pipe( fdpipein );
 	std::string str;
-	for(int i = 0; i < request.get_args().size(); ++i) {
-		str += request.get_args()[i];
+	for(int i = 0; i < request.get_body().size(); ++i) {
+		str += request.get_body()[i];
 	}
 	// str[request.get_args().size()] = '\0';
 	write( fdpipein[1], str.c_str(), str.size() );
@@ -291,11 +287,7 @@ void ft::WebServer::response_POST( Request& request ) {
 	close( fdpipe[0] );
 	std::cout << "BUFF IS " << buff << std::endl;
 	std::string out = request.get_httpver() + " 200 OK\n" + "Content-Length:" + std::to_string( len ) + "\n" + static_cast<std::string>(buff);
-
-	send_response(out);
-	// write( new_socket, out.c_str(), out.size() );
-	// std::cout << GREEN<< "===RESPONSE BEGIN===\n" << out << "\n===RESPONCE END===" << RESET << std::endl;
-	// close( new_socket );
+	send_response( out );
 }
 
 void ft::WebServer::response_GET( Request& request ) {
@@ -303,14 +295,17 @@ void ft::WebServer::response_GET( Request& request ) {
 	//check if rights are correct
 
 	//response header
-	if(request.get_requested_url() == "/")
-		request.set_requested_url( "/index.html" );
+	// if(request.get_requested_url() == "/")
+	// 	request.set_requested_url( "/index.html" );
 
 
 	std::string response;
 	if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS ON*/) {
 		//list contents
 		response = list_contents( SERVER_DIR + request.get_requested_url(), request);
+	}
+	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > sizeof( "/cgi-bin/" )) { //if it is in /cgi-bin/
+		execute_cgi( request );
 	}
 	else {
 		//proceed with request

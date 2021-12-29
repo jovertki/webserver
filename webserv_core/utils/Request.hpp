@@ -10,7 +10,7 @@ namespace ft {
 		std::string httpver;
 		int header_length;
 		std::vector<char> body;
-		std::vector<char> args;
+		std::string query_string;
 		std::map <std::string, std::string> params;
 		std::string get_requested_filename() const;
 	public:
@@ -20,7 +20,7 @@ namespace ft {
 		std::string get_requested_url_extention() const;
 		std::string get_content_type() const;
 		std::vector<char> get_body() const;
-		std::vector<char> get_args() const;
+		std::string get_query_string() const;
 		std::map <std::string, std::string>get_params()const;
 		std::string get_param_value( const std::string& n );
 		int get_header_length()const;
@@ -32,8 +32,8 @@ namespace ft {
 		void set_httpver(const std::string&);
 		void set_body( const std::vector<char>& );
 		void set_body( const std::string& );
-		void set_url_args( const std::string& );
-		void set_body_args();
+		void set_query_string( const std::string& );
+		// void set_body_args();
 		void set_params( const std::map <std::string, std::string>& );
 		void set_header_length( const int& );
 
