@@ -63,7 +63,8 @@ void ft::WebServer::accepter(Request& request) {
 	for(int i = request.get_header_length() + 4; i < end; i++) {
 		body_file << buffer[i];
 	}
-	
+	body_file.close();
+	unpack_body(request);
 
 	// request.set_body( buffer_string.substr( buffer_string.find( "\r\n\r\n" ) + 4 ) );
 
@@ -208,7 +209,8 @@ void ft::WebServer::init_new_envp( std::map<std::string, std::string>& additions
 
 	additions["SERVER_NAME"] = "";//NYI
 	additions["SERVER_PORT"] = "";//NYI
-	additions["UPLOAD_PATH"] = "/uploads";//NYI
+	std::string upload_path = SERVER_DIR + std::string("/uploads");
+	additions["UPLOAD_PATH"] = upload_path;//NYI
 
 	
 
@@ -531,6 +533,36 @@ std::string ft::WebServer::generate_response_head( const int& code ) {
 	return ss.str();
 }
 
+void ft::WebServer::unpack_body( Request& request ) {
+	
+	std::string type = request.get_param_value( "HTTP_CONTENT_TYPE" );
+	std::cout << RED << "SKJDHFSJHBFSDKJHFhj " << type << RESET << std::endl;
+	
+	if(type.find( "multipart/form-data" ) != std::string::npos) {
+		std::string boundary = type.substr( type.find( "boundary=" ) + 9 );
+		boundary.at( boundary.size() - 1 ) = '\0';
+		std::ofstream out_file( BUFFER_FILE + std::string( ".replace" ) );
+		if(!out_file.is_open()) {
+			//ERROR
+		}
+		std::ifstream body_file( BUFFER_FILE );
+		if(!body_file.is_open()) {
+			//ERROR, WHICH ONE??
+		}
+		std::string line;
+		getline( body_file, line );
+		getline( body_file, line );
+		boundary.insert( boundary.size(), "--\r" );
+		std::cout << RED <<"SKJDHFSJHBFSDKJHFhj " << boundary << RESET<< std::endl;
+		while(line != boundary && getline( body_file, line )) {
+			getline( body_file, line );
+			out_file << line;
+		}
+
+
+		
+	}
+}
 void ft::WebServer::init_response_msgs() {
 	response_messeges[100] = "Continue";
 	
