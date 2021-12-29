@@ -33,7 +33,8 @@ namespace ft {
 		void response_DELETE( Request& request );
 		void header_parse( std::string&, Request& );
 		char** create_appended_envp( Request& request );
-		
+		void init_new_envp( std::map<std::string, std::string> &);
+		void send_response( const std::string& response )const;
 		ListeningSocket* get_socket()const;
 	};
 }

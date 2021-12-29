@@ -34,9 +34,10 @@ void ft::WebServer::accepter(Request& request) {
 	//READ LOOP HERE
 	long end = recv( new_socket, buffer, 30000, 0 );
 	buffer_s = buffer;
-	std::cout << "buffer is \n" << buffer_s << std::endl;
-
-	//parse head, if not full in buffer, then error
+	std::cout << YELLOW <<"buffer is \n" << buffer_s << "bytes read = " << end << RESET <<  std::endl;
+	if(end == 0)
+		throw error_request_code();
+		//parse head, if not full in buffer, then error
 	//use map for storage
 	header_parse( buffer_s, request);
 
@@ -158,12 +159,11 @@ void ft::WebServer::handler( Request& request ) {
 
 
 
-char** ft::WebServer::create_appended_envp( Request& request ) {
-	std::map<std::string, std::string> additions;
+void ft::WebServer::init_new_envp( std::map<std::string, std::string>& additions ) {
 	additions["REQUEST_METHOD"] = "";
 	additions["PATH_INFO"] = "";
 	additions["AUTH_TYPE"] = "";
-	additions["CONTENT_LENGTH"] = "";
+	additions["CONTENT_LENGTH"] = "";//needs elaboration
 	additions["CONTENT_TYPE"] = "";
 	additions["GATEWAY_INTERFACE"] = "";
 	additions["PATH_TRANSLATED"] = "";
@@ -178,8 +178,23 @@ char** ft::WebServer::create_appended_envp( Request& request ) {
 	additions["SERVER_PORT"] = "";
 	additions["SERVER_PROTOCOL"] = "";
 	additions["SERVER_SOFTWARE"] = "";
-	
 	additions["UPLOAD_PATH"] = "";
+}
+
+char** ft::WebServer::create_appended_envp( Request& request ) {
+	std::map<std::string, std::string> additions;
+	init_new_envp( additions );
+
+	if(request.get_method() == GET)
+		additions["REQUEST_METHOD"] = "GET";
+	else if(request.get_method() == POST)
+		additions["REQUEST_METHOD"] = "POST";
+	else if(request.get_method() == DELETE)
+		additions["REQUEST_METHOD"] = "DELETE";
+
+	additions["PATH_INFO"] = request.get_requested_url();
+
+	
 
 	additions.insert( request.get_params_begin(), request.get_params_end() );
 
@@ -208,9 +223,9 @@ char** ft::WebServer::create_appended_envp( Request& request ) {
 		cur++;
 	}
 
-	for(int i = 0; new_envp[i] != NULL; i++) {
-		std::cout << new_envp[i] << std::endl;
-	}
+	// for(int i = 0; new_envp[i] != NULL; i++) {
+	// 	std::cout << new_envp[i] << std::endl;
+	// }
 	//headers in uppercase and - changed to _ and HTTP_ added
 
 	// char** my_envp = new char* [10];
@@ -277,9 +292,10 @@ void ft::WebServer::response_POST( Request& request ) {
 	std::cout << "BUFF IS " << buff << std::endl;
 	std::string out = request.get_httpver() + " 200 OK\n" + "Content-Length:" + std::to_string( len ) + "\n" + static_cast<std::string>(buff);
 
-	write( new_socket, out.c_str(), out.size() );
-	std::cout << "RESPONSE IS \n" << out << "\n===end of response===" << std::endl;
-	close( new_socket );
+	send_response(out);
+	// write( new_socket, out.c_str(), out.size() );
+	// std::cout << GREEN<< "===RESPONSE BEGIN===\n" << out << "\n===RESPONCE END===" << RESET << std::endl;
+	// close( new_socket );
 }
 
 void ft::WebServer::response_GET( Request& request ) {
@@ -314,9 +330,10 @@ void ft::WebServer::response_GET( Request& request ) {
 		response = response + "Content-Type: " + content_type + ";\nContent-Length:" + std::to_string( content.size() ) + "\n\n" + content;
 	}
 	//write string to socket
-	write( new_socket, response.c_str(), response.size() );
-	std::cout << "RESPONSE IS \n" << response << "\n===end of response===" << std::endl;
-	close( new_socket );
+	send_response( response );
+	// write( new_socket, response.c_str(), response.size() );
+	// std::cout << "RESPONSE IS \n" << response << "\n===end of response===" << std::endl;
+	// close( new_socket );
 }
 
 void ft::WebServer::response_DELETE( Request& request ) {
@@ -334,10 +351,10 @@ void ft::WebServer::response_DELETE( Request& request ) {
 	else {
 		sresponse << "HTTP/1.1 200 OK\n\nFile " << request.get_requested_url() << " was successfully DELETED" << std::endl;
 	}
-	response = sresponse.str();
-	write( new_socket, response.c_str(), response.size() );
-	std::cout << "RESPONSE IS \n" << response << "\n===end of response===" << std::endl;
-	close( new_socket );
+	send_response( sresponse.str() );
+	// write( new_socket, response.c_str(), response.size() );
+	// std::cout << "RESPONSE IS \n" << response << "\n===end of response===" << std::endl;
+	// close( new_socket );
 }
 
 void ft::WebServer::responder( Request& request ) {
@@ -393,7 +410,7 @@ void ft::WebServer::handle_errors( int error_code, Request& request ) {
 		"<!-- Bootstrap -->" << std::endl << std::endl << \
 		"<link rel = \"stylesheet\" href = \"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css\">" << std::endl << std::endl << \
 		"<!-- Custom stlylesheet -->" << std::endl << \
-		"<link type=\"text/css\" rel=\"stylesheet\" href=\"css/style.css\" />" << std::endl << std::endl << \
+		"<link type=\"text/css\" rel=\"stylesheet\" href=\"/css/style.css\" />" << std::endl << std::endl << \
 		"</head>" << std::endl << std::endl << \
 		"<body>" << std::endl << \
 		"<div class=\"vertical-center\">" << std::endl << \
@@ -413,9 +430,11 @@ void ft::WebServer::handle_errors( int error_code, Request& request ) {
 		"Content-Type: text/html;" << std::endl << \
 		"Content-Length: " << body.str().size() << std::endl << std::endl;
 	response = header.str() + body.str();
-	write( new_socket, response.c_str(), response.size() );
-	std::cout << "RESPONSE IS \n" << response << "===end of response===" << std::endl;
-	close( new_socket );
+
+	send_response( response );
+	// write( new_socket, response.c_str(), response.size() );
+	// std::cout << "RESPONSE IS \n" << response << "===end of response===" << std::endl;
+	// close( new_socket );
 	throw (error_request_code());
 }
 std::string ft::WebServer::list_contents( const std::string& path, Request& request )const {
@@ -486,4 +505,11 @@ void ft::WebServer::launch() {
 
 ft::ListeningSocket* ft::WebServer::get_socket()const {
 	return socket;
+}
+
+
+void ft::WebServer::send_response( const std::string& response ) const{
+	write( new_socket, response.c_str(), response.size() );
+	std::cout << GREEN << "===RESPONSE BEGIN===\n" << response << "\n===RESPONCE END===" << RESET << std::endl;
+	close( new_socket );
 }
