@@ -132,3 +132,13 @@ std::map<std::string, std::string>::iterator ft::Request::get_params_begin() {
 std::map<std::string, std::string>::iterator ft::Request::get_params_end() {
 	return params.end();
 }
+
+void ft::Request::clear() {
+	method = 0;
+	requested_url = "";
+	httpver = "";
+	header_length = 0;
+	body.clear();
+	args.clear();
+	params.clear();
+}

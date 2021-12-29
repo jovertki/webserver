@@ -41,5 +41,6 @@ namespace ft {
 		void insert_param( const std::pair<std::string, std::string>& );
 		void print_params();
 		int param_exists( const std::string& ) const;
+		void clear();
 	};
 }

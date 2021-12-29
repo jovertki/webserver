@@ -23,7 +23,7 @@ ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), conf
 	launch();
 }
 
-void ft::WebServer::accepter() {
+void ft::WebServer::accepter(Request& request) {
 	char buffer[30001] = { 0 };
 	std::string buffer_s;
 	struct sockaddr_in address = get_socket()->get_address();
@@ -38,7 +38,7 @@ void ft::WebServer::accepter() {
 
 	//parse head, if not full in buffer, then error
 	//use map for storage
-	header_parse( buffer_s );
+	header_parse( buffer_s, request);
 
 	//debug only
 	std::ofstream last_request( "last_request.txt" );
@@ -80,7 +80,7 @@ void ft::WebServer::accepter() {
 	// }
 }
 
-void ft::WebServer::header_parse(std::string& buffer_s) {
+void ft::WebServer::header_parse( std::string& buffer_s, Request& request ) {
 	
 	// std::string line = buffer_s.substr( 0, buffer_s.find( "\n" ) );
 	std::stringstream ss;
@@ -152,13 +152,13 @@ void ft::WebServer::header_parse(std::string& buffer_s) {
 
 }
 
-void ft::WebServer::handler() {
+void ft::WebServer::handler( Request& request ) {
 	
 }
 
 
 
-char** ft::WebServer::create_appended_envp() {
+char** ft::WebServer::create_appended_envp( Request& request ) {
 	std::map<std::string, std::string> additions;
 	additions["REQUEST_METHOD"] = "";
 	additions["PATH_INFO"] = "";
@@ -231,10 +231,10 @@ char** ft::WebServer::create_appended_envp() {
 	return new_envp;
 }
 
-void ft::WebServer::response_POST() {
+void ft::WebServer::response_POST( Request& request ) {
 	std::cout << "========RESPONSE POST IS ACTIVE========" << std::endl;
 
-	char** cgi_envp = create_appended_envp();
+	char** cgi_envp = create_appended_envp( request );
 
 	int fdpipe[2];
 	int fdpipein[2];
@@ -282,7 +282,7 @@ void ft::WebServer::response_POST() {
 	close( new_socket );
 }
 
-void ft::WebServer::response_GET() {
+void ft::WebServer::response_GET( Request& request ) {
 
 	//check if rights are correct
 
@@ -294,7 +294,7 @@ void ft::WebServer::response_GET() {
 	std::string response;
 	if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS ON*/) {
 		//list contents
-		response = list_contents( SERVER_DIR + request.get_requested_url() );
+		response = list_contents( SERVER_DIR + request.get_requested_url(), request);
 	}
 	else {
 		//proceed with request
@@ -303,7 +303,7 @@ void ft::WebServer::response_GET() {
 		//read file to string
 		std::ifstream infile( SERVER_DIR + request.get_requested_url() );
 		if(!infile.is_open()) {
-			handle_errors( 404 );
+			handle_errors( 404, request);
 		}
 		std::string content( (std::istreambuf_iterator<char>( infile )),
 			(std::istreambuf_iterator<char>()) );
@@ -319,7 +319,7 @@ void ft::WebServer::response_GET() {
 	close( new_socket );
 }
 
-void ft::WebServer::response_DELETE() {
+void ft::WebServer::response_DELETE( Request& request ) {
 	//do smth
 	// if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS ON*/) {
 	// 	//list contents
@@ -340,14 +340,14 @@ void ft::WebServer::response_DELETE() {
 	close( new_socket );
 }
 
-void ft::WebServer::responder() {
+void ft::WebServer::responder( Request& request ) {
 	//check availability of method in location
 	if(request.get_method() == GET)
-		response_GET();
+		response_GET( request );
 	else if(request.get_method() == POST)
-		response_POST();
+		response_POST( request );
 	else if(request.get_method() == DELETE)
-		response_DELETE();
+		response_DELETE( request );
 }
 
 
@@ -377,7 +377,7 @@ bool ft::WebServer::is_directory( const std::string& path )const {
 	}
 	return 0;
 }
-void ft::WebServer::handle_errors( int error_code ) {
+void ft::WebServer::handle_errors( int error_code, Request& request ) {
 	std::string response;
 	std::ostringstream header;
 	std::ostringstream body;
@@ -418,7 +418,7 @@ void ft::WebServer::handle_errors( int error_code ) {
 	close( new_socket );
 	throw (error_request_code());
 }
-std::string ft::WebServer::list_contents( const std::string& path )const {
+std::string ft::WebServer::list_contents( const std::string& path, Request& request )const {
 	std::string response;
 	std::ostringstream header;
 	std::ostringstream body;
@@ -467,14 +467,16 @@ std::string ft::WebServer::list_contents( const std::string& path )const {
 	return response;
 }
 void ft::WebServer::launch() {
+	Request request;
 	while(true) {
 		std::cout << "waiting" << std::endl;
 		try {
+			request.clear();
 			//poll will be here
-			accepter();
-			handler();
-			responder();
-			system( "leaks webserv" );
+			accepter(request);
+			handler(request);
+			responder(request);
+//			system( "leaks webserv" );
 		}
 		catch(error_request_code& e) {}
 		std::cout << "==== DONE ====" << std::endl;
