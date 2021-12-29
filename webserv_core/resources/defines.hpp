@@ -2,7 +2,7 @@
 #define SERVER_DIR "./html"
 #define ERROR404FILE "./html/error404.html"
 #define MIME_FILE "./resources/mime.types"
-
+#define BUFFER_FILE "./runtime_files/bufferfile"
 
 
 //colored output

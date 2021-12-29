@@ -34,7 +34,7 @@ namespace ft {
 		void response_GET(Request& request);
 		void response_DELETE( Request& request );
 		void execute_cgi( Request& request );
-		void header_parse( std::string&, Request& );
+		void header_parse( const char*, Request& );
 		char** create_appended_envp( Request& request );
 		void init_new_envp( std::map<std::string, std::string>&, Request& );
 		void send_response( const std::string& response )const;

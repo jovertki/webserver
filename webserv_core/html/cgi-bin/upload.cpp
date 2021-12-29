@@ -3,13 +3,13 @@
 #include <iostream>
 #include <unistd.h>
 
-int main( int argc, char** argv, char** envp ) {
+int main( int argc, char** argv, char** envp ) {	
+	for(int i = 0; envp[i] != NULL; i++) {
+		if(strncmp( envp[i], "UPLOAD_PATH=", 12) == 0) {
+			std::string upload_path( envp[i] );
+			upload_path = upload_path.substr( 12 );
+		}
+	}
 
-	std::string text;
-	std::cin >> text;
-	std::cout << text << " SUCCESS" << std::endl;
-	// char* buffer[30000] = { 0 };
-	// while(read( socket, buffer, 30000 ) > 0) {
-	// 	std::cout << buffer << std::endl;
-	// }
+	
 }

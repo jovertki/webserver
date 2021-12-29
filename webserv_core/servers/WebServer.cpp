@@ -13,6 +13,7 @@
 #include <errno.h>
 #include <cstdlib>
 #include <sstream>
+#include <fcntl.h>
 
 const char* ft::WebServer::error_request_code::what() const throw() {
 	return ("error");
@@ -26,7 +27,6 @@ ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), conf
 
 void ft::WebServer::accepter(Request& request) {
 	char buffer[30001] = { 0 };
-	std::string buffer_s;
 	struct sockaddr_in address = get_socket()->get_address();
 	int addrlen = sizeof( address );
 	long content_length;
@@ -34,17 +34,20 @@ void ft::WebServer::accepter(Request& request) {
 
 	//READ LOOP HERE
 	long end = recv( new_socket, buffer, 30000, 0 );
-	buffer_s = buffer;
-	std::cout << YELLOW <<"buffer is \n" << buffer_s << "bytes read = " << end << RESET <<  std::endl;
+	std::cout << YELLOW << "buffer is \n";
+	for(int i = 0; i < end; i++) {
+		std::cout << buffer[i];
+	}
+	std::cout << "bytes read = " << end << RESET << std::endl;
 	if(end == 0)
 		throw error_request_code();
 		//parse head, if not full in buffer, then error
 	//use map for storage
-	header_parse( buffer_s, request);
+	header_parse( buffer, request);
 
 	//debug only
 	std::ofstream last_request( "last_request.txt" );
-	last_request << buffer_s;
+	last_request << buffer;
 
 	content_length = atol( (request.get_param_value( "HTTP_CONTENT_LENGTH" )).c_str() );
 	std::cout << "CONTEJHBSHGFDKSJFLSKHFDKJSDLFJDSLK = " << content_length << std::endl;
@@ -53,12 +56,21 @@ void ft::WebServer::accepter(Request& request) {
 
 	
 	//find body
-	request.set_body( buffer_s.substr( buffer_s.find( "\r\n\r\n" ) + 4 ) );
+	std::ofstream body_file( BUFFER_FILE );
+	if(!body_file.is_open()) {
+		//ERROR, WHICH ONE??
+	}
+	for(int i = request.get_header_length() + 4; i < end; i++) {
+		body_file << buffer[i];
+	}
+	
 
-	std::cout << "BODY is |\n";
-	for(int i = 0; i < request.get_body().size(); ++i)
-		std::cout << request.get_body()[i];
-	std::cout << "\n|" << std::endl;
+	// request.set_body( buffer_string.substr( buffer_string.find( "\r\n\r\n" ) + 4 ) );
+
+	// std::cout << "BODY is |\n";
+	// for(int i = 0; i < request.get_body_fd().size(); ++i)
+	// 	std::cout << request.get_body_fd()[i];
+	// std::cout << "\n|" << std::endl;
 
 	//set args to body if method is POST
 	// if(request.get_method() == POST) {
@@ -73,20 +85,14 @@ void ft::WebServer::accepter(Request& request) {
 
 
 	last_request.close();
-	
-	//fix windows endlines
-	// std::size_t n = buffer_s.find( (char)13 );
-	// while(n != std::string::npos) {
-	// 	buffer_s.replace( n, 1, "" );
-	// 	n = buffer_s.find( (char)13 );
-	// }
+
 }
 
-void ft::WebServer::header_parse( std::string& buffer_s, Request& request ) {
+void ft::WebServer::header_parse( const char* input_buffer, Request& request ) {
 	
-	// std::string line = buffer_s.substr( 0, buffer_s.find( "\n" ) );
+	// std::string line = buffer_string.substr( 0, buffer_string.find( "\n" ) );
 	std::stringstream ss;
-	ss << buffer_s;
+	ss << input_buffer;
 	std::string token;
 	ss >> token;
 	//HTTP request parser
@@ -147,7 +153,8 @@ void ft::WebServer::header_parse( std::string& buffer_s, Request& request ) {
 		}
 			
 	}
-	request.set_header_length( buffer_s.find( "\r\n\r\n" ) );
+	std::string buffer_string( input_buffer );
+	request.set_header_length( buffer_string.find( "\r\n\r\n" ) );
 
 	//debug only
 	request.print_params();
@@ -198,7 +205,13 @@ void ft::WebServer::init_new_envp( std::map<std::string, std::string>& additions
 
 	additions["REMOTE_HOST"] = additions["HTTP_HOST"];
 	additions["CONTENT_TYPE"] = additions["HTTP_CONTENT_TYPE"];
+
+	additions["SERVER_NAME"] = "";//NYI
+	additions["SERVER_PORT"] = "";//NYI
+	additions["UPLOAD_PATH"] = "/uploads";//NYI
+
 	
+
 }
 
 char** ft::WebServer::create_appended_envp( Request& request ) {
@@ -234,7 +247,7 @@ char** ft::WebServer::create_appended_envp( Request& request ) {
 void ft::WebServer::response_POST( Request& request ) {
 	std::cout << "========RESPONSE POST IS ACTIVE========" << std::endl;
 
-	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > sizeof( "/cgi-bin/" )) { //if it is in /cgi-bin/
+	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > 9 /*sizeof( "/cgi-bin/" )*/) { //if it is in /cgi-bin/
 		execute_cgi( request );
 	}
 
@@ -251,18 +264,20 @@ void ft::WebServer::execute_cgi( Request& request ) {
 	int fdpipe[2];
 	int fdpipein[2];
 	pipe( fdpipe );
-	pipe( fdpipein );
-	std::string str;
-	for(int i = 0; i < request.get_body().size(); ++i) {
-		str += request.get_body()[i];
-	}
-	// str[request.get_args().size()] = '\0';
-	write( fdpipein[1], str.c_str(), str.size() );
-	close( fdpipein[1] );
+	// pipe( fdpipein );
+
+	int body_fd = open( BUFFER_FILE, O_RDONLY );
+	// std::string str;
+	// for(int i = 0; i < request.get_body_fd().size(); ++i) {
+	// 	str += request.get_body_fd()[i];
+	// }
+	// // str[request.get_args().size()] = '\0';
+	// write( fdpipein[1], str.c_str(), str.size() );
+	// close( fdpipein[1] );
 	int ret = fork();
 	if(ret == 0)
 	{
-		dup2( fdpipein[0], 0 );
+		dup2( body_fd, 0 );
 		dup2( fdpipe[1], 1 );
 		//std::cout << "Trying to execute " << request.get_requested_filename() << std::endl;
 		std::string filename = SERVER_DIR + request.get_requested_url();
@@ -272,7 +287,7 @@ void ft::WebServer::execute_cgi( Request& request ) {
 		exit( 234 );
 	}
 	else {
-		close( fdpipein[0] );
+		// close( fdpipein[0] );
 		close( fdpipe[1] );
 		waitpid( ret, NULL, 0 );
 	}
@@ -414,7 +429,7 @@ void ft::WebServer::handle_errors( int error_code, Request& request ) {
 		"<div id=\"notfound\" class=\"text-center\">" << std::endl << \
 		"<h1>:-(</h1>"   <<std::endl << \
 		"<h1>" << error_code << "</h1>" << std::endl << \
-		"<p> An error occured.</p>" << std::endl << \
+		"<p>" << response_messeges[error_code] << "</p>" << std::endl << \
 		"<a href=\"/index.html\">Back to homepage</a>" << std::endl << \
 		"</div>" << std::endl << \
 		"</div>" << std::endl << \

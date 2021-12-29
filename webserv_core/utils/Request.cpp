@@ -48,9 +48,9 @@ std::string ft::Request::get_content_type() const {
 	return "no such type";
 }
 
-std::vector<char> ft::Request::get_body() const {
-	return body;
-}
+// std::ofstream ft::Request::get_body_fd() const {
+// 	return body_file;
+// }
 
 std::string ft::Request::get_query_string() const {
 	return query_string;
@@ -71,13 +71,10 @@ void ft::Request::set_httpver( const std::string& n ) {
 	httpver = n;
 }
 
-void ft::Request::set_body( const std::vector<char> &n ) {
-	body = n;
-}
+// void ft::Request::set_body( const std::ofstream& n ) {
+// 	body_file = n;
+// }
 
-void ft::Request::set_body( const std::string& n ) {
-	body.insert( body.begin(), n.begin(), n.end() );
-}
 
 void ft::Request::set_query_string( const std::string& n ) {
 	query_string.insert(query_string.begin(), n.begin(), n.end());
@@ -138,7 +135,8 @@ void ft::Request::clear() {
 	requested_url = "";
 	httpver = "";
 	header_length = 0;
-	body.clear();
+	// body_file.close();
+	std::remove( BUFFER_FILE );
 	query_string.clear();
 	params.clear();
 }
