@@ -16,18 +16,54 @@ const char* ft::WebServer::error_request_code::what() const throw() {
 	return ("error");
 }
 
-ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), config(config.get_servers()){
-	socket = new ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, 4242, INADDR_ANY, 10 );
-	launch();
+ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), serverInfo(config.get_servers()){
+	// socket = new ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, 4242, INADDR_ANY, 10 );
+	pollfd fdset[get_size_serverInfo()];
+	for (int i = 0; i < serverInfo.size(); i++) {
+		// std::cout << i << "\n";
+		socket_array.push_back(ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, serverInfo[i].getListen().front(), INADDR_ANY, 10 )); //
+		fdset[i].fd = get_socket_array()[i].get_sock();
+		fdset[i].events = POLLIN;
+	}
+
+	launch(fdset);
 }
+
+void ft::WebServer::poller(struct pollfd fdset[]) {
+	int ret = poll( fdset, get_size_serverInfo(), 100000 );
+	// проверяем успешность вызова
+	if ( ret == -1 )
+		std::cout << "Fail from poll\n";
+		// ошибка
+	else if ( ret == 0 )
+		std::cout << "I waiting...\n";
+		// таймаут, событий не произошло
+	else
+	{
+		for (int i = 0; socket_array.size() > i; ++i)
+		// обнаружили событие, обнулим revents чтобы можно было переиспользовать структуру
+		if ( fdset[i].revents & POLLIN )
+			fdset[i].revents = 0;
+			// обработка входных данных от sock1
+
+		// if ( fdset[1].revents & POLLOUT )
+		// 	fdset[1].revents = 0;
+			// обработка исходящих данных от sock2
+	}
+}
+
 
 void ft::WebServer::accepter() {
 	char buffer[30001] = { 0 };
 	std::string buffer_s;
-	struct sockaddr_in address = get_socket()->get_address();
+	struct sockaddr_in address;
+	// struct sockaddr_in address = get_socket()->get_address();
+	for (int i = 0; socket_array.size() > i; ++i)
+		address = socket_array[i].get_address(); //
 	int addrlen = sizeof( address );
 	long content_length;
-	new_socket = accept( get_socket()->get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen );
+	// new_socket = accept( get_socket()->get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen );
+	new_socket = accept( get_socket_array().begin()->get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen ); //
 
 	//READ LOOP HERE
 	long end = recv( new_socket, buffer, 30000, 0 );
@@ -46,7 +82,7 @@ void ft::WebServer::accepter() {
 	//read body for content-length bytes
 
 
-	
+
 	//find body
 	request.set_body( buffer_s.substr( buffer_s.find( "\r\n\r\n" ) + 4 ) );
 
@@ -68,7 +104,7 @@ void ft::WebServer::accepter() {
 
 
 	last_request.close();
-	
+
 	//fix windows endlines
 	// std::size_t n = buffer_s.find( (char)13 );
 	// while(n != std::string::npos) {
@@ -78,7 +114,7 @@ void ft::WebServer::accepter() {
 }
 
 void ft::WebServer::header_parse(std::string& buffer_s) {
-	
+
 	// std::string line = buffer_s.substr( 0, buffer_s.find( "\n" ) );
 	std::stringstream ss;
 	ss << buffer_s;
@@ -118,7 +154,7 @@ void ft::WebServer::header_parse(std::string& buffer_s) {
 	ss >> token;
 	request.set_httpver( token );
 	std::cout << "HTTPVER is |" << request.get_httpver() << "|" << std::endl;
-	
+
 	std::string buffer;
 	getline( ss, buffer ); //empty line
 	getline( ss, buffer );//first line of headers
@@ -133,7 +169,7 @@ void ft::WebServer::header_parse(std::string& buffer_s) {
 		if(!getline( ss, buffer )) {
 			//ERROR INVALID REQUEST
 		}
-			
+
 	}
 	request.set_header_length( buffer_s.find( "\r\n\r\n" ) );
 
@@ -143,7 +179,7 @@ void ft::WebServer::header_parse(std::string& buffer_s) {
 }
 
 void ft::WebServer::handler() {
-	
+
 }
 void ft::WebServer::response_POST() {
 	std::cout << "========RESPONSE POST IS ACTIVE========" << std::endl;
@@ -404,11 +440,11 @@ std::string ft::WebServer::list_contents( const std::string& path )const {
 	response = header.str() + body.str();
 	return response;
 }
-void ft::WebServer::launch() {
+void ft::WebServer::launch(struct pollfd fdset[]) {
 	while(true) {
 		std::cout << "waiting" << std::endl;
 		try {
-			//poll will be here
+			poller(fdset);
 			accepter();
 			handler();
 			responder();
@@ -419,6 +455,10 @@ void ft::WebServer::launch() {
 }
 
 
-ft::ListeningSocket* ft::WebServer::get_socket()const {
-	return socket;
+std::vector<ft::ListeningSocket> ft::WebServer::get_socket_array()const {
+	return socket_array;
+}
+
+int ft::WebServer::get_size_serverInfo() const {
+	return serverInfo.size();
 }

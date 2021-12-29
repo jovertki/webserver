@@ -4,6 +4,8 @@
 #include "../resources/defines.hpp"
 #include "../config_parser/Config_info.hpp"
 #include "../sockets/ListeningSocket.hpp"
+#include <sys/poll.h> //
+
 namespace ft {
 	class WebServer {
 	private:
@@ -11,16 +13,20 @@ namespace ft {
 			virtual const char* what() const throw();
 		};
 		//thing to change
-		ListeningSocket* socket;
+		// ListeningSocket* socket;
+		std::vector<ListeningSocket> socket_array; //
+		// pollfd fdset[get_size_serverInfo()];
 
-		std::vector<ServerConfig> config;		
+		std::vector<ServerConfig> serverInfo;
 		int new_socket;
 		char** envp;
 		Request request;
 	public:
 		WebServer(char **envp, Config_info &config);
-		void launch();
+		void launch(struct pollfd fdset[]);
+
 	private:
+		void poller(struct pollfd fdset[]); //
 		void accepter();
 		void handler();
 		void responder();
@@ -33,6 +39,7 @@ namespace ft {
 		void response_DELETE();
 		void header_parse( std::string& );
 
-		ListeningSocket* get_socket()const;
+		std::vector<ListeningSocket> get_socket_array()const;
+		int get_size_serverInfo() const;
 	};
 }
