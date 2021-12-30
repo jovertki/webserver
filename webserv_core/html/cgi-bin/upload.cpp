@@ -3,7 +3,6 @@
 #include <iostream>
 #include <unistd.h>
 #include <fstream>
-#define FILENAME "/test_upload.txt"
 #include <errno.h>
 int main( int argc, char** argv, char** envp ) {
 	std::string upload_path;
@@ -13,16 +12,19 @@ int main( int argc, char** argv, char** envp ) {
 			upload_path = crutch.substr( 12 );
 		}
 	}
-	std::ofstream outfile( upload_path + FILENAME );
-	std::cout << strerror( errno ) << std::endl;
-	std::cout << upload_path + FILENAME << std::endl;
+	std::ofstream outfile( upload_path );
 	if(!outfile.is_open()) {
 		std::cout << "error uploading" << std::endl;
 	}
 	std::string line;
 	while(getline( std::cin, line ))
 	{
-		outfile << line << '\n';
+		outfile << line;
+		if(!std::cin.eof())
+			outfile << '\n';
 	}
 	outfile.close();
+
+	std::cout << "Content-Type: text/html\n\n";
+	std::cout << "<h1>File was successfully uploaded</h1>" << std::endl;
 }

@@ -54,17 +54,60 @@ void ft::WebServer::accepter(Request& request) {
 	//read body for content-length bytes
 
 
-	
-	//find body
-	std::ofstream body_file( BUFFER_FILE );
+	std::string type = request.get_param_value( "HTTP_CONTENT_TYPE" );
+	// std::cout << RED << "SKJDHFSJHBFSDKJHFhj " << type << RESET << std::endl;
+	std::ofstream body_file( BUFFER_FILE, std::ios::binary );
 	if(!body_file.is_open()) {
 		//ERROR, WHICH ONE??
 	}
-	for(int i = request.get_header_length() + 4; i < end; i++) {
-		body_file << buffer[i];
+	if(type.find( "multipart/form-data" ) != std::string::npos) {
+		std::string boundary = type.substr( type.find( "boundary=" ) + 9 );
+		boundary.insert( 0, "--" );
+		boundary.insert( boundary.size(), "\0" );
+		std::string data_header;
+		std::size_t data_header_end = 0;
+		data_header.insert( 0, &buffer[request.get_header_length() + 4] );
+		if(data_header.size() != 0) {//there is body and this is not a first post request
+			request.print_params();
+			std::cout << RED << "data header = " << data_header << RESET << std::endl;
+			std::size_t filename_start = data_header.find( "filename=" );
+			std::size_t filename_end = data_header.find( "\r\n", filename_start );
+			std::string filename( data_header.substr( filename_start + 10, filename_end - filename_start - 11 ) );
+			data_header_end = data_header.find( "\r\n\r\n" ) + 4;
+
+			//needs elaboration
+			//setting uploadpath here
+			std::string upload_path = SERVER_DIR + std::string( "/uploads" ) + "/";
+			filename.insert( 0, upload_path  );
+			std::cout << BLUE << filename << RESET << std::endl;
+			request.set_param( "UPLOAD_PATH", filename );
+		}
+		for(int i = request.get_header_length() + 4 + data_header_end; i < end; i++) {
+			if(i + boundary.size() + 2 <= end) {
+				if(buffer[i] == '\r') {
+					if(strncmp( &buffer[i + 2], boundary.c_str(), boundary.size() - 1) == 0) {
+						break;
+					}
+				}
+				if(buffer[i] == '\n') {
+					if(strncmp( &buffer[i + 1], boundary.c_str(), boundary.size() - 1) == 0) {
+						break;
+					}
+				}
+			}
+			body_file << buffer[i];
+		}
 	}
+	else {
+		for(int i = request.get_header_length() + 4; i < end; i++) {
+			body_file << buffer[i];
+		}
+	}
+
+
+	//find body
 	body_file.close();
-	unpack_body(request);
+//	unpack_body(request);//<- START HERE!!!!!!!!!!!!!
 
 	// request.set_body( buffer_string.substr( buffer_string.find( "\r\n\r\n" ) + 4 ) );
 
@@ -187,7 +230,7 @@ void ft::WebServer::init_new_envp( std::map<std::string, std::string>& additions
 	additions["SERVER_PORT"] = "";//NYI
 	additions["SERVER_PROTOCOL"] = "";
 	additions["SERVER_SOFTWARE"] = "";//not used
-	additions["UPLOAD_PATH"] = "";//NYI
+	// additions["UPLOAD_PATH"] = "";//NYI
 
 
 	if(request.get_method() == GET)
@@ -209,8 +252,7 @@ void ft::WebServer::init_new_envp( std::map<std::string, std::string>& additions
 
 	additions["SERVER_NAME"] = "";//NYI
 	additions["SERVER_PORT"] = "";//NYI
-	std::string upload_path = SERVER_DIR + std::string("/uploads");
-	additions["UPLOAD_PATH"] = upload_path;//NYI
+
 
 	
 
@@ -558,7 +600,7 @@ void ft::WebServer::unpack_body( Request& request ) {
 			getline( body_file, line );
 			out_file << line;
 		}
-
+		body_file.close();
 
 		
 	}

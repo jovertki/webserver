@@ -35,6 +35,7 @@ namespace ft {
 		void set_query_string( const std::string& );
 		// void set_body_args();
 		void set_params( const std::map <std::string, std::string>& );
+		void set_param( const std::string& key, const std::string& value );
 		void set_header_length( const int& );
 
 		

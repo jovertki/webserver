@@ -96,7 +96,7 @@ void ft::Request::insert_param( const std::pair<std::string, std::string>& n ) {
 void ft::Request::print_params() {
 	//debug output
 	for(std::map<std::string, std::string>::const_iterator i = params.begin(); i != params.end(); i++) {
-		std::cout << (*i).first << ":" << (*i).second << std::endl;
+		std::cout << MAGENTA << ( *i ).first << ":" << (*i).second <<RESET<< std::endl;
 	}
 }
 
@@ -139,4 +139,8 @@ void ft::Request::clear() {
 	std::remove( BUFFER_FILE );
 	query_string.clear();
 	params.clear();
+}
+
+void ft::Request::set_param( const std::string& key, const std::string& value ) {
+	params[key] = value;
 }
