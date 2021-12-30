@@ -11,6 +11,7 @@ int main(int argc, char** argv, char **envp) {
         std::cout << "Wrong arguments" << std::endl;
         exit(-1);
     }
-    Config_info config(conf_name.c_str());
-        ft::WebServer t( envp, config);
+    Config_info config( conf_name.c_str() );
+    // system( "leaks webserv" );
+    ft::WebServer t( envp, config );
 }

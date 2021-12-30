@@ -1,13 +1,18 @@
 #include <string>
 #include "../resources/defines.hpp"
+#include <map>
+#include <vector>
+#include <fstream>
 namespace ft {
 	class Request {
 	private:
 		int method;
 		std::string requested_url;
 		std::string httpver;
-		std::string body;
-		std::string args;
+		int header_length;
+		// std::ofstream body_file;
+		std::string query_string;
+		std::map <std::string, std::string> params;
 		std::string get_requested_filename() const;
 	public:
 		int get_method() const;
@@ -15,14 +20,28 @@ namespace ft {
 		std::string get_httpver() const;
 		std::string get_requested_url_extention() const;
 		std::string get_content_type() const;
-		std::string get_body() const;
-		std::string get_args() const;
+		// std::ofstream get_body_fd() const;
+		std::string get_query_string() const;
+		std::map <std::string, std::string>get_params()const;
+		std::string get_param_value( const std::string& n );
+		int get_header_length()const;
+		std::map<std::string, std::string>::iterator get_params_begin();
+		std::map<std::string, std::string>::iterator get_params_end();
+		
+		void set_method( const int& );
+		void set_requested_url(const std::string&);
+		void set_httpver(const std::string&);
+		// void set_body( const std::ofstream& );
+		void set_query_string( const std::string& );
+		// void set_body_args();
+		void set_params( const std::map <std::string, std::string>& );
+		void set_param( const std::string& key, const std::string& value );
+		void set_header_length( const int& );
 
-		void set_method( int );
-		void set_requested_url(std::string);
-		void set_httpver(std::string);
-		void set_body( std::string );
-		void set_url_args(std::string);
-		void set_body_args();
+		
+		void insert_param( const std::pair<std::string, std::string>& );
+		void print_params();
+		int param_exists( const std::string& ) const;
+		void clear();
 	};
 }
