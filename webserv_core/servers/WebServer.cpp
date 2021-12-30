@@ -60,7 +60,7 @@ void ft::WebServer::accepter(Request& request) {
 	if(!body_file.is_open()) {
 		//ERROR, WHICH ONE??
 	}
-	if(type.find( "multipart/form-data" ) != std::string::npos) {
+	if(type.find( "multipart/form-data" ) != std::string::npos) { //meaning file is being uploaded
 		std::string boundary = type.substr( type.find( "boundary=" ) + 9 );
 		boundary.insert( 0, "--" );
 		boundary.insert( boundary.size(), "\0" );
@@ -107,29 +107,16 @@ void ft::WebServer::accepter(Request& request) {
 
 	//find body
 	body_file.close();
-//	unpack_body(request);//<- START HERE!!!!!!!!!!!!!
+	//	unpack_body(request);
 
-	// request.set_body( buffer_string.substr( buffer_string.find( "\r\n\r\n" ) + 4 ) );
 
-	// std::cout << "BODY is |\n";
-	// for(int i = 0; i < request.get_body_fd().size(); ++i)
-	// 	std::cout << request.get_body_fd()[i];
-	// std::cout << "\n|" << std::endl;
-
-	//set args to body if method is POST
-	// if(request.get_method() == POST) {
-	// 	request.set_body_args();
-	// }
+	//debug only
 	std::cout << "QUERY_STRING is |\n";
-		for(int i = 0; i < request.get_query_string().size(); ++i)
-			std::cout << request.get_query_string()[i];
+	for(int i = 0; i < request.get_query_string().size(); ++i)
+		std::cout << request.get_query_string()[i];
 	std::cout << "\n|" << std::endl;
-
-
-
-
+		
 	last_request.close();
-
 }
 
 void ft::WebServer::header_parse( const char* input_buffer, Request& request ) {
@@ -173,7 +160,8 @@ void ft::WebServer::header_parse( const char* input_buffer, Request& request ) {
 	ss >> token;
 	request.set_httpver( token );
 	std::cout << "HTTPVER is |" << request.get_httpver() << "|" << std::endl;
-	
+
+	//fill params with http request headers
 	std::string buffer;
 	getline( ss, buffer ); //empty line
 	getline( ss, buffer );//first line of headers
@@ -306,18 +294,9 @@ void ft::WebServer::execute_cgi( Request& request ) {
 	char** cgi_envp = create_appended_envp( request );
 
 	int fdpipe[2];
-	int fdpipein[2];
 	pipe( fdpipe );
-	// pipe( fdpipein );
 
 	int body_fd = open( BUFFER_FILE, O_RDONLY );
-	// std::string str;
-	// for(int i = 0; i < request.get_body_fd().size(); ++i) {
-	// 	str += request.get_body_fd()[i];
-	// }
-	// // str[request.get_args().size()] = '\0';
-	// write( fdpipein[1], str.c_str(), str.size() );
-	// close( fdpipein[1] );
 	int ret = fork();
 	if(ret == 0)
 	{
@@ -331,7 +310,6 @@ void ft::WebServer::execute_cgi( Request& request ) {
 		exit( 234 );
 	}
 	else {
-		// close( fdpipein[0] );
 		close( fdpipe[1] );
 		waitpid( ret, NULL, 0 );
 	}
@@ -353,19 +331,16 @@ void ft::WebServer::execute_cgi( Request& request ) {
 void ft::WebServer::response_GET( Request& request ) {
 
 	//check if rights are correct
-
-	//response header
-	// if(request.get_requested_url() == "/")
-	// 	request.set_requested_url( "/index.html" );
-
+	//use index field from config somewhere here
 
 	std::string response;
 	if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS ON*/) {
 		//list contents
 		response = list_contents( SERVER_DIR + request.get_requested_url(), request);
 	}
-	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > sizeof( "/cgi-bin/" )) { //if it is in /cgi-bin/
+	else if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > sizeof( "/cgi-bin/" )) { //if it is in /cgi-bin/
 		execute_cgi( request );
+		return;
 	}
 	else {
 		//proceed with request
@@ -397,8 +372,6 @@ void ft::WebServer::response_DELETE( Request& request ) {
 	// 	//list contents
 	// 	response = list_contents( SERVER_DIR + request.get_requested_url() );
 	// }
-
-	std::string response;
 	std::ostringstream sresponse;
 	if(std::remove( (SERVER_DIR + request.get_requested_url()).c_str() ) < 0) {
 		//error
@@ -540,6 +513,7 @@ std::string ft::WebServer::list_contents( const std::string& path, Request& requ
 	response = header.str() + body.str();
 	return response;
 }
+
 void ft::WebServer::launch() {
 	Request request;
 	while(true) {
@@ -575,36 +549,37 @@ std::string ft::WebServer::generate_response_head( const int& code ) {
 	return ss.str();
 }
 
-void ft::WebServer::unpack_body( Request& request ) {
+// void ft::WebServer::unpack_body( Request& request ) {
 	
-	std::string type = request.get_param_value( "HTTP_CONTENT_TYPE" );
-	std::cout << RED << "SKJDHFSJHBFSDKJHFhj " << type << RESET << std::endl;
+// 	std::string type = request.get_param_value( "HTTP_CONTENT_TYPE" );
+// 	std::cout << RED << "SKJDHFSJHBFSDKJHFhj " << type << RESET << std::endl;
 	
-	if(type.find( "multipart/form-data" ) != std::string::npos) {
-		std::string boundary = type.substr( type.find( "boundary=" ) + 9 );
-		boundary.at( boundary.size() - 1 ) = '\0';
-		std::ofstream out_file( BUFFER_FILE + std::string( ".replace" ) );
-		if(!out_file.is_open()) {
-			//ERROR
-		}
-		std::ifstream body_file( BUFFER_FILE );
-		if(!body_file.is_open()) {
-			//ERROR, WHICH ONE??
-		}
-		std::string line;
-		getline( body_file, line );
-		getline( body_file, line );
-		boundary.insert( boundary.size(), "--\r" );
-		std::cout << RED <<"SKJDHFSJHBFSDKJHFhj " << boundary << RESET<< std::endl;
-		while(line != boundary && getline( body_file, line )) {
-			getline( body_file, line );
-			out_file << line;
-		}
-		body_file.close();
+// 	if(type.find( "multipart/form-data" ) != std::string::npos) {
+// 		std::string boundary = type.substr( type.find( "boundary=" ) + 9 );
+// 		boundary.at( boundary.size() - 1 ) = '\0';
+// 		std::ofstream out_file( BUFFER_FILE + std::string( ".replace" ) );
+// 		if(!out_file.is_open()) {
+// 			//ERROR
+// 		}
+// 		std::ifstream body_file( BUFFER_FILE );
+// 		if(!body_file.is_open()) {
+// 			//ERROR, WHICH ONE??
+// 		}
+// 		std::string line;
+// 		getline( body_file, line );
+// 		getline( body_file, line );
+// 		boundary.insert( boundary.size(), "--\r" );
+// 		std::cout << RED <<"SKJDHFSJHBFSDKJHFhj " << boundary << RESET<< std::endl;
+// 		while(line != boundary && getline( body_file, line )) {
+// 			getline( body_file, line );
+// 			out_file << line;
+// 		}
+// 		body_file.close();
 
 		
-	}
-}
+// 	}
+// }
+
 void ft::WebServer::init_response_msgs() {
 	response_messeges[100] = "Continue";
 	
