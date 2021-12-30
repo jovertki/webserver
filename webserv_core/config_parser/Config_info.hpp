@@ -10,5 +10,6 @@ public:
     ~Config_info() {};
     std::vector<ServerConfig> get_servers()const;
 private:
+    void checkServNames();
     void identyServerValues(std::vector<std::string>& tokens);
 };

@@ -25,7 +25,7 @@ ServerConfig& ServerConfig::operator=(const ServerConfig& other) {
 ServerConfig::~ServerConfig() {}
 
 void ServerConfig::checkAndFindValues(std::vector<std::string>& tokens) {
-    if (tokens.front() != "{" || tokens.back() != "}" || tokens.size() < 30) // можно проверить на больше 4-ч значений
+    if (tokens.front() != "{" || tokens.back() != "}" || tokens.size() < 25) // можно проверить на больше 4-ч значений
         throw utils::parseExeption("Error ServerParse::find values!");
 //    std::cout << listen << " listen" << std::endl;
     findMainValues(tokens.begin() + 1, tokens.end());
@@ -66,7 +66,7 @@ void ServerConfig::CheckDefaultParam() {
 void ServerConfig::findMainValues(std::vector<std::string>::iterator iter,
                                std::vector<std::string>::iterator end) {
     while (iter + 3 < end) {
-        std::cout << *iter << std::endl; // delete
+//        std::cout << *iter << std::endl; // delete
         if (*iter == "listen" && *(iter + 2) == ";" && !listen && *(iter + 1) != "0")
             listen = findIntAndIterate(++iter, 2);
         else if (*iter == "server_name" && *(iter + 2) == ";" && servName.empty())
@@ -80,10 +80,10 @@ void ServerConfig::findMainValues(std::vector<std::string>::iterator iter,
         else if (*iter == "location" && *(iter + 2) == "{")
             findLocation(++iter, end);
         else
-          throw utils::parseExeption("Error ServerParse::find_values!");
+          throw utils::parseExeption("Error ServerParse::server parameters!");
     }
     if (*iter != "}" || iter + 1 != end)
-        throw utils::parseExeption("Error ServerParse::find_values!");
+        throw utils::parseExeption("Error ServerParse::last server parameter!");
 }
 
 std::string ServerConfig::findStringAndIterate(std::vector<std::string>::iterator& iter, int iterPlus) {
@@ -112,7 +112,6 @@ void ServerConfig::findCgi(std::vector<std::string>::iterator& iter,
     ++iter;
     cgi[key] = *iter;
     iter += 2;
-    std::cout << "result cgi " << cgi[key] << std::endl;
 }
 
 void ServerConfig::findLocation(std::vector<std::string>::iterator& iter,
@@ -123,7 +122,7 @@ void ServerConfig::findLocation(std::vector<std::string>::iterator& iter,
         throw utils::parseExeption("ServerParse::duplicate locations!");
     iter += 2;
     locations[locationName] = findLocationParameters(iter, end);
-    std::cout << locations[locationName] << std::endl; // delete
+//    std::cout << locations[locationName] << std::endl; // delete
     if (*iter != "}")
         throw utils::parseExeption("ServerParse::locations!");
     if (locationName[locationName.size()] == '/' && locations[locationName].index.size())

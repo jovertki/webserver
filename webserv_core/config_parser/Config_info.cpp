@@ -2,19 +2,36 @@
 
 Config_info::Config_info(const char* arg) : servers() {
     std::ifstream input(arg);
-    if (!input.is_open()) {
-        std::cout << "Error config: can't open file " << arg << std::endl;
-        exit(-1);
-    }
+
     try {
         std::vector<std::string> tokens = utils::make_tokens(input);
         identyServerValues(tokens);
+        checkServNames();
     }
     catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
         exit(-1);
     }
-    
+
+    //delete next line
+    std::cout << "..........\n" << servers.size() << " servers successfully parsed" << std::endl;
+}
+
+void Config_info::checkServNames() {
+    std::vector<ServerConfig>::iterator it, itCheck, end;
+    std::string nameToCheck;
+
+    it = servers.begin();
+    end = servers.end();
+    for (; it != end; ++it) {
+        nameToCheck = it->getServName();
+        if (nameToCheck.size()) {
+            for (itCheck = it, ++itCheck; itCheck != end; ++itCheck) {
+                if (itCheck->getServName() == nameToCheck)
+                    throw utils::parseExeption("Error config: duplicate serv names");
+            }
+        }
+    }
 }
 
 void Config_info::identyServerValues(std::vector<std::string>& tokens) {
@@ -26,8 +43,6 @@ void Config_info::identyServerValues(std::vector<std::string>& tokens) {
         servers.push_back(ServerConfig(std::vector<std::string>(tokens.begin() + 1, iter)));
         tokens.erase(tokens.begin(), iter);
     }
-//delete next line
-    std::cout << "..........\n" << servers.size() << " servers successfully parsed" << std::endl;
 }
 
 std::vector<ServerConfig> Config_info::get_servers()const {

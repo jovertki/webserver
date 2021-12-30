@@ -12,5 +12,5 @@ int main(int argc, char** argv, char **envp) {
         exit(-1);
     }
     Config_info config(conf_name.c_str());
-//    ft::WebServer t( envp, config);
+        ft::WebServer t( envp, config);
 }

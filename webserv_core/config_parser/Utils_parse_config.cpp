@@ -25,7 +25,10 @@ namespace utils {
     std::vector<std::string> make_tokens(std::ifstream& input) {
         std::string oneToken;
         std::vector<std::string> tokens;
+
         char c;
+        if (!input.is_open())
+            throw utils::parseExeption("Error config: can't open file ");
         while (input.good())
         {
             c = input.get();
