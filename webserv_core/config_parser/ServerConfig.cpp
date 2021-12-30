@@ -2,9 +2,7 @@
 
 ServerConfig::ServerConfig(std::vector<std::string> tokens) : listen(), servName(), root(),
                                                               host(), cgi(), locations() {
-    if (tokens.front() != "{" || tokens.back() != "}" || tokens.size() < 4) // можно проверить на больше 4-ч значений
-        throw utils::MyException("Error ServerParse::find_values!");
-    findMainValues(tokens.begin() + 1, tokens.end());
+    checkAndFindValues(tokens);
 }
 
 ServerConfig::ServerConfig(const ServerConfig& other) : listen(other.listen), servName(other.servName),
@@ -26,6 +24,45 @@ ServerConfig& ServerConfig::operator=(const ServerConfig& other) {
 
 ServerConfig::~ServerConfig() {}
 
+void ServerConfig::checkAndFindValues(std::vector<std::string>& tokens) {
+    if (tokens.front() != "{" || tokens.back() != "}" || tokens.size() < 30) // можно проверить на больше 4-ч значений
+        throw utils::parseExeption("Error ServerParse::find values!");
+//    std::cout << listen << " listen" << std::endl;
+    findMainValues(tokens.begin() + 1, tokens.end());
+    CheckDefaultParam();
+    for (std::map<std::string, Location_info>:: iterator it = locations.begin();
+    it != locations.end(); ++it) {
+       if ((*it).first.back() != '/' && (*it).second.index.size())
+           throw utils::parseExeption("Error ServerParse::location file have index!");
+    }
+}
+
+void ServerConfig::CheckDefaultParam() {
+    std::string defLocation;
+
+    defLocation = "/";
+    if (listen == 0)
+        throw utils::parseExeption("Error ServerParse::no listen parameter!");
+    else if (root.empty())
+        throw utils::parseExeption("Error ServerParse::no root!");
+    else if (locations.empty())
+        throw utils::parseExeption("ServerParse::can't find loctions!");
+    else if (locations.find(defLocation) == locations.end())
+        throw utils::parseExeption("ServerParse::can't find mandatory location / !");
+    else if (locations[defLocation].autoindex == NOT_ASSIGN)
+        throw utils::parseExeption("ServerParse::location can't find autoindex!");
+    else if (locations[defLocation].bodySize == NOT_ASSIGN)
+        throw utils::parseExeption("ServerParse::location can't find bodysize!");
+    else if (locations[defLocation].index.empty())
+        throw utils::parseExeption("ServerParse::location can't find indexh!");
+    else if (locations[defLocation].uploadPath.empty())
+        throw utils::parseExeption("ServerParse::location can't find upload_path!");
+    else if (locations[defLocation].methods.empty())
+        throw utils::parseExeption("ServerParse::location can't find methods!");
+    else if (locations[defLocation].returnNum.size())
+        throw utils::parseExeption("ServerParse::default location have return!");
+}
+
 void ServerConfig::findMainValues(std::vector<std::string>::iterator iter,
                                std::vector<std::string>::iterator end) {
     while (iter + 3 < end) {
@@ -43,11 +80,10 @@ void ServerConfig::findMainValues(std::vector<std::string>::iterator iter,
         else if (*iter == "location" && *(iter + 2) == "{")
             findLocation(++iter, end);
         else
-          throw utils::MyException("Error ServerParse::find_values!");
+          throw utils::parseExeption("Error ServerParse::find_values!");
     }
     if (*iter != "}" || iter + 1 != end)
-        throw utils::MyException("Error ServerParse::find_values!"); // можно перенести в функцию чекера
-//  проверить на наличие всех нужных параметров
+        throw utils::parseExeption("Error ServerParse::find_values!");
 }
 
 std::string ServerConfig::findStringAndIterate(std::vector<std::string>::iterator& iter, int iterPlus) {
@@ -72,7 +108,7 @@ void ServerConfig::findCgi(std::vector<std::string>::iterator& iter,
 
     key = *iter;
     if (cgi.find(key) != cgi.end())
-        throw utils::MyException("ServerParse::duplicate CGI!");
+        throw utils::parseExeption("ServerParse::duplicate CGI!");
     ++iter;
     cgi[key] = *iter;
     iter += 2;
@@ -84,14 +120,14 @@ void ServerConfig::findLocation(std::vector<std::string>::iterator& iter,
     std::string locationName = *iter;
 
     if (locations.find(locationName) != locations.end() || *(iter + 1) != "{")
-        throw utils::MyException("ServerParse::duplicate locations!");
+        throw utils::parseExeption("ServerParse::duplicate locations!");
     iter += 2;
     locations[locationName] = findLocationParameters(iter, end);
     std::cout << locations[locationName] << std::endl; // delete
     if (*iter != "}")
-        throw utils::MyException("ServerParse::locations!");
+        throw utils::parseExeption("ServerParse::locations!");
     if (locationName[locationName.size()] == '/' && locations[locationName].index.size())
-        throw utils::MyException("ServerParse::locations with name index have index page!");
+        throw utils::parseExeption("ServerParse::locations with name index have index page!");
     iter++;
 }
 
@@ -114,9 +150,8 @@ Location_info ServerConfig::findLocationParameters(std::vector<std::string>::ite
         else if (*iter == "upload_path" && *(iter + 2) == ";" && res.uploadPath.empty())
             res.uploadPath = findStringAndIterate(++iter, 2);
         else
-            throw utils::MyException("ServerParse::locations!");
+            throw utils::parseExeption("ServerParse::locations!");
     }
-//    написать копи контруктор для локешн структуры ??? или работает?
     return res;
 }
 
@@ -126,7 +161,7 @@ void ServerConfig::findErrorPage(std::vector<std::string>::iterator& iter,
 
     resInt = utils::str_to_num(*iter);
     if (errorPage.find(resInt) != errorPage.end())
-        throw utils::MyException("ServerParse::find_error_page");
+        throw utils::parseExeption("ServerParse::find_error_page");
     ++iter;
     errorPage[resInt] = *iter;
     iter += 2;
@@ -158,7 +193,7 @@ int ServerConfig::findAutoindex(std::vector<std::string>::iterator& iter) {
     else if(*iter == "off")
         result = true;
     else
-        throw utils::MyException("ServerParse::find_autoindex!");
+        throw utils::parseExeption("ServerParse::find_autoindex!");
     iter += 2;
     return result;
 }
@@ -170,7 +205,7 @@ std::vector<method> ServerConfig::findMethods(std::vector<std::string>::iterator
 
     get_check = post_check = del_check = put_check = true;
     while (iter + 2 < end && *iter != ";") {
-        if (*iter == "GET" && get_check) { // возможно проверить по ключу ?
+        if (*iter == "GET" && get_check) {
             result.push_back(GET);
             get_check = false;
         }
@@ -187,7 +222,7 @@ std::vector<method> ServerConfig::findMethods(std::vector<std::string>::iterator
             put_check = false;
         }
         else
-            throw utils::MyException("ServerParse::find_methods!");
+            throw utils::parseExeption("ServerParse::find_methods!");
         ++iter;
     }
     ++iter;

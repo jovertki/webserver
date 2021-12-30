@@ -2,11 +2,11 @@
 
 namespace utils {
 
-    MyException::MyException(const std::string &msg) : m_msg(msg) {}
+    parseExeption::parseExeption(const std::string &msg) : m_msg(msg) {}
 
-    MyException::~MyException() throw() {}
+    parseExeption::~parseExeption() throw() {}
 
-    const char *MyException::MyException::what() const throw() {
+    const char *parseExeption::parseExeption::what() const throw() {
 //        std::cerr << "ServerParse: " << m_msg << std::endl;
         return (m_msg.c_str());
     }
@@ -19,7 +19,7 @@ namespace utils {
         if ((errno == ERANGE && res == LONG_MAX) || res > INT_MAX ||
             (errno == ERANGE && res == LONG_MIN) || res < 0
             || to_convert.empty() || *end_c != '\0')
-            throw utils::MyException("Error str_to_num!");
+            throw utils::parseExeption("Error str_to_num!");
         return (int)res;
     }
     std::vector<std::string> make_tokens(std::ifstream& input) {
@@ -37,13 +37,16 @@ namespace utils {
                 if (c == ';')
                     tokens.push_back(std::string(&c, 1));
             }
-            else if (c == '#')
+            else if (c == '#'){
                 input.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                if (input.eof())
+                    c = EOF;
+            }
             else
                 oneToken.push_back(c);
         }
         if (c != EOF || tokens.empty() || tokens.size() < 3)
-            throw utils::MyException("Error make_tokens!");
+            throw utils::parseExeption("Error make_tokens!");
         else
             input.close();
         return tokens;

@@ -28,6 +28,10 @@ public:
 
 private:
 
+    void checkAndFindValues(std::vector<std::string>& tokens);
+
+    void CheckDefaultParam();
+
     int findAutoindex(std::vector<std::string>::iterator& iter);
 
     int findIntAndIterate(std::vector<std::string>::iterator& iter, int iterPlus);
