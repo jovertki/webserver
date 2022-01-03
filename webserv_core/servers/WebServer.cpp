@@ -15,6 +15,9 @@
 #include <sstream>
 #include <fcntl.h>
 
+#define DEBUG_MODE 1
+#define BUFFER_SIZE 30000
+
 const char* ft::WebServer::error_request_code::what() const throw() {
 	return ("error");
 }
@@ -26,104 +29,139 @@ ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), conf
 }
 
 
-void ft::WebServer::handle_multipart( Request& request, std::string& type, char* buffer, long& bytes_read, std::ofstream& body_file ) {
+void ft::WebServer::handle_multipart( Request& request, std::string& type, \
+	char* buffer, long& bytes_read, std::ofstream& body_file, \
+	long& total_bytes_read, long& end_of_read, bool& parsing_header ) {
 	std::string boundary = type.substr( type.find( "boundary=" ) + 9 );
 	boundary.insert( 0, "--" );
 	boundary.insert( boundary.size(), "\0" );
-	std::string data_header;
-	std::size_t data_header_end = 0;
-	data_header.insert( 0, &buffer[request.get_header_length() + 4] );
-	if(data_header.size() != 0) {//there is body and this is not a first post request
-		request.print_params();
-		std::cout << RED << "data header = " << data_header << RESET << std::endl;
-		std::size_t filename_start = data_header.find( "filename=" );
-		std::size_t filename_end = data_header.find( "\r\n", filename_start );
-		std::string filename( data_header.substr( filename_start + 10, filename_end - filename_start - 11 ) );
-		data_header_end = data_header.find( "\r\n\r\n" ) + 4;
+	int i = 0;
+	if(parsing_header) {
+		std::string data_header;
+		std::size_t data_header_end = 0;
+		data_header.insert( 0, &buffer[request.get_header_length() + 4] );
+		if(data_header.size() != 0) {//there is body and this is not a first post request
+			request.print_params();
+			if(DEBUG_MODE)
+				std::cout << RED << "data header = " << data_header << RESET << std::endl;
+			std::size_t filename_start = data_header.find( "filename=" );
+			std::size_t filename_end = data_header.find( "\r\n", filename_start );
+			std::string filename( data_header.substr( filename_start + 10, filename_end - filename_start - 11 ) );
+			data_header_end = data_header.find( "\r\n\r\n" ) + 4;
 
-		//needs elaboration
-		//setting uploadpath here
-		std::string upload_path = SERVER_DIR + std::string( "/uploads" ) + "/";
-		filename.insert( 0, upload_path );
-		std::cout << BLUE << filename << RESET << std::endl;
-		request.set_param( "UPLOAD_PATH", filename );
+			//needs elaboration
+			//setting uploadpath here
+			std::string upload_path = SERVER_DIR + std::string( "/uploads" ) + "/";
+			filename.insert( 0, upload_path );
+			if(DEBUG_MODE)
+				std::cout << BLUE << filename << RESET << std::endl;
+			request.set_param( "UPLOAD_PATH", filename );
+		}
+		i = request.get_header_length() + 4 + data_header_end;
+		total_bytes_read += data_header_end;
+		parsing_header = false;
 	}
-	for(int i = request.get_header_length() + 4 + data_header_end; i < bytes_read; i++) {
+	for(; i < bytes_read && total_bytes_read < end_of_read; i++) {
 		if(i + boundary.size() + 2 <= bytes_read) {
 			if(buffer[i] == '\r') {
 				if(strncmp( &buffer[i + 2], boundary.c_str(), boundary.size() - 1 ) == 0) {
+					total_bytes_read += boundary.size() + 5;
 					break;
 				}
 			}
 			if(buffer[i] == '\n') {
 				if(strncmp( &buffer[i + 1], boundary.c_str(), boundary.size() - 1 ) == 0) {
+					total_bytes_read += boundary.size() + 4;
 					break;
 				}
 			}
 		}
 		body_file << buffer[i];
+		total_bytes_read++;
 	}
 }
 
 void ft::WebServer::accepter( Request& request ) {
-	char buffer[30001] = { 0 };
 	struct sockaddr_in address = get_socket()->get_address();
 	int addrlen = sizeof( address );
-	long content_length;
 	new_socket = accept( get_socket()->get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen );
 
-
-
 	
-	//READ LOOP HERE
-	long end = recv( new_socket, buffer, 30000, 0 );
-	std::cout << YELLOW << "buffer is \n";
-	for(int i = 0; i < end; i++) {
-		std::cout << buffer[i];
-	}
-	std::cout << "bytes read = " << end << RESET << std::endl;
-	if(end == 0)
-		throw error_request_code();
-		//parse head, if not full in buffer, then error
-	//use map for storage
-	header_parse( buffer, request);
-
-	//debug only
-	std::ofstream last_request( "last_request.txt" );
-	last_request << buffer;
-
-	content_length = atol( (request.get_param_value( "HTTP_CONTENT_LENGTH" )).c_str() );
-	//read body for content-length bytes
-
-
-	std::string type = request.get_param_value( "HTTP_CONTENT_TYPE" );
-	// std::cout << RED << "SKJDHFSJHBFSDKJHFhj " << type << RESET << std::endl;
+	char buffer[BUFFER_SIZE + 1] = { 0 };
+	bool parsing_header = true;
+	int bytes_to_read = BUFFER_SIZE;
+	long content_length;
+	long end_of_read = BUFFER_SIZE;
+	long total_bytes_read = 0;
+	long bytes_read = 1;
 	std::ofstream body_file( BUFFER_FILE, std::ios::binary );
-	if(!body_file.is_open()) {
-		//ERROR, WHICH ONE??
-	}
-	if(type.find( "multipart/form-data" ) != std::string::npos) { //meaning file is being uploaded
-		handle_multipart( request, type, buffer, end, body_file );
-	}
-	else {
-		for(int i = request.get_header_length() + 4; i < end; i++) {
-			body_file << buffer[i];
+	std::ofstream last_request( "last_request.txt" );
+	
+	for(bytes_read = recv( new_socket, buffer, bytes_to_read, 0 );bytes_read != 0 && end_of_read - total_bytes_read > 0; bytes_read = recv( new_socket, buffer, bytes_to_read, 0 )) {
+		if(DEBUG_MODE) {//print buffer
+			std::cout << YELLOW << "buffer is \n";
+			for(int i = 0; i < bytes_read; i++) {
+				std::cout << buffer[i];
+			}
+			std::cout << "bytes read = " << bytes_read << RESET << std::endl;
+		}
+
+		if(parsing_header) {
+			if(bytes_read == 0)
+				throw error_request_code();
+				//parse head, if not full in buffer, then error
+			//use map for storage
+			header_parse( buffer, request);
+			content_length = atol( (request.get_param_value( "HTTP_CONTENT_LENGTH" )).c_str() );
+			end_of_read = request.get_header_length() + 4 + content_length;
+			total_bytes_read = request.get_header_length() + 4;
+		}
+
+		if (DEBUG_MODE){
+			last_request << buffer;
+		}
+		int i = 0;
+		if(parsing_header) {
+			i = request.get_header_length() + 4;
+		}
+		//read body for content-length bytes
+
+		
+
+		std::string type = request.get_param_value( "HTTP_CONTENT_TYPE" );
+		if(!body_file.is_open()) {
+			//ERROR, WHICH ONE??
+		}
+		if(type.find( "multipart/form-data" ) != std::string::npos) { //meaning file is being uploaded
+			handle_multipart( request, type, buffer, bytes_read, body_file, total_bytes_read, end_of_read, parsing_header);
+		}
+		else {
+			parsing_header = false;
+			for(; i < bytes_read && total_bytes_read < end_of_read; i++) {
+				body_file << buffer[i];
+				total_bytes_read++;
+			}
+		}
+		if(end_of_read - total_bytes_read > BUFFER_SIZE) {
+			bytes_to_read = BUFFER_SIZE;
+		}
+		else {
+			bytes_to_read = end_of_read - total_bytes_read;
 		}
 	}
-
-
 	//find body
 	body_file.close();
-	//	unpack_body(request);
 
 
 	//debug only
-	std::cout << "QUERY_STRING is |\n";
-	for(int i = 0; i < request.get_query_string().size(); ++i)
-		std::cout << request.get_query_string()[i];
-	std::cout << "\n|" << std::endl;
-		
-	last_request.close();
+	if(DEBUG_MODE){
+		last_request.close();
+		std::cout << "QUERY_STRING is |\n";
+		for(int i = 0; i < request.get_query_string().size(); ++i)
+			std::cout << request.get_query_string()[i];
+		std::cout << "\n|" << std::endl;
+	}
+	
 }
 
 void ft::WebServer::header_parse( const char* input_buffer, Request& request ) {
@@ -330,7 +368,8 @@ void ft::WebServer::execute_cgi( Request& request ) {
 	}
 	delete[] cgi_envp;
 	close( fdpipe[0] );
-	std::cout << "BUFF IS " << buff << std::endl;
+	if(DEBUG_MODE)
+		std::cout << "BUFF IS " << buff << std::endl;
 	std::string out = request.get_httpver() + " 200 OK\n" + "Content-Length:" + std::to_string( len ) + "\n" + static_cast<std::string>(buff);
 	send_response( out );
 }
@@ -546,7 +585,10 @@ ft::ListeningSocket* ft::WebServer::get_socket()const {
 
 void ft::WebServer::send_response( const std::string& response ) const{
 	write( new_socket, response.c_str(), response.size() );
-	std::cout << GREEN << "===RESPONSE BEGIN===\n" << response << "\n===RESPONCE END===" << RESET << std::endl;
+
+	if(DEBUG_MODE)
+		std::cout << GREEN << "===RESPONSE BEGIN===\n" << response << "\n===RESPONCE END===" << RESET << std::endl;
+
 	close( new_socket );
 }
 
@@ -555,37 +597,6 @@ std::string ft::WebServer::generate_response_head( const int& code ) {
 	ss << "HTTP/1.1 " << code << " " << response_messeges[code] << "\r\n";
 	return ss.str();
 }
-
-// void ft::WebServer::unpack_body( Request& request ) {
-	
-// 	std::string type = request.get_param_value( "HTTP_CONTENT_TYPE" );
-// 	std::cout << RED << "SKJDHFSJHBFSDKJHFhj " << type << RESET << std::endl;
-	
-// 	if(type.find( "multipart/form-data" ) != std::string::npos) {
-// 		std::string boundary = type.substr( type.find( "boundary=" ) + 9 );
-// 		boundary.at( boundary.size() - 1 ) = '\0';
-// 		std::ofstream out_file( BUFFER_FILE + std::string( ".replace" ) );
-// 		if(!out_file.is_open()) {
-// 			//ERROR
-// 		}
-// 		std::ifstream body_file( BUFFER_FILE );
-// 		if(!body_file.is_open()) {
-// 			//ERROR, WHICH ONE??
-// 		}
-// 		std::string line;
-// 		getline( body_file, line );
-// 		getline( body_file, line );
-// 		boundary.insert( boundary.size(), "--\r" );
-// 		std::cout << RED <<"SKJDHFSJHBFSDKJHFhj " << boundary << RESET<< std::endl;
-// 		while(line != boundary && getline( body_file, line )) {
-// 			getline( body_file, line );
-// 			out_file << line;
-// 		}
-// 		body_file.close();
-
-		
-// 	}
-// }
 
 void ft::WebServer::init_response_msgs() {
 	response_messeges[100] = "Continue";
