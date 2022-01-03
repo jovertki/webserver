@@ -327,11 +327,6 @@ void ft::WebServer::response_POST( Request& request ) {
 	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > 9 /*sizeof( "/cgi-bin/" )*/) { //if it is in /cgi-bin/
 		execute_cgi( request );
 	}
-
-	
-	// write( new_socket, out.c_str(), out.size() );
-	// std::cout << GREEN<< "===RESPONSE BEGIN===\n" << out << "\n===RESPONCE END===" << RESET << std::endl;
-	// close( new_socket );
 }
 
 
