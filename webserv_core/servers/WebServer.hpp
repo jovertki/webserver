@@ -39,7 +39,8 @@ namespace ft {
 		void init_new_envp( std::map<std::string, std::string>&, Request& );
 		void send_response( const std::string& response )const;
 		void init_response_msgs();
-		void unpack_body( Request& request );
+		// void unpack_body( Request& request );
+		void handle_multipart( Request& request, std::string& type, char* buffer, long& bytes_read, std::ofstream& body_file );
 
 		std::string generate_response_head( const int& code );
 		ListeningSocket* get_socket()const;

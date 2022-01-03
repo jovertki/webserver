@@ -25,13 +25,56 @@ ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), conf
 	launch();
 }
 
-void ft::WebServer::accepter(Request& request) {
+
+void ft::WebServer::handle_multipart( Request& request, std::string& type, char* buffer, long& bytes_read, std::ofstream& body_file ) {
+	std::string boundary = type.substr( type.find( "boundary=" ) + 9 );
+	boundary.insert( 0, "--" );
+	boundary.insert( boundary.size(), "\0" );
+	std::string data_header;
+	std::size_t data_header_end = 0;
+	data_header.insert( 0, &buffer[request.get_header_length() + 4] );
+	if(data_header.size() != 0) {//there is body and this is not a first post request
+		request.print_params();
+		std::cout << RED << "data header = " << data_header << RESET << std::endl;
+		std::size_t filename_start = data_header.find( "filename=" );
+		std::size_t filename_end = data_header.find( "\r\n", filename_start );
+		std::string filename( data_header.substr( filename_start + 10, filename_end - filename_start - 11 ) );
+		data_header_end = data_header.find( "\r\n\r\n" ) + 4;
+
+		//needs elaboration
+		//setting uploadpath here
+		std::string upload_path = SERVER_DIR + std::string( "/uploads" ) + "/";
+		filename.insert( 0, upload_path );
+		std::cout << BLUE << filename << RESET << std::endl;
+		request.set_param( "UPLOAD_PATH", filename );
+	}
+	for(int i = request.get_header_length() + 4 + data_header_end; i < bytes_read; i++) {
+		if(i + boundary.size() + 2 <= bytes_read) {
+			if(buffer[i] == '\r') {
+				if(strncmp( &buffer[i + 2], boundary.c_str(), boundary.size() - 1 ) == 0) {
+					break;
+				}
+			}
+			if(buffer[i] == '\n') {
+				if(strncmp( &buffer[i + 1], boundary.c_str(), boundary.size() - 1 ) == 0) {
+					break;
+				}
+			}
+		}
+		body_file << buffer[i];
+	}
+}
+
+void ft::WebServer::accepter( Request& request ) {
 	char buffer[30001] = { 0 };
 	struct sockaddr_in address = get_socket()->get_address();
 	int addrlen = sizeof( address );
 	long content_length;
 	new_socket = accept( get_socket()->get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen );
 
+
+
+	
 	//READ LOOP HERE
 	long end = recv( new_socket, buffer, 30000, 0 );
 	std::cout << YELLOW << "buffer is \n";
@@ -50,7 +93,6 @@ void ft::WebServer::accepter(Request& request) {
 	last_request << buffer;
 
 	content_length = atol( (request.get_param_value( "HTTP_CONTENT_LENGTH" )).c_str() );
-	std::cout << "CONTEJHBSHGFDKSJFLSKHFDKJSDLFJDSLK = " << content_length << std::endl;
 	//read body for content-length bytes
 
 
@@ -61,42 +103,7 @@ void ft::WebServer::accepter(Request& request) {
 		//ERROR, WHICH ONE??
 	}
 	if(type.find( "multipart/form-data" ) != std::string::npos) { //meaning file is being uploaded
-		std::string boundary = type.substr( type.find( "boundary=" ) + 9 );
-		boundary.insert( 0, "--" );
-		boundary.insert( boundary.size(), "\0" );
-		std::string data_header;
-		std::size_t data_header_end = 0;
-		data_header.insert( 0, &buffer[request.get_header_length() + 4] );
-		if(data_header.size() != 0) {//there is body and this is not a first post request
-			request.print_params();
-			std::cout << RED << "data header = " << data_header << RESET << std::endl;
-			std::size_t filename_start = data_header.find( "filename=" );
-			std::size_t filename_end = data_header.find( "\r\n", filename_start );
-			std::string filename( data_header.substr( filename_start + 10, filename_end - filename_start - 11 ) );
-			data_header_end = data_header.find( "\r\n\r\n" ) + 4;
-
-			//needs elaboration
-			//setting uploadpath here
-			std::string upload_path = SERVER_DIR + std::string( "/uploads" ) + "/";
-			filename.insert( 0, upload_path  );
-			std::cout << BLUE << filename << RESET << std::endl;
-			request.set_param( "UPLOAD_PATH", filename );
-		}
-		for(int i = request.get_header_length() + 4 + data_header_end; i < end; i++) {
-			if(i + boundary.size() + 2 <= end) {
-				if(buffer[i] == '\r') {
-					if(strncmp( &buffer[i + 2], boundary.c_str(), boundary.size() - 1) == 0) {
-						break;
-					}
-				}
-				if(buffer[i] == '\n') {
-					if(strncmp( &buffer[i + 1], boundary.c_str(), boundary.size() - 1) == 0) {
-						break;
-					}
-				}
-			}
-			body_file << buffer[i];
-		}
+		handle_multipart( request, type, buffer, end, body_file );
 	}
 	else {
 		for(int i = request.get_header_length() + 4; i < end; i++) {
