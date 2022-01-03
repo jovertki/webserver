@@ -41,7 +41,7 @@ namespace ft {
 		void init_response_msgs();
 		void handle_multipart( Request& request, \
 			char* buffer, long& bytes_read, std::ofstream& body_file, \
-			long& total_bytes_read, long& end_of_read, \
+			long& total_bytes_read, long& full_request_length, \
 			bool& parsing_data_header, bool header_included);
 
 		std::string generate_response_head( const int& code );
