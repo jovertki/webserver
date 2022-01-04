@@ -111,7 +111,7 @@ void ServerConfig::copyLocatData(std::string locName) {
             locations[locName].methods = locations[toCopyfrom].methods;
         locations[locName].errorPage.insert(locations[toCopyfrom].errorPage.begin(),
                                             locations[toCopyfrom].errorPage.end());
-        std::cout << "location " << locName << " " << locations[locName] << std::endl; // delete
+        std::cout << "location name: " << locName << ". Content: " << locations[locName] << std::endl; // delete
     }
 
 }
