@@ -27,13 +27,15 @@ public:
 
 private:
 
+    void fillLocationInfo();
+
     int findHigherLevel();
 
     int countBackslash(std::string locName);
 
     void copyLocatData(std::string locName);
 
-    void duplicateLocationInfo(int const level);
+    void copyInfoByLocationLevel(int const level);
 
     void checkAndFindValues(std::vector<std::string>& tokens);
 
