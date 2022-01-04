@@ -27,7 +27,6 @@ ServerConfig::~ServerConfig() {}
 void ServerConfig::checkAndFindValues(std::vector<std::string>& tokens) {
     if (tokens.front() != "{" || tokens.back() != "}" || tokens.size() < 25) // можно проверить на больше 4-ч значений
         throw utils::parseExeption("Error ServerParse::find values!");
-//    std::cout << listen << " listen" << std::endl;
     findMainValues(tokens.begin() + 1, tokens.end());
     CheckDefaultParam();
     for (std::map<std::string, Location_info>:: iterator it = locations.begin();
@@ -35,6 +34,79 @@ void ServerConfig::checkAndFindValues(std::vector<std::string>& tokens) {
        if ((*it).first.back() != '/' && (*it).second.index.size())
            throw utils::parseExeption("Error ServerParse::location file have index!");
     }
+    int level = 1, maxLevel = findHigherLevel();
+    while (maxLevel >= level) {
+        duplicateLocationInfo(level);
+        level++;
+    }
+}
+
+int ServerConfig::findHigherLevel() {
+    std::map<std::string, Location_info>::iterator it, end;
+    int res, temp;
+
+    res = 0;
+    for (it = locations.begin(), end = locations.end(); it != end; ++it) {
+        temp = countBackslash(it->first);
+        if (res < temp)
+            res = temp;
+    }
+    return res;
+}
+
+int ServerConfig::countBackslash(std::string locName) {
+    int count, pos;
+
+    count = 0;
+    pos = locName.find("/", 1);
+    while(pos != std::string::npos && pos < locName.size()) {
+        count++;
+        pos = locName.find("/", pos + 1);
+    }
+    return count;
+}
+
+void ServerConfig::duplicateLocationInfo( int const level) {
+    std::map<std::string, Location_info>::iterator it, end;
+    int count;
+
+    count = 0;
+    for (it = locations.begin(), end = locations.end(); it != end; ++it) {
+        if (it->first.size() > 1) {
+            count = countBackslash(it->first);
+            if (level == count) {
+                std::cout << "loc "<< it->first  << " count " << count  << std::endl;
+                copyLocatData(it->first);
+            }
+        }
+        count = 0;
+    }
+}
+
+void ServerConfig::copyLocatData(std::string locName) {
+    std::string toCopyfrom = locName;
+
+    toCopyfrom.pop_back();
+    while (toCopyfrom.back() != '/' || locations.find(toCopyfrom) == locations.end()) {
+        toCopyfrom.pop_back();
+    }
+    std::cout << "toCopyfrom " << toCopyfrom  << std::endl; // delete
+    if (locations[locName].returnNum.empty()) {
+        if (locations[locName].autoindex == NOT_ASSIGN)
+            locations[locName].autoindex = locations[toCopyfrom].autoindex;
+        if (locations[locName].bodySize == NOT_ASSIGN)
+            locations[locName].bodySize = locations[toCopyfrom].bodySize;
+        if (locations[locName].uploadPath.empty())
+            locations[locName].uploadPath = locations[toCopyfrom].uploadPath;
+        if (locations[locName].index.empty() && locName.back() != '/')
+            locations[locName].index = locations[toCopyfrom].index;
+        if (locations[locName].methods.empty())
+            locations[locName].methods = locations[toCopyfrom].methods;
+        locations[locName].errorPage.insert(locations[toCopyfrom].errorPage.begin(),
+                                            locations[toCopyfrom].errorPage.end());
+        std::cout << "location info: " << locations[locName] << std::endl;
+    }
+
 }
 
 void ServerConfig::CheckDefaultParam() {
@@ -188,9 +260,9 @@ int ServerConfig::findAutoindex(std::vector<std::string>::iterator& iter) {
     int result;
 
     if (*iter == "on")
-        result = false;
+        result = 1;
     else if(*iter == "off")
-        result = true;
+        result = 0;
     else
         throw utils::parseExeption("ServerParse::find_autoindex!");
     iter += 2;
