@@ -355,9 +355,9 @@ void ft::WebServer::execute_cgi( Request& request ) {
 	long total_len = 0;
 	int len = read( fdpipe[0], buff, BUFFER_SIZE );
 	total_len = len;
-	std::vector<char> vec_buffer;
+	std::string *response_body = new std::string;
 	while(len > 0) {
-		vec_buffer.insert(vec_buffer.end(), buff, buff + len );
+		(*response_body).insert((*response_body).end(), buff, buff + len );
 		total_len += len;
 		bzero( buff, BUFFER_SIZE );
 		len = read( fdpipe[0], buff, BUFFER_SIZE );
@@ -375,12 +375,11 @@ void ft::WebServer::execute_cgi( Request& request ) {
 	// 	}
 	// 	std::cout << RESET << std::endl;
 	// }
-	std::string out = request.get_httpver() + " 200 OK\n" + "Content-Length:" + std::to_string( vec_buffer.size() - strlen( "Content-Type: text/html\r\n\r\n" ) + 2) + "\r\n";
-	for(int i = 0; i < vec_buffer.size(); i++) {
-		out += vec_buffer[i];
-	}
-	out += "\0";
-	send_response( out );
+	std::stringstream response_headers;
+	response_headers << request.get_httpver() <<  generate_response_head(200) << "Content-Length:" << std::to_string( (*response_body).size() - strlen( "Content-Type: text/html\r\n\r\n" ) + 2 ) << "\r\n";
+
+	send_response( response_headers.str(), response_body );
+	delete response_body;
 }
 
 void ft::WebServer::response_GET( Request& request ) {
@@ -388,10 +387,11 @@ void ft::WebServer::response_GET( Request& request ) {
 	//check if rights are correct
 	//use index field from config somewhere here
 
-	std::string response;
 	if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS ON*/) {
 		//list contents
-		response = list_contents( SERVER_DIR + request.get_requested_url(), request);
+		std::string* response = list_contents( SERVER_DIR + request.get_requested_url(), request );
+		send_response( response );
+		delete response;
 	}
 	else if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > sizeof( "/cgi-bin/" )) { //if it is in /cgi-bin/
 		execute_cgi( request );
@@ -406,16 +406,18 @@ void ft::WebServer::response_GET( Request& request ) {
 		if(!infile.is_open()) {
 			handle_errors( 404, request);
 		}
-		std::string content( (std::istreambuf_iterator<char>( infile )),
-			(std::istreambuf_iterator<char>()) );
 
 		//first response line
-		response = response + request.get_httpver() + " 200 OK\n";
+		std::stringstream response_headers;
+		response_headers << generate_response_head( 200 );
 		//write file to string
-		response = response + "Content-Type: " + content_type + ";\nContent-Length:" + std::to_string( content.size() ) + "\n\n" + content;
+		std::string* response_body = new std::string( (std::istreambuf_iterator<char>( infile )),
+			(std::istreambuf_iterator<char>()) );
+		response_headers << "Content-Type: " << content_type << ";\nContent-Length:" << std::to_string( (*response_body).size() ) << "\n\n";
+		send_response( response_headers.str(), response_body );
+		delete response_body;
 	}
 	//write string to socket
-	send_response( response );
 }
 
 void ft::WebServer::response_DELETE( Request& request ) {
@@ -472,7 +474,7 @@ bool ft::WebServer::is_directory( const std::string& path )const {
 	return 0;
 }
 void ft::WebServer::handle_errors( int error_code, Request& request ) {
-	std::string response;
+	std::string *response = new std::string;
 	std::ostringstream header;
 	std::ostringstream body;
 
@@ -506,13 +508,13 @@ void ft::WebServer::handle_errors( int error_code, Request& request ) {
 	header << request.get_httpver() << " " << error_code << " " << "KO" << std::endl <<//<- needs elaboration
 		"Content-Type: text/html;" << std::endl << \
 		"Content-Length: " << body.str().size() << std::endl << std::endl;
-	response = header.str() + body.str();
+	*response = header.str() + body.str();
 
 	send_response( response );
 	throw (error_request_code());
 }
-std::string ft::WebServer::list_contents( const std::string& path, Request& request )const {
-	std::string response;
+std::string* ft::WebServer::list_contents( const std::string& path, Request& request )const {
+	std::string* response = new std::string;
 	std::ostringstream header;
 	std::ostringstream body;
 
@@ -556,7 +558,7 @@ std::string ft::WebServer::list_contents( const std::string& path, Request& requ
 	header << request.get_httpver() << " 200 " << "OK" << std::endl <<
 		"Content-Type: text/html;" << std::endl << \
 		"Content-Length: " << body.str().size() << std::endl << std::endl;
-	response = header.str() + body.str();
+	*response = header.str() + body.str();
 	return response;
 }
 
@@ -592,11 +594,29 @@ ft::ListeningSocket* ft::WebServer::get_socket()const {
 }
 
 
-void ft::WebServer::send_response( const std::string& response ) const{
+void ft::WebServer::send_response( const std::string* response ) const {
+	write( new_socket, response->c_str(), response->size() );
+
+	if(DEBUG_MODE)
+		std::cout << GREEN << "===RESPONSE BEGIN===\n" << *response << "\n===RESPONCE END===" << RESET << std::endl;
+
+	close( new_socket );
+}
+
+void ft::WebServer::send_response( const std::string& response ) const {
 	write( new_socket, response.c_str(), response.size() );
 
 	if(DEBUG_MODE)
 		std::cout << GREEN << "===RESPONSE BEGIN===\n" << response << "\n===RESPONCE END===" << RESET << std::endl;
+
+	close( new_socket );
+}
+
+void ft::WebServer::send_response( const std::string& response, const std::string* content) const {
+	write( new_socket, response.c_str(), response.size() );
+	write( new_socket, (*content).c_str(), (*content).size() );
+	if(DEBUG_MODE)
+		std::cout << GREEN << "===RESPONSE BEGIN===\n" << response << *content << "\n===RESPONCE END===" << RESET << std::endl;
 
 	close( new_socket );
 }
