@@ -509,8 +509,9 @@ void ft::WebServer::handle_errors( int error_code, Request& request ) {
 		"Content-Type: text/html;" << std::endl << \
 		"Content-Length: " << body.str().size() << std::endl << std::endl;
 	*response = header.str() + body.str();
-
 	send_response( response );
+	
+	delete response;
 	throw (error_request_code());
 }
 std::string* ft::WebServer::list_contents( const std::string& path, Request& request )const {
