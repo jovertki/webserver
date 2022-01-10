@@ -22,7 +22,7 @@ const char* ft::WebServer::error_request_code::what() const throw() {
 	return ("error");
 }
 
-ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), config(config.get_servers()){
+ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), config(config){
 	socket = new ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, 4242, INADDR_ANY, 10 );
 	init_response_msgs();
 	launch();
@@ -347,21 +347,39 @@ void ft::WebServer::execute_cgi( Request& request ) {
 		close( fdpipe[1] );
 		waitpid( ret, NULL, 0 );
 	}
-	char buff[30001] = { 0 };
+
 
 	
-	//should be in a loop
-	//read it to BUFFER_FILE 
-	int len = read( fdpipe[0], buff, 30000 ) - strlen( "Content-Type: text/html\n\n" );
+	char buff[BUFFER_SIZE + 1] = { 0 };
+	
+	long total_len = 0;
+	int len = read( fdpipe[0], buff, BUFFER_SIZE );
+	total_len = len;
+	std::vector<char> vec_buffer;
+	while(len > 0) {
+		vec_buffer.insert(vec_buffer.end(), buff, buff + len );
+		total_len += len;
+		bzero( buff, BUFFER_SIZE );
+		len = read( fdpipe[0], buff, BUFFER_SIZE );
+	}
 
 	for(int i = 0; cgi_envp[i] != NULL; i++) {
 		delete cgi_envp[i];
 	}
 	delete[] cgi_envp;
 	close( fdpipe[0] );
-	if(DEBUG_MODE)
-		std::cout << "BUFF IS " << buff << std::endl;
-	std::string out = request.get_httpver() + " 200 OK\n" + "Content-Length:" + std::to_string( len ) + "\n" + static_cast<std::string>(buff);
+	// if(DEBUG_MODE) {
+	// 	std::cout << BLUE<< "BUFF IS " << std::endl;
+	// 	for(int i = 0; i < vec_buffer.size(); i++) {
+	// 		std::cout << vec_buffer[i];
+	// 	}
+	// 	std::cout << RESET << std::endl;
+	// }
+	std::string out = request.get_httpver() + " 200 OK\n" + "Content-Length:" + std::to_string( vec_buffer.size() - strlen( "Content-Type: text/html\r\n\r\n" ) + 2) + "\r\n";
+	for(int i = 0; i < vec_buffer.size(); i++) {
+		out += vec_buffer[i];
+	}
+	out += "\0";
 	send_response( out );
 }
 
@@ -543,6 +561,15 @@ std::string ft::WebServer::list_contents( const std::string& path, Request& requ
 }
 
 void ft::WebServer::launch() {
+
+	if (DEBUG_MODE){
+		for(int i = 0; i < config.get_servers().size(); i++) {
+			std::cout << BOLDBLUE << (--config.get_servers()[i].getLocations().end())->second << RESET << std::endl;;
+			
+		}
+	}
+
+	
 	Request request;
 	while(true) {
 		std::cout << "waiting" << std::endl;

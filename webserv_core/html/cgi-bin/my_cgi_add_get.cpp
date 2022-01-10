@@ -31,11 +31,11 @@ int main( int argc, char** argv, char** envp ) {
 			iss2 >> num2;
 
 			int out = num1 + num2;
-			std::cout << "<output>" << num1 << " + " << num2 << " = " << num1 + num2 << "</output>" << std::endl;
+			std::cout << "<output>" << num1 << " + " << num2 << " = " << num1 + num2 << "</output>";
 			return 0;
 		}
 	}
-	std::cout << "<output>Sorry, the script cannot turn your inputs into numbers (integers).</output>" << std::endl;
+	std::cout << "<output>Sorry, the script cannot turn your inputs into numbers (integers).</output>";
 	return 1;
 
 	

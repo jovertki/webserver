@@ -13,12 +13,11 @@ namespace ft {
 		//thing to change
 		ListeningSocket* socket;
 
-		std::vector<ServerConfig> config;		
+		Config_info config;
 		int new_socket;
 		char** envp;
 
 		std::map<int, std::string> response_messeges;
-
 	public:
 		WebServer(char **envp, Config_info &config);
 		void launch();
@@ -42,7 +41,7 @@ namespace ft {
 		void handle_multipart( Request& request, \
 			char* buffer, long& bytes_read, std::ofstream& body_file, \
 			long& total_bytes_read, long& full_request_length, \
-			bool& parsing_data_header, bool header_included);
+			bool& parsing_data_header, bool header_included );
 
 		std::string generate_response_head( const int& code );
 		ListeningSocket* get_socket()const;
