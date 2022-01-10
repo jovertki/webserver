@@ -348,10 +348,7 @@ void ft::WebServer::execute_cgi( Request& request ) {
 		waitpid( ret, NULL, 0 );
 	}
 
-
-	
-	char buff[BUFFER_SIZE + 1] = { 0 };
-	
+	char buff[BUFFER_SIZE + 1] = { 0 };	
 	long total_len = 0;
 	int len = read( fdpipe[0], buff, BUFFER_SIZE );
 	total_len = len;
@@ -431,7 +428,7 @@ void ft::WebServer::response_DELETE( Request& request ) {
 		//error
 	}
 	else {
-		sresponse << "HTTP/1.1 200 OK\n\nFile " << request.get_requested_url() << " was successfully DELETED" << std::endl;
+		sresponse << generate_response_head( 200 ) << "\r\nFile " << request.get_requested_url() << " was successfully DELETED" << std::endl;
 	}
 	send_response( sresponse.str() );
 }
