@@ -17,8 +17,8 @@
 
 #define DEBUG_MODE 1
 #define BUFFER_SIZE 30000 //is always bigger then 8000, max HTTP header size
-#define BACKLOG 10
-
+#define BACKLOG 20
+#define TIMEOUT -1
 const char* ft::WebServer::error_request_code::what() const throw() {
 	return ("error");
 }
@@ -39,7 +39,7 @@ ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), conf
 }
 
 void ft::WebServer::poller(struct pollfd fdset[]) {
-	int ret = poll( fdset, get_size_serverInfo(), 100000 );
+	int ret = poll( fdset, get_size_serverInfo(), TIMEOUT );
 	// проверяем успешность вызова
 	if ( ret == -1 )
 		std::cout << "Fail from poll\n";
@@ -122,7 +122,7 @@ void ft::WebServer::accepter( Request& request ) {
 	struct sockaddr_in address;
 	// struct sockaddr_in address = get_socket()->get_address();
 	address = socket_array[id].get_address(); //
-	int addrlen = sizeof( address );
+	int addrlen = sizeof( sockaddr_in );
 
 	// for (int i = 0; socket_array.size() > i; ++i)
 	new_socket = accept( get_socket_array()[id].get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen ); //
@@ -218,6 +218,13 @@ void ft::WebServer::handler( Request& request ) {
 	for(bytes_read = recv( new_socket, buffer, bytes_to_read, 0 );\
 		bytes_read != 0 && full_request_length - total_bytes_read > 0; \
 		bytes_read = recv( new_socket, buffer, bytes_to_read, 0 )) {
+		if(bytes_read == -1) {
+			if(DEBUG_MODE) {
+				std::cout << BLUE << strerror( errno ) << RESET << std::endl;
+			}
+			usleep( 100 );
+			continue;
+		}
 		if(DEBUG_MODE) {//print buffer
 			std::cout << YELLOW << "buffer is \n";
 			for(int i = 0; i < bytes_read; i++) {
@@ -611,27 +618,31 @@ void ft::WebServer::launch(struct pollfd fdset[]) {
 		}
 	}
 
-
 	Request request;
 	while(true) {
-		std::cout << "waiting" << std::endl;
+		if(DEBUG_MODE) {
+			std::cout << "waiting" << std::endl;
+		}
 		try {
 			request.clear();
 			poller(fdset);
 			accepter(request);
 			handler(request);
-			responder(request);
-			system( "leaks webserv" );
+			responder( request );
+			if(DEBUG_MODE) {
+				system( "leaks webserv" );
+			}
 		}
 		catch(error_request_code& e) {}
-		std::cout << "==== DONE ====" << std::endl;
+		if(DEBUG_MODE) {
+			std::cout << "==== DONE ====" << std::endl;
+		}
 	}
 }
 
 
 void ft::WebServer::send_response( const std::string* response ) const {
 	write( new_socket, response->c_str(), response->size() );
-
 	if(DEBUG_MODE)
 		std::cout << GREEN << "===RESPONSE BEGIN===\n" << *response << "\n===RESPONCE END===" << RESET << std::endl;
 
@@ -640,7 +651,6 @@ void ft::WebServer::send_response( const std::string* response ) const {
 
 void ft::WebServer::send_response( const std::string& response ) const {
 	write( new_socket, response.c_str(), response.size() );
-
 	if(DEBUG_MODE)
 		std::cout << GREEN << "===RESPONSE BEGIN===\n" << response << "\n===RESPONCE END===" << RESET << std::endl;
 
