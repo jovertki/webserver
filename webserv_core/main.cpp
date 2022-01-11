@@ -1,7 +1,6 @@
 #include "servers/WebServer.hpp"
 #include "config_parser/Config_info.hpp"
 
-
 int main(int argc, char** argv, char **envp) {
 
     std::string conf_name = "configs/default.conf";

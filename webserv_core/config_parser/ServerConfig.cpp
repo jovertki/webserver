@@ -124,6 +124,8 @@ void ServerConfig::CheckDefaultParam() {
         throw utils::parseExeption("Error ServerParse::no listen parameter!");
     else if (root.empty())
         throw utils::parseExeption("Error ServerParse::no root!");
+    else if(host.empty())
+        throw utils::parseExeption("Error ServerParse::no host!");
     else if (locations.empty())
         throw utils::parseExeption("ServerParse::can't find loctions!");
     else if (locations.find(defLocation) == locations.end())
@@ -325,6 +327,14 @@ const std::map<std::string, std::string> &ServerConfig::getCgi() const {
 
 const std::map<std::string, Location_info> &ServerConfig::getLocations() const {
     return locations;
+}
+
+const std::string &ServerConfig::getHost() const {
+    return host;
+}
+
+void ServerConfig::setHost(const std::string &host) {
+    ServerConfig::host = host;
 }
 
 

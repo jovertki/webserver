@@ -15,6 +15,10 @@ public:
     ServerConfig& operator=(const ServerConfig& other);
     ~ServerConfig();
 
+    const std::string &getHost() const;
+
+    void setHost(const std::string &host);
+
     const int &getListen() const;
 
     const std::string &getServName() const;
