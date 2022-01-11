@@ -9,7 +9,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <cstdio>
-
+#include <fcntl.h>
 #include <errno.h>
 
 const char* ft::WebServer::error_request_code::what() const throw() {
@@ -18,19 +18,20 @@ const char* ft::WebServer::error_request_code::what() const throw() {
 
 ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), serverInfo(config.get_servers()){
 	// socket = new ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, 4242, INADDR_ANY, 10 );
-	pollfd fdset[get_size_serverInfo()];
+	pollfd *fdset = new pollfd[get_size_serverInfo() + 1];
 	for (int i = 0; i < serverInfo.size(); i++) {
 		// std::cout << i << "\n";
-		socket_array.push_back(ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, serverInfo[i].getListen().front(), INADDR_ANY, 10 )); //
+		// socket_array.push_back(ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, serverInfo[i].getListen().front(), INADDR_ANY, 10 )); //
+		socket_array.push_back(ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, serverInfo[i].getListen().front(), INADDR_ANY, 10 ));
+
 		fdset[i].fd = get_socket_array()[i].get_sock();
 		fdset[i].events = POLLIN;
 	}
-
 	launch(fdset);
 }
 
-void ft::WebServer::poller(struct pollfd fdset[]) {
-	int ret = poll( fdset, get_size_serverInfo(), 100000 );
+void ft::WebServer::poller(struct pollfd *fdset) {
+	int ret = poll( fdset, get_size_serverInfo() + 1, 100000 );
 	// проверяем успешность вызова
 	if ( ret == -1 )
 		std::cout << "Fail from poll\n";
@@ -40,10 +41,12 @@ void ft::WebServer::poller(struct pollfd fdset[]) {
 		// таймаут, событий не произошло
 	else
 	{
-		for (int i = 0; socket_array.size() > i; ++i)
 		// обнаружили событие, обнулим revents чтобы можно было переиспользовать структуру
-		if ( fdset[i].revents & POLLIN )
-			fdset[i].revents = 0;
+		for (int i = 0; socket_array.size() > i; ++i)
+		{
+			if ( fdset[i].revents & POLLIN )
+				fdset[i].revents = 0;
+		}
 			// обработка входных данных от sock1
 
 		// if ( fdset[1].revents & POLLOUT )
@@ -64,7 +67,7 @@ void ft::WebServer::accepter() {
 	long content_length;
 	// new_socket = accept( get_socket()->get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen );
 	new_socket = accept( get_socket_array().begin()->get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen ); //
-
+	fcntl(new_socket, F_SETFL , O_NONBLOCK);
 	//READ LOOP HERE
 	long end = recv( new_socket, buffer, 30000, 0 );
 	buffer_s = buffer;
@@ -440,7 +443,7 @@ std::string ft::WebServer::list_contents( const std::string& path )const {
 	response = header.str() + body.str();
 	return response;
 }
-void ft::WebServer::launch(struct pollfd fdset[]) {
+void ft::WebServer::launch(struct pollfd *fdset) {
 	while(true) {
 		std::cout << "waiting" << std::endl;
 		try {

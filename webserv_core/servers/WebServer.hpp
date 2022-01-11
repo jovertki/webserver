@@ -23,10 +23,10 @@ namespace ft {
 		Request request;
 	public:
 		WebServer(char **envp, Config_info &config);
-		void launch(struct pollfd fdset[]);
+		void launch(struct pollfd *fdset);
 
 	private:
-		void poller(struct pollfd fdset[]); //
+		void poller(struct pollfd *fdset); //
 		void accepter();
 		void handler();
 		void responder();
