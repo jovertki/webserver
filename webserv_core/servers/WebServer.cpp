@@ -10,122 +10,91 @@
 #include <sys/wait.h>
 #include <cstdio>
 #include <fcntl.h>
+#include <cctype>
 #include <errno.h>
+#include <cstdlib>
+#include <sstream>
+#include <fcntl.h>
+
+#define DEBUG_MODE 1
+#define BUFFER_SIZE 30000 //is always bigger then 8000, max HTTP header size
 
 const char* ft::WebServer::error_request_code::what() const throw() {
 	return ("error");
 }
 
-ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), serverInfo(config.get_servers()){
-	// socket = new ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, 4242, INADDR_ANY, 10 );
-	pollfd *fdset = new pollfd[get_size_serverInfo() + 1];
-	for (int i = 0; i < serverInfo.size(); i++) {
-		// std::cout << i << "\n";
-		// socket_array.push_back(ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, serverInfo[i].getListen().front(), INADDR_ANY, 10 )); //
-		socket_array.push_back(ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, serverInfo[i].getListen().front(), INADDR_ANY, 10 ));
-
-		fdset[i].fd = get_socket_array()[i].get_sock();
-		fdset[i].events = POLLIN;
-	}
-	launch(fdset);
+ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), config(config){
+	socket = new ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, 4242, INADDR_ANY, 10 );
+	init_response_msgs();
+	launch();
 }
 
-void ft::WebServer::poller(struct pollfd *fdset) {
-	int ret = poll( fdset, get_size_serverInfo() + 1, 100000 );
-	// проверяем успешность вызова
-	if ( ret == -1 )
-		std::cout << "Fail from poll\n";
-		// ошибка
-	else if ( ret == 0 )
-		std::cout << "I waiting...\n";
-		// таймаут, событий не произошло
-	else
-	{
-		// обнаружили событие, обнулим revents чтобы можно было переиспользовать структуру
-		for (int i = 0; socket_array.size() > i; ++i)
-		{
-			if ( fdset[i].revents & POLLIN )
-				fdset[i].revents = 0;
+
+void ft::WebServer::handle_multipart( Request& request, \
+	char* buffer, long& bytes_read, std::ofstream& body_file, \
+	long& total_bytes_read, long& full_request_length, bool& parsing_data_header, bool header_included ) {
+	std::string type = request.get_param_value( "HTTP_CONTENT_TYPE" );
+	std::string boundary = type.substr( type.find( "boundary=" ) + 9 );
+	boundary.insert( 0, "--" );
+	boundary.insert( boundary.size(), "\0" );
+	int i = 0;
+	if(parsing_data_header) {
+		std::string data_header;
+		std::size_t data_header_end = 0;
+		int data_header_begin = (request.get_header_length() + 4) * header_included;
+		data_header.insert( 0, &buffer[data_header_begin] );
+		if(data_header.size() != 0) {//there is body and this is not a first post request
+			//request.print_params();
+			if(DEBUG_MODE)
+				std::cout << RED << "data header = " << data_header << RESET << std::endl;
+			std::size_t filename_start = data_header.find( "filename=" );
+			std::size_t filename_end = data_header.find( "\r\n", filename_start );
+			std::string filename( data_header.substr( filename_start + 10, filename_end - filename_start - 11 ) );
+			data_header_end = data_header.find( "\r\n\r\n" ) + 4;
+			std::string upload_path = SERVER_DIR + std::string( "/uploads" ) + "/";
+			filename.insert( 0, upload_path );
+			if(DEBUG_MODE)
+				std::cout << BLUE << filename << RESET << std::endl;
+			request.set_param( "UPLOAD_PATH", filename );
 		}
-			// обработка входных данных от sock1
-
-		// if ( fdset[1].revents & POLLOUT )
-		// 	fdset[1].revents = 0;
-			// обработка исходящих данных от sock2
+		i = (request.get_header_length() + 4) * header_included + data_header_end;
+		total_bytes_read += data_header_end;
+		parsing_data_header = false;
+	}
+	for(; i < bytes_read && total_bytes_read < full_request_length; i++) {
+		if(i + boundary.size() + 2 <= bytes_read) {
+			if(buffer[i] == '\r') {
+				if(strncmp( &buffer[i + 2], boundary.c_str(), boundary.size() - 1 ) == 0) {
+					total_bytes_read += boundary.size() + 5;
+					break;
+				}
+			}
+			if(buffer[i] == '\n') {
+				if(strncmp( &buffer[i + 1], boundary.c_str(), boundary.size() - 1 ) == 0) {
+					total_bytes_read += boundary.size() + 4;
+					break;
+				}
+			}
+		}
+		body_file << buffer[i];
+		total_bytes_read++;
 	}
 }
 
-
-void ft::WebServer::accepter() {
-	char buffer[30001] = { 0 };
-	std::string buffer_s;
-	struct sockaddr_in address;
-	// struct sockaddr_in address = get_socket()->get_address();
-	for (int i = 0; socket_array.size() > i; ++i)
-		address = socket_array[i].get_address(); //
+void ft::WebServer::accepter( Request& request ) {
+	struct sockaddr_in address = get_socket()->get_address();
 	int addrlen = sizeof( address );
-	long content_length;
-	// new_socket = accept( get_socket()->get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen );
-	new_socket = accept( get_socket_array().begin()->get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen ); //
-	fcntl(new_socket, F_SETFL , O_NONBLOCK);
-	//READ LOOP HERE
-	long end = recv( new_socket, buffer, 30000, 0 );
-	buffer_s = buffer;
-	std::cout << "buffer is \n" << buffer_s << std::endl;
+	new_socket = accept( get_socket()->get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen );
 
-	//parse head, if not full in buffer, then error
-	//use map for storage
-	header_parse( buffer_s );
-
-	//debug only
-	std::ofstream last_request( "last_request.txt" );
-	last_request << buffer_s;
-
-	content_length = atol( (request.get_param_value( "Content-length" )).c_str() );
-	//read body for content-length bytes
-
-
-
-	//find body
-	request.set_body( buffer_s.substr( buffer_s.find( "\r\n\r\n" ) + 4 ) );
-
-	std::cout << "BODY is |\n";
-	for(int i = 0; i < request.get_body().size(); ++i)
-		std::cout << request.get_body()[i];
-	std::cout << "\n|" << std::endl;
-
-	//set args to body if method is POST
-	if(request.get_method() == POST) {
-		request.set_body_args();
-	}
-	std::cout << "ARGS is |\n";
-		for(int i = 0; i < request.get_args().size(); ++i)
-			std::cout << request.get_args()[i];
-	std::cout << "\n|" << std::endl;
-
-
-
-
-	last_request.close();
-
-	//fix windows endlines
-	// std::size_t n = buffer_s.find( (char)13 );
-	// while(n != std::string::npos) {
-	// 	buffer_s.replace( n, 1, "" );
-	// 	n = buffer_s.find( (char)13 );
-	// }
 }
 
-void ft::WebServer::header_parse(std::string& buffer_s) {
-
-	// std::string line = buffer_s.substr( 0, buffer_s.find( "\n" ) );
+void ft::WebServer::header_parse( const char* input_buffer, Request& request ) {
 	std::stringstream ss;
-	ss << buffer_s;
+	ss << input_buffer;
 	std::string token;
 	ss >> token;
-	//HTTP request parser
+
 	//find method
-	// std::size_t endline = line.find( " " );
 	if(token == "GET") {
 		request.set_method( GET );
 	}
@@ -138,26 +107,31 @@ void ft::WebServer::header_parse(std::string& buffer_s) {
 	else {
 		//ERROR: INVALID METHOD
 	}
-	std::cout << "Method is " << request.get_method() << std::endl;
+	if(DEBUG_MODE)
+		std::cout << "Method is " << request.get_method() << std::endl;
 
 	//find url
 	ss >> token;
 	request.set_requested_url( token );
-	//find args in url
+
+	//find args in url if any
 	std::size_t questionmark = request.get_requested_url().find( "?" );
 	if(questionmark != std::string::npos) {
-		request.set_url_args( request.get_requested_url().substr( questionmark + 1 ) );
+		request.set_query_string( request.get_requested_url().substr( questionmark + 1 ) );
 		request.set_requested_url( request.get_requested_url().substr( 0, questionmark ) );
 	}
 	else
-		request.set_url_args( "" );
-	std::cout << "URL is |" << request.get_requested_url() << "|" << std::endl;
+		request.set_query_string( "" );
+	if(DEBUG_MODE)
+		std::cout << "URL is |" << request.get_requested_url() << "|" << std::endl;
 
 	//find httpver
 	ss >> token;
 	request.set_httpver( token );
-	std::cout << "HTTPVER is |" << request.get_httpver() << "|" << std::endl;
+	if(DEBUG_MODE)
+		std::cout << "HTTPVER is |" << request.get_httpver() << "|" << std::endl;
 
+	//fill params with http request headers
 	std::string buffer;
 	getline( ss, buffer ); //empty line
 	getline( ss, buffer );//first line of headers
@@ -168,110 +142,258 @@ void ft::WebServer::header_parse(std::string& buffer_s) {
 			//error in header
 			break;
 		}
-		request.insert_param( make_pair( buffer.substr( 0, colon ), buffer.substr( colon + 2, buffer.size() - colon - 2 ) ) );
+		std::string key = buffer.substr( 0, colon );
+		key = "HTTP_" + key;
+		for(int i = 0; i < key.size(); i++) {
+			if(key[i] == '-')
+				key[i] = '_';
+			key[i] = std::toupper( key[i] );
+		}
+		request.insert_param( make_pair( key, buffer.substr( colon + 2, buffer.size() - colon - 2 ) ) );
 		if(!getline( ss, buffer )) {
 			//ERROR INVALID REQUEST
 		}
 
 	}
-	request.set_header_length( buffer_s.find( "\r\n\r\n" ) );
+	std::string buffer_string( input_buffer );
+	request.set_header_length( buffer_string.find( "\r\n\r\n" ) );
 
 	//debug only
-	request.print_params();
+	//request.print_params();
 
 }
 
-void ft::WebServer::handler() {
+void ft::WebServer::handler( Request& request ) {
+	char buffer[BUFFER_SIZE + 1] = { 0 };
+	int bytes_to_read = BUFFER_SIZE;
+	long full_request_length = BUFFER_SIZE;
+	long total_bytes_read = 0;
+	long bytes_read = 1;
+	bool parsing_header = true;
+	bool parsing_data_header = true;
+	std::ofstream body_file( BUFFER_FILE, std::ios::binary );
+	std::ofstream last_request( "last_request.txt" );
+
+	for(bytes_read = recv( new_socket, buffer, bytes_to_read, 0 );\
+		bytes_read != 0 && full_request_length - total_bytes_read > 0; \
+		bytes_read = recv( new_socket, buffer, bytes_to_read, 0 )) {
+		if(DEBUG_MODE) {//print buffer
+			std::cout << YELLOW << "buffer is \n";
+			for(int i = 0; i < bytes_read; i++) {
+				std::cout << buffer[i];
+			}
+			std::cout << "bytes read = " << bytes_read << RESET << std::endl;
+		}
+
+		int i = 0;
+		if(parsing_header) {
+			if(bytes_read == 0)
+				throw error_request_code();
+			//parse head, if not full in buffer, then error 413
+			//this check needs implementetion somethere here
+			header_parse( buffer, request );
+			full_request_length = request.get_header_length() + 4 + atol( (request.get_param_value( "HTTP_CONTENT_LENGTH" )).c_str() );
+			total_bytes_read = request.get_header_length() + 4;
+			i = request.get_header_length() + 4;
+		}
+
+		if(DEBUG_MODE) {
+			last_request << buffer;
+		}
+
+		if(!body_file.is_open()) {
+			//ERROR, WHICH ONE??
+		}
+		if(request.get_param_value( "HTTP_CONTENT_TYPE" ).find( "multipart/form-data" ) != std::string::npos \
+			&& bytes_read != request.get_header_length() + 4) { //meaning file is being uploaded
+			handle_multipart( request, buffer, bytes_read, body_file, total_bytes_read, full_request_length, parsing_data_header, parsing_header);
+		}
+		else {
+			for(; i < bytes_read && total_bytes_read < full_request_length; i++) {
+				body_file << buffer[i];
+				total_bytes_read++;
+			}
+		}
+		if(full_request_length - total_bytes_read > BUFFER_SIZE) {
+			bytes_to_read = BUFFER_SIZE;
+		}
+		else {
+			bytes_to_read = full_request_length - total_bytes_read;
+		}
+		parsing_header = false;//it needs to be here, handle_multipart checks it
+		bzero( buffer, BUFFER_SIZE );
+	}
+	//find body
+	body_file.close();
+
+
+	//debug only
+	if(DEBUG_MODE) {
+		last_request.close();
+		std::cout << "QUERY_STRING is |\n";
+		for(int i = 0; i < request.get_query_string().size(); ++i)
+			std::cout << request.get_query_string()[i];
+		std::cout << "\n|" << std::endl;
+	}
 
 }
-void ft::WebServer::response_POST() {
+
+
+
+void ft::WebServer::init_new_envp( std::map<std::string, std::string>& additions, Request& request ) {
+	additions["REQUEST_METHOD"] = "";
+	additions["PATH_INFO"] = "";
+	additions["AUTH_TYPE"] = "";//not used
+	additions["CONTENT_LENGTH"] = "";//needs elaboration
+	additions["CONTENT_TYPE"] = "";
+	additions["GATEWAY_INTERFACE"] = "";//not used
+	additions["PATH_TRANSLATED"] = "";//not used
+	additions["QUERY_STRING"] = "";
+	additions["REMOTE_ADDR"] = "";//not used
+	additions["REMOTE_HOST"] = "";
+	additions["REMOTE_IDENT"] = "";//not used
+	additions["REMOTE_USER"] = "";//not used
+	additions["REQUEST_METHOD"] = "";
+	additions["SCRIPT_NAME"] = "";//not perfect
+	additions["SERVER_NAME"] = "";//NYI
+	additions["SERVER_PORT"] = "";//NYI
+	additions["SERVER_PROTOCOL"] = "";
+	additions["SERVER_SOFTWARE"] = "";//not used
+	// additions["UPLOAD_PATH"] = "";//NYI
+
+
+	if(request.get_method() == GET)
+		additions["REQUEST_METHOD"] = "GET";
+	else if(request.get_method() == POST)
+		additions["REQUEST_METHOD"] = "POST";
+	else if(request.get_method() == DELETE)
+		additions["REQUEST_METHOD"] = "DELETE";
+
+	additions["PATH_INFO"] = request.get_requested_url();
+	additions["QUERY_STRING"] = request.get_query_string();
+	additions["SCRIPT_NAME"] = additions["PATH_INFO"];
+	additions["SERVER_PROTOCOL"] = "HTTP/1.1\0";
+
+	additions.insert( request.get_params_begin(), request.get_params_end() );
+
+	additions["REMOTE_HOST"] = additions["HTTP_HOST"];
+	additions["CONTENT_TYPE"] = additions["HTTP_CONTENT_TYPE"];
+
+	additions["SERVER_NAME"] = "";//NYI
+	additions["SERVER_PORT"] = "";//NYI
+
+
+
+
+}
+
+char** ft::WebServer::create_appended_envp( Request& request ) {
+	std::map<std::string, std::string> additions;
+	init_new_envp( additions, request);
+
+	int envp_len = 0;
+	while(envp[envp_len] != NULL) {
+		envp_len++;
+	}
+
+	int new_envp_len = envp_len + additions.size() + 1;
+	char** new_envp = new char* [new_envp_len];
+	for(int i = 0; i < new_envp_len; i++) {
+		new_envp[i] = NULL;
+	}
+
+	int cur = 0;
+	for(int i = 0; envp[i] != NULL; i++) {
+		new_envp[cur] = strdup( envp[i] );
+		cur++;
+	}
+
+	for(std::map<std::string, std::string>::iterator it = additions.begin(); it != additions.end(); it++) {
+		std::stringstream ss;
+		ss << it->first << "=" << it->second << "\0";
+		new_envp[cur] = strdup(ss.str().c_str());
+		cur++;
+	}
+	return new_envp;
+}
+
+void ft::WebServer::response_POST( Request& request ) {
 	std::cout << "========RESPONSE POST IS ACTIVE========" << std::endl;
 
-	char** my_envp = new char* [10];
-
-	std::string myWord = "REQUEST_METHOD=POST";
-	my_envp[0] = new char[myWord.size() + 1];
-	strcpy( my_envp[0], myWord.c_str() );
-	myWord = "SERVER_PROTOCOL=HTTP/1.1";
-	my_envp[1] = new char[myWord.size() + 1];
-	strcpy( my_envp[1], myWord.c_str() );
-	myWord = "PATH_INFO=/Users/jovertki/webserver_shared_repo/webserv_core/html/cgi_tester";
-	my_envp[2] = new char[myWord.size() + 1];
-	strcpy( my_envp[2], myWord.c_str() );
-	myWord = "PATH=/Users/jovertki/.brew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet:/usr/local/munk";
-	my_envp[3] = new char[myWord.size() + 1];
-	strcpy( my_envp[3], myWord.c_str() );
-
-	myWord = "SOCKET=" + std::to_string( new_socket );
-	my_envp[4] = new char[myWord.size() + 1];
-	strcpy( my_envp[4], myWord.c_str() );
-
-	myWord = "ARGS=";
-	for(int i = 0; i < request.get_args().size(); ++i)
-		myWord += request.get_args()[i];
-	myWord += "\0";
-	my_envp[5] = new char[myWord.size() + 1];
-	strcpy( my_envp[5], myWord.c_str() );
+	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > 9 /*sizeof( "/cgi-bin/" )*/) { //if it is in /cgi-bin/
+		execute_cgi( request );
+	}
+}
 
 
-	my_envp[6] = NULL;
+void ft::WebServer::execute_cgi( Request& request ) {
+	char** cgi_envp = create_appended_envp( request );
 
 	int fdpipe[2];
-	int fdpipein[2];
 	pipe( fdpipe );
-	pipe( fdpipein );
-	std::string str;
-	for(int i = 0; i < request.get_args().size(); ++i) {
-		str += request.get_args()[i];
-	}
-	// str[request.get_args().size()] = '\0';
-	write( fdpipein[1], str.c_str(), str.size() );
-	close( fdpipein[1] );
+
+	int body_fd = open( BUFFER_FILE, O_RDONLY );
 	int ret = fork();
 	if(ret == 0)
 	{
-		dup2( fdpipein[0], 0 );
+		dup2( body_fd, 0 );
 		dup2( fdpipe[1], 1 );
-		//std::cout << "Trying to execute " << request.get_requested_filename() << std::endl;
 		std::string filename = SERVER_DIR + request.get_requested_url();
-		execve( filename.c_str(), NULL, my_envp );
+		execve( filename.c_str(), NULL, cgi_envp );
 		std::cout << "ERRRPR" << std::endl;
 		std::cout << strerror( errno ) << std::endl;
 		exit( 234 );
 	}
 	else {
+		close( fdpipe[1] );
 		waitpid( ret, NULL, 0 );
 	}
-	char buff[30000] = { 0 };
-	int len = read( fdpipe[0], buff, 30000 ) - strlen( "Content-Type: text/html\n\n" );
-	close( fdpipe[1] );
-	close( fdpipe[0] );
-	close( fdpipein[0] );
-	std::cout << "BUFF IS " << buff << std::endl;
-	std::string out = request.get_httpver() + " 200 OK\n" + "Content-Length:" + std::to_string( len ) + "\n" + static_cast<std::string>(buff);
-	for(int i = 0; i < 6; i++) {
-		delete my_envp[i];
-	}
-	delete[] my_envp;
 
-	write( new_socket, out.c_str(), out.size() );
-	std::cout << "RESPONSE IS \n" << out << "\n===end of response===" << std::endl;
-	close( new_socket );
+	char buff[BUFFER_SIZE + 1] = { 0 };
+	long total_len = 0;
+	int len = read( fdpipe[0], buff, BUFFER_SIZE );
+	total_len = len;
+	std::string *response_body = new std::string;
+	while(len > 0) {
+		(*response_body).insert((*response_body).end(), buff, buff + len );
+		total_len += len;
+		bzero( buff, BUFFER_SIZE );
+		len = read( fdpipe[0], buff, BUFFER_SIZE );
+	}
+
+	for(int i = 0; cgi_envp[i] != NULL; i++) {
+		delete cgi_envp[i];
+	}
+	delete[] cgi_envp;
+	close( fdpipe[0] );
+	// if(DEBUG_MODE) {
+	// 	std::cout << BLUE<< "BUFF IS " << std::endl;
+	// 	for(int i = 0; i < vec_buffer.size(); i++) {
+	// 		std::cout << vec_buffer[i];
+	// 	}
+	// 	std::cout << RESET << std::endl;
+	// }
+	std::stringstream response_headers;
+	response_headers << request.get_httpver() <<  generate_response_head(200) << "Content-Length:" << std::to_string( (*response_body).size() - strlen( "Content-Type: text/html\r\n\r\n" ) + 2 ) << "\r\n";
+
+	send_response( response_headers.str(), response_body );
+	delete response_body;
 }
 
-void ft::WebServer::response_GET() {
+void ft::WebServer::response_GET( Request& request ) {
 
 	//check if rights are correct
+	//use index field from config somewhere here
 
-	//response header
-	if(request.get_requested_url() == "/")
-		request.set_requested_url( "/index.html" );
-
-
-	std::string response;
 	if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS ON*/) {
 		//list contents
-		response = list_contents( SERVER_DIR + request.get_requested_url() );
+		std::string* response = list_contents( SERVER_DIR + request.get_requested_url(), request );
+		send_response( response );
+		delete response;
+	}
+	else if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > sizeof( "/cgi-bin/" )) { //if it is in /cgi-bin/
+		execute_cgi( request );
+		return;
 	}
 	else {
 		//proceed with request
@@ -280,51 +402,46 @@ void ft::WebServer::response_GET() {
 		//read file to string
 		std::ifstream infile( SERVER_DIR + request.get_requested_url() );
 		if(!infile.is_open()) {
-			handle_errors( 404 );
+			handle_errors( 404, request);
 		}
-		std::string content( (std::istreambuf_iterator<char>( infile )),
-			(std::istreambuf_iterator<char>()) );
 
 		//first response line
-		response = response + request.get_httpver() + " 200 OK\n";
+		std::stringstream response_headers;
+		response_headers << generate_response_head( 200 );
 		//write file to string
-		response = response + "Content-Type: " + content_type + ";\nContent-Length:" + std::to_string( content.size() ) + "\n\n" + content;
+		std::string* response_body = new std::string( (std::istreambuf_iterator<char>( infile )),
+			(std::istreambuf_iterator<char>()) );
+		response_headers << "Content-Type: " << content_type << ";\nContent-Length:" << std::to_string( (*response_body).size() ) << "\n\n";
+		send_response( response_headers.str(), response_body );
+		delete response_body;
 	}
 	//write string to socket
-	write( new_socket, response.c_str(), response.size() );
-	std::cout << "RESPONSE IS \n" << response << "\n===end of response===" << std::endl;
-	close( new_socket );
 }
 
-void ft::WebServer::response_DELETE() {
+void ft::WebServer::response_DELETE( Request& request ) {
 	//do smth
 	// if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS ON*/) {
 	// 	//list contents
 	// 	response = list_contents( SERVER_DIR + request.get_requested_url() );
 	// }
-
-	std::string response;
 	std::ostringstream sresponse;
 	if(std::remove( (SERVER_DIR + request.get_requested_url()).c_str() ) < 0) {
 		//error
 	}
 	else {
-		sresponse << "HTTP/1.1 200 OK\n\nFile " << request.get_requested_url() << " was successfully DELETED" << std::endl;
+		sresponse << generate_response_head( 200 ) << "\r\nFile " << request.get_requested_url() << " was successfully DELETED" << std::endl;
 	}
-	response = sresponse.str();
-	write( new_socket, response.c_str(), response.size() );
-	std::cout << "RESPONSE IS \n" << response << "\n===end of response===" << std::endl;
-	close( new_socket );
+	send_response( sresponse.str() );
 }
 
-void ft::WebServer::responder() {
+void ft::WebServer::responder( Request& request ) {
 	//check availability of method in location
 	if(request.get_method() == GET)
-		response_GET();
+		response_GET( request );
 	else if(request.get_method() == POST)
-		response_POST();
+		response_POST( request );
 	else if(request.get_method() == DELETE)
-		response_DELETE();
+		response_DELETE( request );
 }
 
 
@@ -354,8 +471,8 @@ bool ft::WebServer::is_directory( const std::string& path )const {
 	}
 	return 0;
 }
-void ft::WebServer::handle_errors( int error_code ) {
-	std::string response;
+void ft::WebServer::handle_errors( int error_code, Request& request ) {
+	std::string *response = new std::string;
 	std::ostringstream header;
 	std::ostringstream body;
 
@@ -370,7 +487,7 @@ void ft::WebServer::handle_errors( int error_code ) {
 		"<!-- Bootstrap -->" << std::endl << std::endl << \
 		"<link rel = \"stylesheet\" href = \"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css\">" << std::endl << std::endl << \
 		"<!-- Custom stlylesheet -->" << std::endl << \
-		"<link type=\"text/css\" rel=\"stylesheet\" href=\"css/style.css\" />" << std::endl << std::endl << \
+		"<link type=\"text/css\" rel=\"stylesheet\" href=\"/css/style.css\" />" << std::endl << std::endl << \
 		"</head>" << std::endl << std::endl << \
 		"<body>" << std::endl << \
 		"<div class=\"vertical-center\">" << std::endl << \
@@ -378,7 +495,7 @@ void ft::WebServer::handle_errors( int error_code ) {
 		"<div id=\"notfound\" class=\"text-center\">" << std::endl << \
 		"<h1>:-(</h1>"   <<std::endl << \
 		"<h1>" << error_code << "</h1>" << std::endl << \
-		"<p> An error occured.</p>" << std::endl << \
+		"<p>" << response_messeges[error_code] << "</p>" << std::endl << \
 		"<a href=\"/index.html\">Back to homepage</a>" << std::endl << \
 		"</div>" << std::endl << \
 		"</div>" << std::endl << \
@@ -389,14 +506,14 @@ void ft::WebServer::handle_errors( int error_code ) {
 	header << request.get_httpver() << " " << error_code << " " << "KO" << std::endl <<//<- needs elaboration
 		"Content-Type: text/html;" << std::endl << \
 		"Content-Length: " << body.str().size() << std::endl << std::endl;
-	response = header.str() + body.str();
-	write( new_socket, response.c_str(), response.size() );
-	std::cout << "RESPONSE IS \n" << response << "===end of response===" << std::endl;
-	close( new_socket );
+	*response = header.str() + body.str();
+	send_response( response );
+
+	delete response;
 	throw (error_request_code());
 }
-std::string ft::WebServer::list_contents( const std::string& path )const {
-	std::string response;
+std::string* ft::WebServer::list_contents( const std::string& path, Request& request )const {
+	std::string* response = new std::string;
 	std::ostringstream header;
 	std::ostringstream body;
 
@@ -440,17 +557,30 @@ std::string ft::WebServer::list_contents( const std::string& path )const {
 	header << request.get_httpver() << " 200 " << "OK" << std::endl <<
 		"Content-Type: text/html;" << std::endl << \
 		"Content-Length: " << body.str().size() << std::endl << std::endl;
-	response = header.str() + body.str();
+	*response = header.str() + body.str();
 	return response;
 }
-void ft::WebServer::launch(struct pollfd *fdset) {
+
+void ft::WebServer::launch() {
+
+	if (DEBUG_MODE){
+		for(int i = 0; i < config.get_servers().size(); i++) {
+			std::cout << BOLDBLUE << (--config.get_servers()[i].getLocations().end())->second << RESET << std::endl;;
+
+		}
+	}
+
+
+	Request request;
 	while(true) {
 		std::cout << "waiting" << std::endl;
 		try {
-			poller(fdset);
-			accepter();
-			handler();
-			responder();
+			request.clear();
+			//poll will be here
+			accepter(request);
+			handler(request);
+			responder(request);
+			system( "leaks webserv" );
 		}
 		catch(error_request_code& e) {}
 		std::cout << "==== DONE ====" << std::endl;
@@ -458,10 +588,84 @@ void ft::WebServer::launch(struct pollfd *fdset) {
 }
 
 
-std::vector<ft::ListeningSocket> ft::WebServer::get_socket_array()const {
-	return socket_array;
+ft::ListeningSocket* ft::WebServer::get_socket()const {
+	return socket;
 }
 
-int ft::WebServer::get_size_serverInfo() const {
-	return serverInfo.size();
+
+void ft::WebServer::send_response( const std::string* response ) const {
+	write( new_socket, response->c_str(), response->size() );
+
+	if(DEBUG_MODE)
+		std::cout << GREEN << "===RESPONSE BEGIN===\n" << *response << "\n===RESPONCE END===" << RESET << std::endl;
+
+	close( new_socket );
+}
+
+void ft::WebServer::send_response( const std::string& response ) const {
+	write( new_socket, response.c_str(), response.size() );
+
+	if(DEBUG_MODE)
+		std::cout << GREEN << "===RESPONSE BEGIN===\n" << response << "\n===RESPONCE END===" << RESET << std::endl;
+
+	close( new_socket );
+}
+
+void ft::WebServer::send_response( const std::string& response, const std::string* content) const {
+	write( new_socket, response.c_str(), response.size() );
+	write( new_socket, (*content).c_str(), (*content).size() );
+	if(DEBUG_MODE)
+		std::cout << GREEN << "===RESPONSE BEGIN===\n" << response << *content << "\n===RESPONCE END===" << RESET << std::endl;
+
+	close( new_socket );
+}
+
+std::string ft::WebServer::generate_response_head( const int& code ) {
+	std::stringstream ss;
+	ss << "HTTP/1.1 " << code << " " << response_messeges[code] << "\r\n";
+	return ss.str();
+}
+
+void ft::WebServer::init_response_msgs() {
+	response_messeges[100] = "Continue";
+
+	response_messeges[200] = "OK";
+	response_messeges[202] = "Accepted";
+	response_messeges[204] = "No Content";
+	response_messeges[206] = "Partial Content";
+	response_messeges[226] = "IM used";
+
+	response_messeges[300] = "Multiple Choices";
+	response_messeges[303] = "See Other";
+	response_messeges[308] = "Permanent Redirect";
+
+	response_messeges[400] = "Bad Request";
+	response_messeges[403] = "Forbidden";
+	response_messeges[404] = "Not Found";
+	response_messeges[405] = "Method Not Allowed";
+	response_messeges[406] = "Not Acceptable";
+	response_messeges[408] = "Request Timeout";
+	response_messeges[410] = "Gone";
+	response_messeges[411] = "Length Required";
+	response_messeges[413] = "Payload Too Large";
+	response_messeges[414] = "URI Too Long";
+	response_messeges[415] = "Unsupported Media Type";
+	response_messeges[416] = "Range Not Satisfiable";
+	response_messeges[417] = "Expectation Failed";
+	response_messeges[421] = "Misdirected Request";
+	response_messeges[422] = "Unprocessable Entity";
+	response_messeges[423] = "Locked";
+	response_messeges[424] = "Failed Dependency";
+	response_messeges[429] = "Too Many Requests";
+	response_messeges[431] = "Request Header Fields Too Large";
+
+	response_messeges[500] = "Internal Server Error";
+	response_messeges[501] = "Not Implemented";
+	response_messeges[502] = "Bad Gateway";
+	response_messeges[503] = "Service Unavailable";
+	response_messeges[504] = "Gateway Timeout";
+	response_messeges[505] = "HTTP Version Not Supported";
+	response_messeges[507] = "Insufficient Storage";
+	response_messeges[508] = "Loop Detected";
+	response_messeges[510] = "Not Extended ";
 }

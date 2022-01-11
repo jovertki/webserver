@@ -48,12 +48,12 @@ std::string ft::Request::get_content_type() const {
 	return "no such type";
 }
 
-std::vector<char> ft::Request::get_body() const {
-	return body;
-}
+// std::ofstream ft::Request::get_body_fd() const {
+// 	return body_file;
+// }
 
-std::vector<char> ft::Request::get_args() const {
-	return args;
+std::string ft::Request::get_query_string() const {
+	return query_string;
 }
 
 std::map<std::string, std::string> ft::Request::get_params()const {
@@ -71,20 +71,17 @@ void ft::Request::set_httpver( const std::string& n ) {
 	httpver = n;
 }
 
-void ft::Request::set_body( const std::vector<char> &n ) {
-	body = n;
-}
+// void ft::Request::set_body( const std::ofstream& n ) {
+// 	body_file = n;
+// }
 
-void ft::Request::set_body( const std::string& n ) {
-	body.insert( body.begin(), n.begin(), n.end() );
-}
 
-void ft::Request::set_url_args( const std::string& n ) {
-	args.insert(args.begin(), n.begin(), n.end());
+void ft::Request::set_query_string( const std::string& n ) {
+	query_string.insert(query_string.begin(), n.begin(), n.end());
 }
-void ft::Request::set_body_args() {
-	args = get_body();
-}
+// void ft::Request::set_body_args() {
+// 	query_string = get_body();
+// }
 
 void ft::Request::set_params( const std::map <std::string, std::string>& n ) {
 	params = n;
@@ -99,7 +96,7 @@ void ft::Request::insert_param( const std::pair<std::string, std::string>& n ) {
 void ft::Request::print_params() {
 	//debug output
 	for(std::map<std::string, std::string>::const_iterator i = params.begin(); i != params.end(); i++) {
-		std::cout << (*i).first << ":" << (*i).second << std::endl;
+		std::cout << MAGENTA << ( *i ).first << ":" << (*i).second <<RESET<< std::endl;
 	}
 }
 
@@ -124,4 +121,26 @@ void ft::Request::set_header_length( const int& n) {
 
 int ft::Request::get_header_length()const {
 	return header_length;
+}
+
+std::map<std::string, std::string>::iterator ft::Request::get_params_begin() {
+	return params.begin();
+}
+std::map<std::string, std::string>::iterator ft::Request::get_params_end() {
+	return params.end();
+}
+
+void ft::Request::clear() {
+	method = 0;
+	requested_url = "";
+	httpver = "";
+	header_length = 0;
+	// body_file.close();
+	std::remove( BUFFER_FILE );
+	query_string.clear();
+	params.clear();
+}
+
+void ft::Request::set_param( const std::string& key, const std::string& value ) {
+	params[key] = value;
 }

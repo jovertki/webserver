@@ -14,12 +14,12 @@ enum method {
 };
 
 namespace utils {
-    class MyException : public std::exception {
+    class parseExeption : public std::exception {
         const std::string m_msg;
     public:
-        MyException(const std::string &msg);
+        parseExeption(const std::string &msg);
 
-        ~MyException() throw();
+        ~parseExeption() throw();
 
         const char *what() const throw();
     };
