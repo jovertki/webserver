@@ -1,19 +1,22 @@
 
 #include "SimpleSocket.hpp"
 #include <arpa/inet.h>
+#include "../resources/defines.hpp"
 ft::SimpleSocket::SimpleSocket( int domain, int service, int protocol, int port, u_long interface ){
 	address.sin_family = domain;
 	address.sin_port = htons( port );
-	
+
 	// address.sin_addr.s_addr = inet_addr( "192.168.20.64" );
 	address.sin_addr.s_addr = htonl( interface );
 	//establish socket
 	sock = socket( domain, service, protocol );
 
-	
+
+	std::cout << RED << domain << " " << service << " " << protocol << " " <<port << " " <<interface << RESET << std::endl;
 	int yes = 1;//no idea how this works
 	setsockopt( sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof( yes ) );
 	//confirm the connection to be successful
+	std::cout << "socket" << std::endl;
 	test_connection( sock );
 }
 
