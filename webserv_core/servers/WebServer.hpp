@@ -25,10 +25,11 @@ namespace ft {
 		std::map<int, std::string> response_messeges;
 	public:
 		WebServer(char **envp, Config_info &config);
-		void launch(struct pollfd *fdset);
-
+		void launch(struct pollfd fdset[]);
+		int id;
+		
 	private:
-		void poller(struct pollfd *fdset); //
+		void poller(struct pollfd fdset[]); //
 		void accepter( Request& );
 		void handler( Request& );
 		void responder( Request&);

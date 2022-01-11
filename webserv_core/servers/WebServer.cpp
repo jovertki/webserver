@@ -14,21 +14,57 @@
 #include <errno.h>
 #include <cstdlib>
 #include <sstream>
-#include <fcntl.h>
 
 #define DEBUG_MODE 1
 #define BUFFER_SIZE 30000 //is always bigger then 8000, max HTTP header size
+#define BACKLOG 10
 
 const char* ft::WebServer::error_request_code::what() const throw() {
 	return ("error");
 }
 
-ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), config(config){
-	socket = new ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, 4242, INADDR_ANY, 10 );
+ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), config(config), serverInfo(config.get_servers()){
+	// socket = new ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, 4242, INADDR_ANY, 10 );
+	pollfd fdset[get_size_serverInfo()];
+	for (int i = 0; i < serverInfo.size(); i++) {
+		// std::cout << i << "\n";
+		// socket_array.push_back(ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, serverInfo[i].getListen().front(), INADDR_ANY, 10 )); //
+		socket_array.push_back(ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, serverInfo[i].getListen(), INADDR_ANY, BACKLOG ));
+		// std::cout << RED << serverInfo[i].getListen() << RESET << std::endl;
+		fdset[i].fd = get_socket_array()[i].get_sock();
+		fdset[i].events = POLLIN;
+	}
 	init_response_msgs();
-	launch();
+	launch(fdset);
 }
 
+void ft::WebServer::poller(struct pollfd fdset[]) {
+	int ret = poll( fdset, get_size_serverInfo(), 100000 );
+	// проверяем успешность вызова
+	if ( ret == -1 )
+		std::cout << "Fail from poll\n";
+		// ошибка
+	else if ( ret == 0 )
+		std::cout << "I waiting...\n";
+		// таймаут, событий не произошло
+	else
+	{
+		// обнаружили событие, обнулим revents чтобы можно было переиспользовать структуру
+		for (int i = 0; socket_array.size() > i; ++i)
+		{
+			if ( fdset[i].revents & POLLIN )
+			{
+				fdset[i].revents = 0;
+				id = i;
+			}
+		}
+			// обработка входных данных от sock1
+
+		// if ( fdset[1].revents & POLLOUT )
+		// 	fdset[1].revents = 0;
+			// обработка исходящих данных от sock2
+	}
+}
 
 void ft::WebServer::handle_multipart( Request& request, \
 	char* buffer, long& bytes_read, std::ofstream& body_file, \
@@ -82,10 +118,15 @@ void ft::WebServer::handle_multipart( Request& request, \
 }
 
 void ft::WebServer::accepter( Request& request ) {
-	struct sockaddr_in address = get_socket()->get_address();
-	int addrlen = sizeof( address );
-	new_socket = accept( get_socket()->get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen );
 
+	struct sockaddr_in address;
+	// struct sockaddr_in address = get_socket()->get_address();
+	address = socket_array[id].get_address(); //
+	int addrlen = sizeof( address );
+
+	// for (int i = 0; socket_array.size() > i; ++i)
+	new_socket = accept( get_socket_array()[id].get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen ); //
+	fcntl(new_socket, F_SETFL , O_NONBLOCK);
 }
 
 void ft::WebServer::header_parse( const char* input_buffer, Request& request ) {
@@ -561,7 +602,7 @@ std::string* ft::WebServer::list_contents( const std::string& path, Request& req
 	return response;
 }
 
-void ft::WebServer::launch() {
+void ft::WebServer::launch(struct pollfd fdset[]) {
 
 	if (DEBUG_MODE){
 		for(int i = 0; i < config.get_servers().size(); i++) {
@@ -576,7 +617,7 @@ void ft::WebServer::launch() {
 		std::cout << "waiting" << std::endl;
 		try {
 			request.clear();
-			//poll will be here
+			poller(fdset);
 			accepter(request);
 			handler(request);
 			responder(request);
@@ -585,11 +626,6 @@ void ft::WebServer::launch() {
 		catch(error_request_code& e) {}
 		std::cout << "==== DONE ====" << std::endl;
 	}
-}
-
-
-ft::ListeningSocket* ft::WebServer::get_socket()const {
-	return socket;
 }
 
 
@@ -668,4 +704,12 @@ void ft::WebServer::init_response_msgs() {
 	response_messeges[507] = "Insufficient Storage";
 	response_messeges[508] = "Loop Detected";
 	response_messeges[510] = "Not Extended ";
+}
+
+std::vector<ft::ListeningSocket> ft::WebServer::get_socket_array()const {
+	return socket_array;
+}
+
+int ft::WebServer::get_size_serverInfo() const {
+	return serverInfo.size();
 }
