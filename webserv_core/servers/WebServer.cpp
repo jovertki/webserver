@@ -123,11 +123,10 @@ void ft::WebServer::handle_multipart( Request& request, \
 void ft::WebServer::accepter( Request& request ) {
 
 	struct sockaddr_in address;
-	// struct sockaddr_in address = get_socket()->get_address();
 	address = socket_array[id].get_address(); //
 	int addrlen = sizeof( sockaddr_in );
 
-	// for (int i = 0; socket_array.size() > i; ++i)
+	//accept leaks for some reason
 	new_socket = accept( get_socket_array()[id].get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen ); //
 	fcntl(new_socket, F_SETFL , O_NONBLOCK);
 }
@@ -636,7 +635,7 @@ void ft::WebServer::launch(struct pollfd fdset[]) {
 			// handler(request);
 			// responder( request );
 			if(DEBUG_MODE) {
-				system( "leaks webserv" );
+				// system( "leaks webserv" );
 			}
 		}
 		catch(error_request_code& e) {}

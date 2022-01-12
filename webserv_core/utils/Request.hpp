@@ -13,7 +13,6 @@ namespace ft {
 		// std::ofstream body_file;
 		std::string query_string;
 		std::map <std::string, std::string> params;
-		std::string get_requested_filename() const;
 
 		long total_bytes_read;
 		long full_request_length;
