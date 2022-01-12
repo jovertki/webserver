@@ -60,6 +60,14 @@ std::map<std::string, std::string> ft::Request::get_params()const {
 	return params;
 }
 
+long ft::Request::get_total_bytes_read() const {
+	return total_bytes_read;
+}
+
+long ft::Request::get_full_request_length() const {
+	return full_request_length;
+}
+
 
 void ft::Request::set_method(const int &n ) {
 	method = n;
@@ -139,8 +147,18 @@ void ft::Request::clear() {
 	std::remove( BUFFER_FILE );
 	query_string.clear();
 	params.clear();
+	total_bytes_read = 0;
+	full_request_length = 0;
 }
 
 void ft::Request::set_param( const std::string& key, const std::string& value ) {
 	params[key] = value;
+}
+
+void ft::Request::set_total_bytes_read(const long& n) {
+	total_bytes_read = n;
+}
+
+void ft::Request::set_full_request_length( const long& n ) {
+	full_request_length = n;
 }

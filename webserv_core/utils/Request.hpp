@@ -14,6 +14,9 @@ namespace ft {
 		std::string query_string;
 		std::map <std::string, std::string> params;
 		std::string get_requested_filename() const;
+
+		long total_bytes_read;
+		long full_request_length;
 	public:
 		int get_method() const;
 		std::string get_requested_url() const;
@@ -27,6 +30,8 @@ namespace ft {
 		int get_header_length()const;
 		std::map<std::string, std::string>::iterator get_params_begin();
 		std::map<std::string, std::string>::iterator get_params_end();
+		long get_total_bytes_read() const;
+		long get_full_request_length() const;
 		
 		void set_method( const int& );
 		void set_requested_url(const std::string&);
@@ -37,7 +42,8 @@ namespace ft {
 		void set_params( const std::map <std::string, std::string>& );
 		void set_param( const std::string& key, const std::string& value );
 		void set_header_length( const int& );
-
+		void set_total_bytes_read( const long& );
+		void set_full_request_length( const long& );
 		
 		void insert_param( const std::pair<std::string, std::string>& );
 		void print_params();
