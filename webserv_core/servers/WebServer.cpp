@@ -15,7 +15,7 @@
 #include <cstdlib>
 #include <sstream>
 
-#define DEBUG_MODE 0
+#define DEBUG_MODE 1
 #define BUFFER_SIZE 30000 //is always bigger then 8000, max HTTP header size
 #define BACKLOG 20
 #define TIMEOUT -1
@@ -462,8 +462,11 @@ void ft::WebServer::response_GET( Request& request ) {
 		//write file to string
 		std::string* response_body = new std::string( (std::istreambuf_iterator<char>( infile )),
 			(std::istreambuf_iterator<char>()) );
-		response_headers << "Content-Type: " << content_type << ";\nContent-Length:" << std::to_string( (*response_body).size() ) << "\n\n" << *response_body;
+		response_headers << "Content-Type: " << content_type << ";\nContent-Length:" << std::to_string( (*response_body).size() ) << "\n\n";
+		std::string debug = response_headers.str();
+		response_headers << *response_body;
 		send_response( response_headers.str() );
+		std::cout <<BLUE <<  debug << RESET<< std::endl;
 		delete response_body;
 	}
 	//write string to socket
@@ -621,7 +624,6 @@ void ft::WebServer::launch(struct pollfd fdset[]) {
 		}
 	}
 
-	Request request;
 	while(true) {
 		if(DEBUG_MODE) {
 			std::cout << "waiting" << std::endl;
@@ -653,10 +655,37 @@ void ft::WebServer::send_response( const std::string* response ) const {
 }
 
 void ft::WebServer::send_response( const std::string& response ) const {
-	write( new_socket, response.c_str(), response.size() );
-	if(DEBUG_MODE)
-		std::cout << GREEN << "===RESPONSE BEGIN===\n" << response << "\n===RESPONCE END===" << RESET << std::endl;
+	// int i;
+	// while(i < response.size()) {
+	// 	if(i != -1) {
+	// 		write( new_socket, &response.c_str()[i], response.size() - i * (i != -1) - 1 )
+	// 	}
+	// }
 
+
+	int lolkek = 0;
+	// while(lolkek < response.size()) {
+	// 	int i = write( new_socket, &response.c_str()[i], response.size() - lolkek );
+	// }
+
+	
+	for(int i = 0; lolkek != response.size(); i = write( new_socket, &response.c_str()[lolkek], response.size() - lolkek )) {
+		// std::cout << "bytes written     " << i << std::endl;
+		if(i != -1) {
+			lolkek += i;
+			std::cout << "i = " << i << std::endl;
+		}	// usleep( 1000 );
+		else {
+			std::cout << "i = " << i << std::endl;
+		}
+	}
+	// if(DEBUG_MODE) {
+	// 	std::cout << GREEN << "===RESPONSE BEGIN===\n" << response << "\n===RESPONCE END===" << RESET << std::endl;
+	// 	std::cout << "response size is  " << response.size() << std::endl;
+	// }
+	// i = write( new_socket, response.c_str(), response.size() );
+	// std::cout << "bytes written     " << i << std::endl;
+	usleep( 1000 );
 }
 
 void ft::WebServer::send_response( const std::string& response, const std::string* content) const {
@@ -763,8 +792,8 @@ void ft::WebServer::new_global_loop( struct pollfd fdset[] ) {
 	}
 	responder( request );
 	close( new_socket );
-	fdset[id].revents = 0;
-	id = -1;
+	fdset[id].revents &= POLLIN;
+ 	id = -1;
 }
 
 void ft::WebServer::new_handler( Request& request, bool parsing_header, bool parsing_data_header ) {
@@ -796,6 +825,7 @@ void ft::WebServer::new_handler( Request& request, bool parsing_header, bool par
 		if(DEBUG_MODE) {
 			std::cout << BLUE << strerror( errno ) << RESET << std::endl;
 		}
+		// return; ???
 	}
 	if(DEBUG_MODE) {//print buffer
 		std::cout << YELLOW << "buffer is \n";
