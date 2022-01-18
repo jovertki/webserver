@@ -4,7 +4,7 @@
 #define MIME_FILE "./resources/mime.types"
 #define BUFFER_FILE "./runtime_files/bufferfile"
 #define BUFFER_FILE_OUT "./runtime_files/bufferfileout"
-
+#define RESPONSE_FILE "./runtime_files/responsefile"
 //colored output
 #define RESET   "\033[0m"
 #define BLACK   "\033[30m"      /* Black */

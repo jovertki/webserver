@@ -44,9 +44,10 @@ namespace ft {
 		void header_parse( const char*, Request& );
 		char** create_appended_envp( Request& request );
 		void init_new_envp( std::map<std::string, std::string>&, Request& );
-		void send_response( const std::string& response )const;
-		void send_response( const std::string& response, const std::string* content ) const;
-		void send_response( const std::string* response ) const;
+		// void send_response( const std::string& response )const;
+		// void send_response( const std::string& response, const std::string* content ) const;
+		// void send_response( const std::string* response ) const;
+		void send_response( const std::fstream& response_file, const long& response_length ) const;
 		void init_response_msgs();
 		void handle_multipart( Request& request, \
 			char* buffer, long& bytes_read, std::ofstream& body_file);

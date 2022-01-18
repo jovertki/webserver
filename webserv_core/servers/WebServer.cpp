@@ -14,7 +14,6 @@
 #include <errno.h>
 #include <cstdlib>
 #include <sstream>
-
 #define DEBUG_MODE 1
 #define BUFFER_SIZE 30000 //is always bigger then 8000, max HTTP header size
 #define BACKLOG 20
@@ -424,10 +423,10 @@ void ft::WebServer::execute_cgi( Request& request ) {
 	// 	}
 	// 	std::cout << RESET << std::endl;
 	// }
-	std::stringstream response_headers;
-	response_headers << request.get_httpver() <<  generate_response_head(200) << "Content-Length:" << std::to_string( (*response_body).size() - strlen( "Content-Type: text/html\r\n\r\n" ) + 2 ) << "\r\n";
-
-	send_response( response_headers.str(), response_body );
+	std::fstream response_file( RESPONSE_FILE );
+	response_file << request.get_httpver() << generate_response_head( 200 ) << "Content-Length:" << \
+		std::to_string( (*response_body).size() - strlen( "Content-Type: text/html\r\n\r\n" ) + 2 ) << "\r\n" << response_body;
+	send_response( response_file );
 	delete response_body;
 }
 
@@ -438,9 +437,9 @@ void ft::WebServer::response_GET( Request& request ) {
 
 	if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS ON*/) {
 		//list contents
-		std::string* response = list_contents( SERVER_DIR + request.get_requested_url(), request );
-		send_response( response );
-		delete response;
+		std::fstream response_file( RESPONSE_FILE );
+		response_file << list_contents( SERVER_DIR + request.get_requested_url(), request );
+		send_response( response_file );
 	}
 	else if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > sizeof( "/cgi-bin/" )) { //if it is in /cgi-bin/
 		execute_cgi( request );
@@ -457,16 +456,15 @@ void ft::WebServer::response_GET( Request& request ) {
 		}
 
 		//first response line
+		std::fstream response_file( RESPONSE_FILE );
 		std::stringstream response_headers;
-		response_headers << generate_response_head( 200 );
+		response_file << generate_response_head( 200 );
 		//write file to string
 		std::string* response_body = new std::string( (std::istreambuf_iterator<char>( infile )),
 			(std::istreambuf_iterator<char>()) );
-		response_headers << "Content-Type: " << content_type << ";\nContent-Length:" << std::to_string( (*response_body).size() ) << "\n\n";
-		std::string debug = response_headers.str();
-		response_headers << *response_body;
-		send_response( response_headers.str() );
-		std::cout <<BLUE <<  debug << RESET<< std::endl;
+		response_file << "Content-Type: " << content_type << ";\nContent-Length:" << std::to_string( (*response_body).size() ) << "\n\n";
+		response_file << *response_body;
+		send_response( response_file );
 		delete response_body;
 	}
 	//write string to socket
@@ -478,14 +476,14 @@ void ft::WebServer::response_DELETE( Request& request ) {
 	// 	//list contents
 	// 	response = list_contents( SERVER_DIR + request.get_requested_url() );
 	// }
-	std::ostringstream sresponse;
+	std::fstream response_file( RESPONSE_FILE );
 	if(std::remove( (SERVER_DIR + request.get_requested_url()).c_str() ) < 0) {
 		//error
 	}
 	else {
-		sresponse << generate_response_head( 200 ) << "\r\nFile " << request.get_requested_url() << " was successfully DELETED" << std::endl;
+		response_file << generate_response_head( 200 ) << "\r\nFile " << request.get_requested_url() << " was successfully DELETED" << std::endl;
 	}
-	send_response( sresponse.str() );
+	send_response( response_file );
 }
 
 void ft::WebServer::responder( Request& request ) {
@@ -526,7 +524,6 @@ bool ft::WebServer::is_directory( const std::string& path )const {
 	return 0;
 }
 void ft::WebServer::handle_errors( int error_code, Request& request ) {
-	std::string *response = new std::string;
 	std::ostringstream header;
 	std::ostringstream body;
 
@@ -560,10 +557,10 @@ void ft::WebServer::handle_errors( int error_code, Request& request ) {
 	header << request.get_httpver() << " " << error_code << " " << "KO" << std::endl <<//<- needs elaboration
 		"Content-Type: text/html;" << std::endl << \
 		"Content-Length: " << body.str().size() << std::endl << std::endl;
-	*response = header.str() + body.str();
-	send_response( response );
+	std::fstream response_file( RESPONSE_FILE );
+	response_file << header.str() << body.str();
+	send_response( response_file );
 
-	delete response;
 	throw (error_request_code());
 }
 std::string* ft::WebServer::list_contents( const std::string& path, Request& request )const {
@@ -647,32 +644,54 @@ void ft::WebServer::launch(struct pollfd fdset[]) {
 }
 
 
-void ft::WebServer::send_response( const std::string* response ) const {
-	write( new_socket, response->c_str(), response->size() );
-	if(DEBUG_MODE)
-		std::cout << GREEN << "===RESPONSE BEGIN===\n" << *response << "\n===RESPONCE END===" << RESET << std::endl;
+// void ft::WebServer::send_response( const std::string* response ) const {
+// 	write( new_socket, response->c_str(), response->size() );
+// 	if(DEBUG_MODE)
+// 		std::cout << GREEN << "===RESPONSE BEGIN===\n" << *response << "\n===RESPONCE END===" << RESET << std::endl;
 
-}
+// }
 
-void ft::WebServer::send_response( const std::string& response ) const {
-	// int i;
-	// while(i < response.size()) {
-	// 	if(i != -1) {
-	// 		write( new_socket, &response.c_str()[i], response.size() - i * (i != -1) - 1 )
-	// 	}
-	// }
+// void ft::WebServer::send_response( const std::string& response ) const {
+// 	// int i;
+// 	// while(i < response.size()) {
+// 	// 	if(i != -1) {
+// 	// 		write( new_socket, &response.c_str()[i], response.size() - i * (i != -1) - 1 )
+// 	// 	}
+// 	// }
 
 
-	int lolkek = 0;
-	// while(lolkek < response.size()) {
-	// 	int i = write( new_socket, &response.c_str()[i], response.size() - lolkek );
-	// }
+// 	int lolkek = 0;
+// 	// while(lolkek < response.size()) {
+// 	// 	int i = write( new_socket, &response.c_str()[i], response.size() - lolkek );
+// 	// }
 
 	
-	for(int i = 0; lolkek != response.size(); i = write( new_socket, &response.c_str()[lolkek], response.size() - lolkek )) {
-		// std::cout << "bytes written     " << i << std::endl;
+// 	for(int i = 0; lolkek != response.size(); i = write( new_socket, &response.c_str()[lolkek], response.size() - lolkek )) {
+// 		// std::cout << "bytes written     " << i << std::endl;
+// 		if(i != -1) {
+// 			lolkek += i;
+// 			std::cout << "i = " << i << std::endl;
+// 		}	// usleep( 1000 );
+// 		else {
+// 			std::cout << "i = " << i << std::endl;
+// 		}
+// 	}
+// 	// if(DEBUG_MODE) {
+// 	// 	std::cout << GREEN << "===RESPONSE BEGIN===\n" << response << "\n===RESPONCE END===" << RESET << std::endl;
+// 	// 	std::cout << "response size is  " << response.size() << std::endl;
+// 	// }
+// 	// i = write( new_socket, response.c_str(), response.size() );
+// 	// std::cout << "bytes written     " << i << std::endl;
+// 	usleep( 1000 );
+// }
+
+void ft::WebServer::send_response( const std::fstream& response_file, const long& response_length) const {
+	int bytes_written = 0;
+	
+	response_file.get( buff, '' );
+	for(int i = 0; bytes_written != response_length; i = write( new_socket, &response.c_str()[bytes_written], response_length - bytes_written )) {
 		if(i != -1) {
-			lolkek += i;
+			bytes_written += i;
 			std::cout << "i = " << i << std::endl;
 		}	// usleep( 1000 );
 		else {
@@ -688,12 +707,12 @@ void ft::WebServer::send_response( const std::string& response ) const {
 	usleep( 1000 );
 }
 
-void ft::WebServer::send_response( const std::string& response, const std::string* content) const {
-	write( new_socket, response.c_str(), response.size() );
-	write( new_socket, (*content).c_str(), (*content).size() );
-	if(DEBUG_MODE)
-		std::cout << GREEN << "===RESPONSE BEGIN===\n" << response << *content << "\n===RESPONCE END===" << RESET << std::endl;
-}
+// void ft::WebServer::send_response( const std::string& response, const std::string* content ) const {
+// 	write( new_socket, response.c_str(), response.size() );
+// 	write( new_socket, (*content).c_str(), (*content).size() );
+// 	if(DEBUG_MODE)
+// 		std::cout << GREEN << "===RESPONSE BEGIN===\n" << response << *content << "\n===RESPONCE END===" << RESET << std::endl;
+// }
 
 std::string ft::WebServer::generate_response_head( const int& code ) {
 	std::stringstream ss;
@@ -782,8 +801,8 @@ int ft::WebServer::get_size_serverInfo() const {
 // 			}
 // 			for(int i = get_size_serverInfo(); i < fd_counter; ++i) {
 // 				if(fdset[i].revents & POLLOUT) { // понять кто ставит ПОЛАУТ возможно нужен флаг что мы готовы ответить
-// 					// if (send_mess()) { 
-// 							// и удалть фд 
+// 					// if (send_message()) { 
+// 							// закрыть и удалть фд 
 // 					}
 // 				}
 // 			}
