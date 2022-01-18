@@ -4,14 +4,15 @@
 #include <fstream>
 #include <iostream>
 //#define MIME_FILE "../resources/mime.types"
-
+#define BUFFER_SIZE 30000 //is always bigger then 8000, max HTTP header size
+//buffer size defined not here
 ft::Request::Request() {
 	clear();
 	set_full_request_length( BUFFER_SIZE );
 	parsing_header = true;
 	parsing_data_header = true;
-	set_total_bytes_read(0);
 }
+
 int ft::Request::get_method() const {
 	return method;
 }

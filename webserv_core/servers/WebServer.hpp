@@ -16,7 +16,7 @@ namespace ft {
 		// ListeningSocket* socket;
 		std::vector<ListeningSocket> socket_array; //
 		// pollfd fdset[get_size_serverInfo()];
-		std::map<int, Request> request_data;
+
 		std::vector<ServerConfig> serverInfo;
 		Config_info config;
 		int new_socket;
@@ -58,7 +58,7 @@ namespace ft {
 		std::vector<ListeningSocket> get_socket_array()const;
 		int get_size_serverInfo() const;
 		std::string generate_response_head( const int& code );
-		void new_handler( Request&);
+		void new_handler( Request& );
 		// ListeningSocket* get_socket()const;
 	};
 }

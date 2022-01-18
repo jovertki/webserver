@@ -16,6 +16,7 @@
 #include <sstream>
 
 #define DEBUG_MODE 1
+#define BUFFER_SIZE 30000 //is always bigger then 8000, max HTTP header size
 #define BACKLOG 20
 #define TIMEOUT -1
 const char* ft::WebServer::error_request_code::what() const throw() {
@@ -69,7 +70,8 @@ void ft::WebServer::poller(struct pollfd fdset[]) {
 	
 }
 
-void ft::WebServer::handle_multipart( Request& request, char* buffer, long& bytes_read, std::ofstream& body_file) {
+void ft::WebServer::handle_multipart( Request& request, \
+	char* buffer, long& bytes_read, std::ofstream& body_file) {
 	std::string type = request.get_param_value( "HTTP_CONTENT_TYPE" );
 	std::string boundary = type.substr( type.find( "boundary=" ) + 9 );
 	boundary.insert( 0, "--" );
@@ -121,10 +123,11 @@ void ft::WebServer::handle_multipart( Request& request, char* buffer, long& byte
 void ft::WebServer::accepter( Request& request ) {
 
 	struct sockaddr_in address;
+	// struct sockaddr_in address = get_socket()->get_address();
 	address = socket_array[id].get_address(); //
 	int addrlen = sizeof( sockaddr_in );
 
-	//accept leaks for some reason
+	// for (int i = 0; socket_array.size() > i; ++i)
 	new_socket = accept( get_socket_array()[id].get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen ); //
 	fcntl(new_socket, F_SETFL , O_NONBLOCK);
 }
@@ -203,6 +206,89 @@ void ft::WebServer::header_parse( const char* input_buffer, Request& request ) {
 	//request.print_params();
 
 }
+
+// void ft::WebServer::handler( Request& request ) {
+// 	char buffer[BUFFER_SIZE + 1] = { 0 };
+// 	int bytes_to_read = BUFFER_SIZE;
+// 	long full_request_length = BUFFER_SIZE;
+// 	long total_bytes_read = 0;
+// 	long bytes_read = 1;
+// 	bool parsing_header = true;
+// 	bool parsing_data_header = true;
+// 	std::ofstream body_file( BUFFER_FILE, std::ios::binary );
+// 	std::ofstream last_request( "last_request.txt" );
+
+// 	for(bytes_read = recv( new_socket, buffer, bytes_to_read, 0 );\
+// 		bytes_read != 0 && full_request_length - total_bytes_read > 0; \
+// 		bytes_read = recv( new_socket, buffer, bytes_to_read, 0 )) {
+// 		if(bytes_read == -1) {
+// 			if(DEBUG_MODE) {
+// 				std::cout << BLUE << strerror( errno ) << RESET << std::endl;
+// 			}
+// 			usleep( 100 );
+// 			continue;
+// 		}
+// 		if(DEBUG_MODE) {//print buffer
+// 			std::cout << YELLOW << "buffer is \n";
+// 			for(int i = 0; i < bytes_read; i++) {
+// 				std::cout << buffer[i];
+// 			}
+// 			std::cout << "bytes read = " << bytes_read << RESET << std::endl;
+// 		}
+
+// 		int i = 0;
+// 		if(parsing_header) {
+// 			if(bytes_read == 0)
+// 				throw error_request_code();
+// 			//parse head, if not full in buffer, then error 413
+// 			//this check needs implementetion somethere here
+// 			header_parse( buffer, request );
+// 			full_request_length = request.get_header_length() + 4 + atol( (request.get_param_value( "HTTP_CONTENT_LENGTH" )).c_str() );
+// 			total_bytes_read = request.get_header_length() + 4;
+// 			i = request.get_header_length() + 4;
+// 		}
+
+// 		if(DEBUG_MODE) {
+// 			last_request << buffer;
+// 		}
+
+// 		if(!body_file.is_open()) {
+// 			//ERROR, WHICH ONE??
+// 		}
+// 		if(request.get_param_value( "HTTP_CONTENT_TYPE" ).find( "multipart/form-data" ) != std::string::npos \
+// 			&& bytes_read != request.get_header_length() + 4) { //meaning file is being uploaded
+// 			handle_multipart( request, buffer, bytes_read, body_file, total_bytes_read, full_request_length, parsing_data_header, parsing_header);
+// 		}
+// 		else {
+// 			for(; i < bytes_read && total_bytes_read < full_request_length; i++) {
+// 				body_file << buffer[i];
+// 				total_bytes_read++;
+// 			}
+// 		}
+// 		if(full_request_length - total_bytes_read > BUFFER_SIZE) {
+// 			bytes_to_read = BUFFER_SIZE;
+// 		}
+// 		else {
+// 			bytes_to_read = full_request_length - total_bytes_read;
+// 		}
+// 		parsing_header = false;//it needs to be here, handle_multipart checks it
+// 		bzero( buffer, BUFFER_SIZE );
+// 	}
+// 	//find body
+// 	body_file.close();
+
+
+// 	//debug only
+// 	if(DEBUG_MODE) {
+// 		last_request.close();
+// 		std::cout << "QUERY_STRING is |\n";
+// 		for(int i = 0; i < request.get_query_string().size(); ++i)
+// 			std::cout << request.get_query_string()[i];
+// 		std::cout << "\n|" << std::endl;
+// 	}
+
+// }
+
 
 
 void ft::WebServer::init_new_envp( std::map<std::string, std::string>& additions, Request& request ) {
@@ -544,8 +630,13 @@ void ft::WebServer::launch(struct pollfd fdset[]) {
 		}
 		try {
 			new_global_loop( fdset );
+			// request.clear();
+			// poller(fdset);
+			// accepter(request);
+			// handler(request);
+			// responder( request );
 			if(DEBUG_MODE) {
-				// system( "leaks webserv" );
+				system( "leaks webserv" );
 			}
 		}
 		catch(error_request_code& e) {}
@@ -700,7 +791,7 @@ int ft::WebServer::get_size_serverInfo() const {
 // 	}
 
 
-	
+
 // }
 
 
@@ -708,7 +799,6 @@ int ft::WebServer::get_size_serverInfo() const {
 void ft::WebServer::new_global_loop( struct pollfd fdset[] ) {
 	id = -1;
 	Request request;
-	// request.clear();
 	while(request.get_full_request_length() - request.get_total_bytes_read() > 0) {
 		int ret = poll( fdset, get_size_serverInfo(), TIMEOUT );
 		// проверяем успешность вызова
@@ -741,7 +831,7 @@ void ft::WebServer::new_global_loop( struct pollfd fdset[] ) {
 	}
 	responder( request );
 	close( new_socket );
-	fdset[id].revents = 0;
+	fdset[id].revents &= POLLIN;
  	id = -1;
 }
 
