@@ -4,6 +4,7 @@
 #define MIME_FILE "./resources/mime.types"
 #define BUFFER_FILE "./runtime_files/bufferfile"
 #define BUFFER_FILE_OUT "./runtime_files/bufferfileout"
+#define BUFFER_SIZE 30000 //is always bigger then 8000, max HTTP header size
 
 //colored output
 #define RESET   "\033[0m"

@@ -16,7 +16,7 @@ namespace ft {
 		// ListeningSocket* socket;
 		std::vector<ListeningSocket> socket_array; //
 		// pollfd fdset[get_size_serverInfo()];
-
+		std::map<int, Request> request_data;
 		std::vector<ServerConfig> serverInfo;
 		Config_info config;
 		int new_socket;
@@ -49,8 +49,7 @@ namespace ft {
 		void send_response( const std::string* response ) const;
 		void init_response_msgs();
 		void handle_multipart( Request& request, \
-			char* buffer, long& bytes_read, std::ofstream& body_file, \
-			bool& parsing_data_header, bool header_included );
+			char* buffer, long& bytes_read, std::ofstream& body_file);
 
 
 
@@ -59,7 +58,7 @@ namespace ft {
 		std::vector<ListeningSocket> get_socket_array()const;
 		int get_size_serverInfo() const;
 		std::string generate_response_head( const int& code );
-		void new_handler( Request&, bool parsing_header, bool parsing_data_header );
+		void new_handler( Request&);
 		// ListeningSocket* get_socket()const;
 	};
 }
