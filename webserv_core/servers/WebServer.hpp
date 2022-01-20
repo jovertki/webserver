@@ -25,11 +25,11 @@ namespace ft {
 		std::map<int, std::string> response_messeges;
 	public:
 		WebServer(char **envp, Config_info &config);
-		void launch(struct pollfd fdset[]);
+		void launch( std::vector<pollfd>& fdset );
 		int id;
 		
 	private:
-		void poller(struct pollfd fdset[]); //
+		void poller( std::vector<pollfd>& fdset ); //
 		void accepter( Request& );
 		void handler( Request& );
 		void responder( Request&);
@@ -47,14 +47,14 @@ namespace ft {
 		// void send_response( const std::string& response )const;
 		// void send_response( const std::string& response, const std::string* content ) const;
 		// void send_response( const std::string* response ) const;
-		void send_response( const std::fstream& response_file, const long& response_length ) const;
+		void send_response( std::fstream& response_file) const;
 		void init_response_msgs();
 		void handle_multipart( Request& request, \
 			char* buffer, long& bytes_read, std::ofstream& body_file);
 
 
 
-
+		void newest_global_loop( std::vector<pollfd>& fdset );
 		void new_global_loop( struct pollfd fdset[] );
 		std::vector<ListeningSocket> get_socket_array()const;
 		int get_size_serverInfo() const;

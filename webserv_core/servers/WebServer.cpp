@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <cstdlib>
 #include <sstream>
+#include <vector>
 #define DEBUG_MODE 1
 #define BUFFER_SIZE 30000 //is always bigger then 8000, max HTTP header size
 #define BACKLOG 20
@@ -24,50 +25,57 @@ const char* ft::WebServer::error_request_code::what() const throw() {
 
 ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), config(config), serverInfo(config.get_servers()){
 	// socket = new ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, 4242, INADDR_ANY, 10 );
-	pollfd fdset[get_size_serverInfo()];
-	for (int i = 0; i < serverInfo.size(); i++) {
+	std::vector<pollfd> fdset;
+	// pollfd fdset[get_size_serverInfo()];
+	for(int i = 0; i < serverInfo.size(); i++) {
 		// std::cout << i << "\n";
 		// socket_array.push_back(ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, serverInfo[i].getListen().front(), INADDR_ANY, 10 )); //
 		socket_array.push_back(ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, serverInfo[i].getListen(), INADDR_ANY, BACKLOG ));
 		// std::cout << RED << serverInfo[i].getListen() << RESET << std::endl;
-		fdset[i].fd = get_socket_array()[i].get_sock();
-		fdset[i].events = POLLIN;
+
+		pollfd temp;
+		temp.fd = get_socket_array()[i].get_sock();
+		temp.events = (POLLIN | POLLERR);
+		temp.revents = 0;
+		fdset.push_back( temp );
+		// fdset[i].fd = get_socket_array()[i].get_sock();
+		// fdset[i].events = (POLLIN | POLLERR);
 	}
 	init_response_msgs();
 	launch(fdset);
 }
 
-void ft::WebServer::poller(struct pollfd fdset[]) {
-	int ret = poll( fdset, get_size_serverInfo(), TIMEOUT );
-	// проверяем успешность вызова
-	if ( ret == -1 )
-		std::cout << "Fail from poll\n";
-		// ошибка
-	else if ( ret == 0 )
-		std::cout << "I waiting...\n";
-		// таймаут, событий не произошло
-	else
-	{
-		// обнаружили событие, обнулим revents чтобы можно было переиспользовать структуру
-		for (int i = 0; socket_array.size() > i; ++i)
-		{
-			if ( fdset[i].revents & POLLIN )
-			{
-				fdset[i].revents = 0;
-				id = i;
-			}
-		}
-			// обработка входных данных от sock1
+// void ft::WebServer::poller(struct pollfd fdset[]) {
+// 	int ret = poll( fdset, get_size_serverInfo(), TIMEOUT );
+// 	// проверяем успешность вызова
+// 	if ( ret == -1 )
+// 		std::cout << "Fail from poll\n";
+// 		// ошибка
+// 	else if ( ret == 0 )
+// 		std::cout << "I waiting...\n";
+// 		// таймаут, событий не произошло
+// 	else
+// 	{
+// 		// обнаружили событие, обнулим revents чтобы можно было переиспользовать структуру
+// 		for (int i = 0; socket_array.size() > i; ++i)
+// 		{
+// 			if ( fdset[i].revents & POLLIN )
+// 			{
+// 				fdset[i].revents = 0;
+// 				id = i;
+// 			}
+// 		}
+// 			// обработка входных данных от sock1
 
-		// if ( fdset[1].revents & POLLOUT )
-		// 	fdset[1].revents = 0;
-			// обработка исходящих данных от sock2
-	}
+// 		// if ( fdset[1].revents & POLLOUT )
+// 		// 	fdset[1].revents = 0;
+// 			// обработка исходящих данных от sock2
+// 	}
 
 
 
 	
-}
+// }
 
 void ft::WebServer::handle_multipart( Request& request, \
 	char* buffer, long& bytes_read, std::ofstream& body_file) {
@@ -612,7 +620,7 @@ std::string* ft::WebServer::list_contents( const std::string& path, Request& req
 	return response;
 }
 
-void ft::WebServer::launch(struct pollfd fdset[]) {
+void ft::WebServer::launch(std::vector<pollfd>& fdset) {
 
 	if (DEBUG_MODE){
 		for(int i = 0; i < config.get_servers().size(); i++) {
@@ -626,7 +634,8 @@ void ft::WebServer::launch(struct pollfd fdset[]) {
 			std::cout << "waiting" << std::endl;
 		}
 		try {
-			new_global_loop( fdset );
+			// new_global_loop( fdset );
+			newest_global_loop( fdset );
 			// request.clear();
 			// poller(fdset);
 			// accepter(request);
@@ -685,26 +694,27 @@ void ft::WebServer::launch(struct pollfd fdset[]) {
 // 	usleep( 1000 );
 // }
 
-void ft::WebServer::send_response( const std::fstream& response_file, const long& response_length) const {
+void ft::WebServer::send_response( std::fstream& response_file) const {
 	int bytes_written = 0;
-	
-	response_file.get( buff, '' );
-	for(int i = 0; bytes_written != response_length; i = write( new_socket, &response.c_str()[bytes_written], response_length - bytes_written )) {
-		if(i != -1) {
-			bytes_written += i;
-			std::cout << "i = " << i << std::endl;
-		}	// usleep( 1000 );
-		else {
-			std::cout << "i = " << i << std::endl;
-		}
-	}
+	std::fstream::char_type buff[1000];
+	// std::istringstream s1;
+	// s1.get( buff, 1000, "");
+	// response_file.read( buff, 1000);
+	// for(int i = 0; bytes_written != response_length; i = write( new_socket, &response.c_str()[bytes_written], response_length - bytes_written )) {
+	// 	if(i != -1) {
+	// 		bytes_written += i;
+	// 		std::cout << "i = " << i << std::endl;
+	// 	}	// usleep( 1000 );
+	// 	else {
+	// 		std::cout << "i = " << i << std::endl;
+	// 	}
+	// }
 	// if(DEBUG_MODE) {
 	// 	std::cout << GREEN << "===RESPONSE BEGIN===\n" << response << "\n===RESPONCE END===" << RESET << std::endl;
 	// 	std::cout << "response size is  " << response.size() << std::endl;
 	// }
 	// i = write( new_socket, response.c_str(), response.size() );
 	// std::cout << "bytes written     " << i << std::endl;
-	usleep( 1000 );
 }
 
 // void ft::WebServer::send_response( const std::string& response, const std::string* content ) const {
@@ -774,44 +784,40 @@ int ft::WebServer::get_size_serverInfo() const {
 
 
 
-// void ft::WebServer::new_global_loop( struct pollfd fdset[] ) {
+void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 
-// 	int fd_counter = get_size_serverInfo();
-// 	while(true) {
-// 		int ret = poll( fdset, fd_counter, TIMEOUT );
-// 		// проверяем успешность вызова
-// 		if(ret == -1)
-// 			std::cout << "Fail from poll\n";
-// 		// ошибка
-// 		else if (ret >0){
-// 			for(int i = 0; i < get_size_serverInfo(); ++i) {
-// 				if(fdset[i].revents & POLLIN) {
-// 					// fd = accepter( request ); // && fd_counter++ и дописать фд в фд сет
-// 					// request_data[fd];
-// 					// fdset[i].revents = default;
+	int fd_counter = get_size_serverInfo();
+	while(true) {
+		int ret = poll( &fdset[0], fd_counter, TIMEOUT );
+		// проверяем успешность вызова
+		if(ret == -1)
+			std::cout << "Fail from poll\n";
+		// ошибка
+		else if (ret >0){
+			for(int i = get_size_serverInfo(); i < fd_counter; ++i){
+				// (fdset[i].revents & POLLIN) { // // понять кто убирает ПОЛИН возможно нужен флаг что мы закончили читать
+				// 	if (handler(i)){
+				// 		responder( i );
+				// 	}
+				// }
+			}
+			for(int i = get_size_serverInfo(); i < fd_counter; ++i) {
+				if(fdset[i].revents & POLLOUT) { // понять кто ставит ПОЛАУТ возможно нужен флаг что мы готовы ответить
+					// if (send_message()) { 
+							// закрыть и удалть фд 
+					}
+				}
+			for(int i = 0; i < get_size_serverInfo(); ++i) {
+				if(fdset[i].revents & POLLIN) {
+					// fd = accepter( request ); // && fd_counter++ и дописать фд в фд сет
+					// request_data[fd];
+					// fdset[i].revents = default;
 
-// 				}
-// 			}
-// 			for(int i = get_size_serverInfo(); i < fd_counter; ++i){
-// 				// (fdset[i].revents & POLLIN) { // // понять кто убирает ПОЛИН возможно нужен флаг что мы закончили читать
-// 				// 	if (handler(i)){
-// 				// 		responder( i );
-// 				// 	}
-// 				// }
-// 			}
-// 			for(int i = get_size_serverInfo(); i < fd_counter; ++i) {
-// 				if(fdset[i].revents & POLLOUT) { // понять кто ставит ПОЛАУТ возможно нужен флаг что мы готовы ответить
-// 					// if (send_message()) { 
-// 							// закрыть и удалть фд 
-// 					}
-// 				}
-// 			}
-// 		}
-// 	}
-
-
-
-// }
+				}
+			}
+		}
+	}
+}
 
 
 
