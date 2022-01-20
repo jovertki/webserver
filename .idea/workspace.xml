@@ -13,8 +13,13 @@
   <component name="ChangeListManager">
     <list default="true" id="50e26da9-20c8-48ae-9bb2-925f536d8b69" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webserv_core/config_parser/Config_info.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/webserv_core/config_parser/Config_info.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webserv_core/config_parser/Config_info.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/webserv_core/config_parser/Config_info.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webserv_core/config_parser/Location_info.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/webserv_core/config_parser/Location_info.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webserv_core/config_parser/Location_info.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/webserv_core/config_parser/Location_info.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/webserv_core/config_parser/ServerConfig.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/webserv_core/config_parser/ServerConfig.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/webserv_core/config_parser/ServerConfig.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/webserv_core/config_parser/ServerConfig.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webserv_core/config_parser/Utils_parse_config.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/webserv_core/config_parser/Utils_parse_config.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/webserv_core/configs/default.conf" beforeDir="false" afterPath="$PROJECT_DIR$/webserv_core/configs/default.conf" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -71,11 +76,6 @@
     </key>
   </component>
   <component name="RunManager">
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
-      </method>
-    </configuration>
     <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$/webserv_core" PASS_PARENT_ENVS_2="true">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -103,6 +103,21 @@
       <workItem from="1640790534838" duration="15985000" />
       <workItem from="1640871091309" duration="334000" />
       <workItem from="1640876276805" duration="6260000" />
+      <workItem from="1641996597777" duration="855000" />
+      <workItem from="1642009447843" duration="52000" />
+      <workItem from="1642011248328" duration="1000" />
+      <workItem from="1642075605163" duration="3000" />
+      <workItem from="1642087142420" duration="1987000" />
+      <workItem from="1642096917009" duration="4437000" />
+      <workItem from="1642423602884" duration="1516000" />
+      <workItem from="1642530671379" duration="1963000" />
+      <workItem from="1642592336350" duration="1177000" />
+      <workItem from="1642597580476" duration="1346000" />
+      <workItem from="1642611667995" duration="423000" />
+      <workItem from="1642684204398" duration="54000" />
+      <workItem from="1642697613752" duration="44000" />
+      <workItem from="1642697677786" duration="158000" />
+      <workItem from="1642698458254" duration="3000" />
     </task>
     <task id="LOCAL-00001" summary="1">
       <created>1640635025911</created>
@@ -132,7 +147,14 @@
       <option name="project" value="LOCAL" />
       <updated>1641311623690</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="locations copy logic">
+      <created>1641935854630</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1641935854630</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">

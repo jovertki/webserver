@@ -35,6 +35,7 @@ namespace utils {
             if (std::isspace(c) || c == ';' || c == '\n' || c == EOF) {
                 if (!oneToken.empty()) {
                     tokens.push_back(std::string(oneToken));
+//                    std::cout << oneToken << std::endl; // delete
                     oneToken.clear();
                 }
                 if (c == ';')

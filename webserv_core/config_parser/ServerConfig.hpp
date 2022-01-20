@@ -5,7 +5,6 @@ class ServerConfig {
 private:
     int listen;
     std::string servName;
-    std::string root;
     std::string host;
     std::map<std::string, std::string> cgi;
     std::map<std::string, Location_info> locations;
@@ -23,23 +22,21 @@ public:
 
     const std::string &getServName() const;
 
-    const std::string &getRoot() const;
-
     const std::map<std::string, std::string> &getCgi() const;
 
     const std::map<std::string, Location_info> &getLocations() const;
 
 private:
 
-    void fillLocationInfo();
+    void fillLocFromDefault();
 
-    int findHigherLevel();
+//    int findHigherLevel();
 
-    int countBackslash(std::string locName);
+//    int countBackslash(std::string locName);
 
     void copyLocatData(std::string locName);
 
-    void copyInfoByLocationLevel(int const level);
+//    void copyInfoByLocationLevel(int const level);
 
     void checkAndFindValues(std::vector<std::string>& tokens);
 

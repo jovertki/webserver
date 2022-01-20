@@ -14,7 +14,7 @@ Config_info::Config_info(const char* arg) : servers() {
 
     //delete next line
     std::cout << "..........\n" << servers.size() << " servers successfully parsed" << std::endl;
-//    std::cout << "ServID = " << getServerID("127.0.0.1", 8080, "cwd.localhost") << std::endl;
+    std::cout << "ServID = " << getServerID("127.0.0.1", 8080, "cwd.localhost") << std::endl;
 //    std::cout << "ServID = " << getServerID("127.0.0.1", 8080, "localhost") << std::endl;
 //    std::cout << "ServID = " << getServerID("127.0.0.1", 8080) << std::endl;
 //    std::cout << "ServID = " << getServerID("127.0.0.1", 8081) << std::endl;
@@ -22,9 +22,9 @@ Config_info::Config_info(const char* arg) : servers() {
 //    std::cout << "ServID = " << getServerID("127.0.0.1", 4040, "localhost1") << std::endl;
 //    std::cout << "metod is " << checkMethod(0, "/upload/find/some/", GET) << std::endl;
 //    std::cout << "metod is " << checkMethod(0, "/hahah/", DELETE) << std::endl;
-    std::cout << "autoindex is " << getAutoindex(0, "/upload/find") << std::endl;
-    std::cout << "autoindex is " << getAutoindex(0, "/upload/find/") << std::endl;
-    std::cout << "autoindex is " << getAutoindex(0, "/upload/find/3e3") << std::endl;
+//    std::cout << "autoindex is " << getAutoindex(0, "/upload/find") << std::endl;
+//    std::cout << "autoindex is " << getAutoindex(0, "/upload/find/") << std::endl;
+//    std::cout << "autoindex is " << getAutoindex(0, "/upload/find/3e3") << std::endl;
 
 
 }
@@ -49,7 +49,7 @@ void Config_info::checkServNames() {
 
 /* Вернет -1 если сервера с данными параметрами не найдено
  * Вернет ID первого в массиве сервера с подходящими параметрами, если данные совпадают */
-int Config_info::getServerID(std::string hostIP, int portVal, std::string serverName) {
+const int Config_info::getServerID(const std::string hostIP, const int portVal, const std::string serverName) {
     std::vector<ServerConfig>::iterator it, end;
     int res;
 
