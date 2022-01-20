@@ -23,51 +23,26 @@ const char* ft::WebServer::error_request_code::what() const throw() {
 	return ("error");
 }
 
-ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), config(config), serverInfo(config.get_servers()){
+ft::WebServer::WebServer( char** envp, Config_info& config ) : envp( envp ), config( config ), serverInfo( config.get_servers() ) {
 	// socket = new ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, 4242, INADDR_ANY, 10 );
-	pollfd fdset[get_size_serverInfo()];
-	for (int i = 0; i < serverInfo.size(); i++) {
+	std::vector<pollfd> fdset;
+	// pollfd fdset[get_size_serverInfo()];
+	for(int i = 0; i < serverInfo.size(); i++) {
 		// std::cout << i << "\n";
 		// socket_array.push_back(ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, serverInfo[i].getListen().front(), INADDR_ANY, 10 )); //
-		socket_array.push_back(ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, serverInfo[i].getListen(), INADDR_ANY, BACKLOG ));
+		socket_array.push_back( ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, serverInfo[i].getListen(), INADDR_ANY, BACKLOG ) );
 		// std::cout << RED << serverInfo[i].getListen() << RESET << std::endl;
-		fdset[i].fd = get_socket_array()[i].get_sock();
-		fdset[i].events = POLLIN;
+
+		pollfd temp;
+		temp.fd = get_socket_array()[i].get_sock();
+		temp.events = (POLLIN | POLLERR);
+		temp.revents = 0;
+		fdset.push_back( temp );
+		// fdset[i].fd = get_socket_array()[i].get_sock();
+		// fdset[i].events = (POLLIN | POLLERR);
 	}
 	init_response_msgs();
-	launch(fdset);
-}
-
-void ft::WebServer::poller(struct pollfd fdset[]) {
-	int ret = poll( fdset, get_size_serverInfo(), TIMEOUT );
-	// проверяем успешность вызова
-	if ( ret == -1 )
-		std::cout << "Fail from poll\n";
-		// ошибка
-	else if ( ret == 0 )
-		std::cout << "I waiting...\n";
-		// таймаут, событий не произошло
-	else
-	{
-		// обнаружили событие, обнулим revents чтобы можно было переиспользовать структуру
-		for (int i = 0; socket_array.size() > i; ++i)
-		{
-			if ( fdset[i].revents & POLLIN )
-			{
-				fdset[i].revents = 0;
-				id = i;
-			}
-		}
-			// обработка входных данных от sock1
-
-		// if ( fdset[1].revents & POLLOUT )
-		// 	fdset[1].revents = 0;
-			// обработка исходящих данных от sock2
-	}
-
-
-
-	
+	launch( fdset );
 }
 
 void ft::WebServer::handle_multipart( Request& request, \
@@ -206,90 +181,6 @@ void ft::WebServer::header_parse( const char* input_buffer, Request& request ) {
 	//request.print_params();
 
 }
-
-// void ft::WebServer::handler( Request& request ) {
-// 	char buffer[BUFFER_SIZE + 1] = { 0 };
-// 	int bytes_to_read = BUFFER_SIZE;
-// 	long full_request_length = BUFFER_SIZE;
-// 	long total_bytes_read = 0;
-// 	long bytes_read = 1;
-// 	bool parsing_header = true;
-// 	bool parsing_data_header = true;
-// 	std::ofstream body_file( BUFFER_FILE, std::ios::binary );
-// 	std::ofstream last_request( "last_request.txt" );
-
-// 	for(bytes_read = recv( new_socket, buffer, bytes_to_read, 0 );\
-// 		bytes_read != 0 && full_request_length - total_bytes_read > 0; \
-// 		bytes_read = recv( new_socket, buffer, bytes_to_read, 0 )) {
-// 		if(bytes_read == -1) {
-// 			if(DEBUG_MODE) {
-// 				std::cout << BLUE << strerror( errno ) << RESET << std::endl;
-// 			}
-// 			usleep( 100 );
-// 			continue;
-// 		}
-// 		if(DEBUG_MODE) {//print buffer
-// 			std::cout << YELLOW << "buffer is \n";
-// 			for(int i = 0; i < bytes_read; i++) {
-// 				std::cout << buffer[i];
-// 			}
-// 			std::cout << "bytes read = " << bytes_read << RESET << std::endl;
-// 		}
-
-// 		int i = 0;
-// 		if(parsing_header) {
-// 			if(bytes_read == 0)
-// 				throw error_request_code();
-// 			//parse head, if not full in buffer, then error 413
-// 			//this check needs implementetion somethere here
-// 			header_parse( buffer, request );
-// 			full_request_length = request.get_header_length() + 4 + atol( (request.get_param_value( "HTTP_CONTENT_LENGTH" )).c_str() );
-// 			total_bytes_read = request.get_header_length() + 4;
-// 			i = request.get_header_length() + 4;
-// 		}
-
-// 		if(DEBUG_MODE) {
-// 			last_request << buffer;
-// 		}
-
-// 		if(!body_file.is_open()) {
-// 			//ERROR, WHICH ONE??
-// 		}
-// 		if(request.get_param_value( "HTTP_CONTENT_TYPE" ).find( "multipart/form-data" ) != std::string::npos \
-// 			&& bytes_read != request.get_header_length() + 4) { //meaning file is being uploaded
-// 			handle_multipart( request, buffer, bytes_read, body_file, total_bytes_read, full_request_length, parsing_data_header, parsing_header);
-// 		}
-// 		else {
-// 			for(; i < bytes_read && total_bytes_read < full_request_length; i++) {
-// 				body_file << buffer[i];
-// 				total_bytes_read++;
-// 			}
-// 		}
-// 		if(full_request_length - total_bytes_read > BUFFER_SIZE) {
-// 			bytes_to_read = BUFFER_SIZE;
-// 		}
-// 		else {
-// 			bytes_to_read = full_request_length - total_bytes_read;
-// 		}
-// 		parsing_header = false;//it needs to be here, handle_multipart checks it
-// 		bzero( buffer, BUFFER_SIZE );
-// 	}
-// 	//find body
-// 	body_file.close();
-
-
-// 	//debug only
-// 	if(DEBUG_MODE) {
-// 		last_request.close();
-// 		std::cout << "QUERY_STRING is |\n";
-// 		for(int i = 0; i < request.get_query_string().size(); ++i)
-// 			std::cout << request.get_query_string()[i];
-// 		std::cout << "\n|" << std::endl;
-// 	}
-
-// }
-
-
 
 void ft::WebServer::init_new_envp( std::map<std::string, std::string>& additions, Request& request ) {
 	additions["REQUEST_METHOD"] = "";
@@ -615,7 +506,7 @@ std::string* ft::WebServer::list_contents( const std::string& path, Request& req
 	return response;
 }
 
-void ft::WebServer::launch(struct pollfd fdset[]) {
+void ft::WebServer::launch(std::vector<pollfd>& fdset) {
 
 	if (DEBUG_MODE){
 		for(int i = 0; i < config.get_servers().size(); i++) {
@@ -755,11 +646,11 @@ int ft::WebServer::get_size_serverInfo() const {
 
 
 
-// void ft::WebServer::new_global_loop( struct pollfd fdset[] ) {
+// void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 
 // 	int fd_counter = get_size_serverInfo();
 // 	while(true) {
-// 		int ret = poll( fdset, fd_counter, TIMEOUT );
+// 		int ret = poll( &fdset[0], fd_counter, TIMEOUT );
 // 		// проверяем успешность вызова
 // 		if(ret == -1)
 // 			std::cout << "Fail from poll\n";
@@ -784,23 +675,21 @@ int ft::WebServer::get_size_serverInfo() const {
 // 				if(fdset[i].revents & POLLOUT) { // понять кто ставит ПОЛАУТ возможно нужен флаг что мы готовы ответить
 // 					// if (send_mess()) { 
 // 							// и удалть фд 
-// 					}
 // 				}
 // 			}
 // 		}
 // 	}
-
-
-
 // }
 
 
 
-void ft::WebServer::new_global_loop( struct pollfd fdset[] ) {
+
+
+void ft::WebServer::new_global_loop( std::vector<pollfd>& fdset ) {
 	id = -1;
 	Request request;
 	while(request.get_full_request_length() - request.get_total_bytes_read() > 0) {
-		int ret = poll( fdset, get_size_serverInfo(), TIMEOUT );
+		int ret = poll( &fdset[0], get_size_serverInfo(), TIMEOUT );
 		// проверяем успешность вызова
 		if(ret == -1)
 			std::cout << "Fail from poll\n";

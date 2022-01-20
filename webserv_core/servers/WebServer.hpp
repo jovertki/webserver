@@ -25,7 +25,7 @@ namespace ft {
 		std::map<int, std::string> response_messeges;
 	public:
 		WebServer(char **envp, Config_info &config);
-		void launch(struct pollfd fdset[]);
+		void launch( std::vector<pollfd>& fdset );
 		int id;
 		
 	private:
@@ -53,8 +53,8 @@ namespace ft {
 
 
 
-
-		void new_global_loop( struct pollfd fdset[] );
+		void newest_global_loop( std::vector<pollfd>& fdset );
+		void new_global_loop( std::vector<pollfd>& fdset );
 		std::vector<ListeningSocket> get_socket_array()const;
 		int get_size_serverInfo() const;
 		std::string generate_response_head( const int& code );
