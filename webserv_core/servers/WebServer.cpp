@@ -29,12 +29,12 @@ ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), conf
 
 
     //    delete next;
-    std::fstream some("./runtime_files/temp for loop");
-    while(1) {
-        send_response(some);
-        sleep(1);
-        some.seekg(9,std::ios_base::cur);
-    }
+//    std::fstream some("./runtime_files/temp for loop");
+//    while(1) {
+//        send_response(some);
+//        sleep(1);
+//        some.seekg(9,std::ios_base::cur);
+//    }
 
 
 
