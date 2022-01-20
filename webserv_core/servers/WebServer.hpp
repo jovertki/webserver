@@ -49,13 +49,16 @@ namespace ft {
 		void send_response( const std::string* response ) const;
 		void init_response_msgs();
 		void handle_multipart( Request& request, \
-			char* buffer, long& bytes_read, std::ofstream& body_file, \
-			long& total_bytes_read, long& full_request_length, \
-			bool& parsing_data_header, bool header_included );
+			char* buffer, long& bytes_read, std::ofstream& body_file);
 
+
+
+
+		void new_global_loop( struct pollfd fdset[] );
 		std::vector<ListeningSocket> get_socket_array()const;
 		int get_size_serverInfo() const;
 		std::string generate_response_head( const int& code );
+		void new_handler( Request& );
 		// ListeningSocket* get_socket()const;
 	};
 }
