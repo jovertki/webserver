@@ -29,9 +29,9 @@ namespace ft {
 		int id;
 		
 	private:
-		void poller(struct pollfd fdset[]); //
-		void accepter( Request& );
-		void handler( Request& );
+		// void poller(struct pollfd fdset[]); //
+		int accepter( int id );
+		bool handler( Request& );
 		void responder( Request&);
 
 		bool is_directory( const std::string& path )const;
@@ -58,7 +58,8 @@ namespace ft {
 		std::vector<ListeningSocket> get_socket_array()const;
 		int get_size_serverInfo() const;
 		std::string generate_response_head( const int& code );
-		void new_handler( Request& );
 		// ListeningSocket* get_socket()const;
 	};
 }
+
+

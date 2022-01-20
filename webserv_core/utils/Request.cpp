@@ -11,6 +11,8 @@ ft::Request::Request() {
 	set_full_request_length( BUFFER_SIZE );
 	parsing_header = true;
 	parsing_data_header = true;
+	response_is_ready = false;
+	fd = -1;
 }
 
 int ft::Request::get_method() const {

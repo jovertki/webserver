@@ -14,7 +14,7 @@
 #include <errno.h>
 #include <cstdlib>
 #include <sstream>
-
+#include <map>
 #define DEBUG_MODE 1
 #define BUFFER_SIZE 30000 //is always bigger then 8000, max HTTP header size
 #define BACKLOG 20
@@ -95,16 +95,15 @@ void ft::WebServer::handle_multipart( Request& request, \
 	}
 }
 
-void ft::WebServer::accepter( Request& request ) {
+int ft::WebServer::accepter( int id ) {
 
 	struct sockaddr_in address;
-	// struct sockaddr_in address = get_socket()->get_address();
-	address = socket_array[id].get_address(); //
+	address = socket_array[id].get_address(); 
 	int addrlen = sizeof( sockaddr_in );
 
-	// for (int i = 0; socket_array.size() > i; ++i)
 	new_socket = accept( get_socket_array()[id].get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen ); //
-	fcntl(new_socket, F_SETFL , O_NONBLOCK);
+	fcntl( new_socket, F_SETFL, O_NONBLOCK );
+	return new_socket;
 }
 
 void ft::WebServer::header_parse( const char* input_buffer, Request& request ) {
@@ -520,7 +519,7 @@ void ft::WebServer::launch(std::vector<pollfd>& fdset) {
 			std::cout << "waiting" << std::endl;
 		}
 		try {
-			new_global_loop( fdset );
+			newest_global_loop( fdset );
 			// request.clear();
 			// poller(fdset);
 			// accepter(request);
@@ -646,85 +645,94 @@ int ft::WebServer::get_size_serverInfo() const {
 
 
 
-// void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
+void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
+	int lolkek = 1;
+	std::map<int, Request> requests;
+	while(true) {
+		int ret = poll( &fdset[0], fdset.size(), TIMEOUT );
+		// проверяем успешность вызова
+		if(ret == -1)
+			std::cout << "Fail from poll\n"; // ошибка
+		else if (ret >0){
+			for(int i = get_size_serverInfo(); i < fdset.size(); ++i) {
+				if (fdset[i].revents & POLLIN) { // // понять кто убирает ПОЛИН возможно нужен флаг что мы закончили читать
+					int LUL = 3;
+					if(handler( requests[fdset[i].fd] )) { //returns if read is complete
+						responder( requests[fdset[i].fd] );// need to implement fd in filename somethere!!!!!!!!!!!!!!
+						requests[fdset[i].fd].response_is_ready = true;
+					}
+				}
+			}
+			for(int i = get_size_serverInfo(); i < fdset.size(); ++i) {
+				if(fdset[i].revents & POLLOUT && requests[fdset[i].fd].response_is_ready) { // понять кто ставит ПОЛАУТ возможно нужен флаг что мы готовы ответить
+					int LUL = 5;
+					// if (send_response(requests[fdset[i].fd])) { //meaning the message is fully sent 
+					fdset.erase( fdset.begin() + i );//<------------ START HERE NEXT TIME you need to close the socket and delete it from fdset
+					//check what is happening with bufferfile, i belive it was deleted in old handler. it definith=ely should be deleted now
+				// }
+				}
+			}
+			for(int i = 0; i < get_size_serverInfo(); ++i) {
+				if(fdset[i].revents & POLLIN) {
+					pollfd temp;
+					temp.fd = accepter( i );
+					temp.events = (POLLIN | POLLOUT | POLLERR);
+					temp.revents = 0;
+					fdset.push_back( temp );
+					requests[temp.fd] = Request();
+					requests[temp.fd].fd = temp.fd;
+					// request_data[fd]; ???
 
-// 	int fd_counter = get_size_serverInfo();
-// 	while(true) {
-// 		int ret = poll( &fdset[0], fd_counter, TIMEOUT );
+				}
+			}
+		}
+	}
+}
+
+
+
+
+
+// void ft::WebServer::new_global_loop( std::vector<pollfd>& fdset ) {
+// 	id = -1;
+// 	Request request;
+// 	while(request.get_full_request_length() - request.get_total_bytes_read() > 0) {
+// 		int ret = poll( &fdset[0], get_size_serverInfo(), TIMEOUT );
 // 		// проверяем успешность вызова
 // 		if(ret == -1)
 // 			std::cout << "Fail from poll\n";
 // 		// ошибка
-// 		else if (ret >0){
-// 			for(int i = 0; i < get_size_serverInfo(); ++i) {
-// 				if(fdset[i].revents & POLLIN) {
-// 					// fd = accepter( request ); // && fd_counter++ и дописать фд в фд сет
-// 					// request_data[fd];
-// 					// fdset[i].revents = default;
-
+// 		else if(ret == 0)
+// 			std::cout << "I waiting...\n";
+// 		// таймаут, событий не произошло
+// 		else
+// 		{
+// 			// обнаружили событие, обнулим revents чтобы можно было переиспользовать структуру
+// 			for(int i = 0; socket_array.size() > i && id == -1; ++i)
+// 			{
+// 				if(fdset[i].revents & POLLIN)
+// 				{
+// 					id = i;
+// 					accepter( request );
+// 					request.parsing_header = true;
 // 				}
 // 			}
-// 			for(int i = get_size_serverInfo(); i < fd_counter; ++i){
-// 				// (fdset[i].revents & POLLIN) { // // понять кто убирает ПОЛИН возможно нужен флаг что мы закончили читать
-// 				// 	if (handler(i)){
-// 				// 		responder( i );
-// 				// 	}
-// 				// }
+// 			if(id != -1) {
+// 				handler( request );
+// 				request.parsing_header = false;
 // 			}
-// 			for(int i = get_size_serverInfo(); i < fd_counter; ++i) {
-// 				if(fdset[i].revents & POLLOUT) { // понять кто ставит ПОЛАУТ возможно нужен флаг что мы готовы ответить
-// 					// if (send_mess()) { 
-// 							// и удалть фд 
-// 				}
-// 			}
-// 		}
-// 	}
-// }
-
-
-
-
-
-void ft::WebServer::new_global_loop( std::vector<pollfd>& fdset ) {
-	id = -1;
-	Request request;
-	while(request.get_full_request_length() - request.get_total_bytes_read() > 0) {
-		int ret = poll( &fdset[0], get_size_serverInfo(), TIMEOUT );
-		// проверяем успешность вызова
-		if(ret == -1)
-			std::cout << "Fail from poll\n";
-		// ошибка
-		else if(ret == 0)
-			std::cout << "I waiting...\n";
-		// таймаут, событий не произошло
-		else
-		{
-			// обнаружили событие, обнулим revents чтобы можно было переиспользовать структуру
-			for(int i = 0; socket_array.size() > i && id == -1; ++i)
-			{
-				if(fdset[i].revents & POLLIN)
-				{
-					id = i;
-					accepter( request );
-					request.parsing_header = true;
-				}
-			}
-			if(id != -1) {
-				new_handler( request );
-				request.parsing_header = false;
-			}
 
 
 			
-		}
-	}
-	responder( request );
-	close( new_socket );
-	fdset[id].revents &= POLLIN;
- 	id = -1;
-}
+// 		}
+// 	}
+// 	responder( request );
+// 	close( new_socket );
+// 	fdset[id].revents &= POLLIN;
+//  	id = -1;
+// }
 
-void ft::WebServer::new_handler( Request& request ) {
+bool ft::WebServer::handler( Request& request ) {
 	char buffer[BUFFER_SIZE + 1] = { 0 };
 	int bytes_to_read;
 	long bytes_read;
@@ -733,11 +741,11 @@ void ft::WebServer::new_handler( Request& request ) {
 
 	if(request.parsing_header) {
 		//open anew
-		body_file.open( BUFFER_FILE, std::ios::binary );
+		body_file.open( BUFFER_FILE + std::to_string(request.fd), std::ios::binary );
 	}
 	else {
 		//append
-		body_file.open( BUFFER_FILE, std::ios::binary | std::ios::app );
+		body_file.open( BUFFER_FILE + std::to_string( request.fd ), std::ios::binary | std::ios::app );
 	}
 
 	if(request.get_full_request_length() - request.get_total_bytes_read() > BUFFER_SIZE || request.parsing_header) {
@@ -795,6 +803,11 @@ void ft::WebServer::new_handler( Request& request ) {
 		body_file.close();
 
 	}
+
+	if(request.get_full_request_length() - request.get_total_bytes_read() <= 0)//meaning we have read everything
+		return true;
+
+	
 	//debug only
 	if(DEBUG_MODE) {
 		std::cout << "QUERY_STRING is |\n";
@@ -802,4 +815,5 @@ void ft::WebServer::new_handler( Request& request ) {
 			std::cout << request.get_query_string()[i];
 		std::cout << "\n|" << std::endl;
 	}
+	return false;
 }
