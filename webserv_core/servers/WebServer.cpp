@@ -634,8 +634,8 @@ void ft::WebServer::launch(std::vector<pollfd>& fdset) {
 			std::cout << "waiting" << std::endl;
 		}
 		try {
-			// new_global_loop( fdset );
-			newest_global_loop( fdset );
+			 new_global_loop( fdset );
+//			newest_global_loop( fdset );
 			// request.clear();
 			// poller(fdset);
 			// accepter(request);
@@ -696,11 +696,22 @@ void ft::WebServer::launch(std::vector<pollfd>& fdset) {
 
 void ft::WebServer::send_response( std::fstream& response_file) const {
 	int bytes_written = 0;
-	std::fstream::char_type buff[1000];
+    response_file.close();
+    response_file.open(RESPONSE_FILE, std::ios_base::out);
+    char buffer[1024];
+//    std::filebuf * fb = response_file.rdbuf();
+//    response_file.seekp(0);
+//    response_file.read(buffer, 1024);
+
+//    bytes_written = response_file.gcount();
+//    bytes_written = response_file.tellp();
+    std::cout << RED << "fstrem is open ? " << response_file.good() << RESET << std::endl;
+    std::cout << RED << "bytes_written " << bytes_written << RESET << std::endl;
+
 	// std::istringstream s1;
 	// s1.get( buff, 1000, "");
 	// response_file.read( buff, 1000);
-	// for(int i = 0; bytes_written != response_length; i = write( new_socket, &response.c_str()[bytes_written], response_length - bytes_written )) {
+//	 for(int i = 0; bytes_written != response_length; i = write( new_socket, &response.c_str()[bytes_written], response_length - bytes_written )) {
 	// 	if(i != -1) {
 	// 		bytes_written += i;
 	// 		std::cout << "i = " << i << std::endl;
@@ -715,6 +726,7 @@ void ft::WebServer::send_response( std::fstream& response_file) const {
 	// }
 	// i = write( new_socket, response.c_str(), response.size() );
 	// std::cout << "bytes written     " << i << std::endl;
+    exit(1); // delete
 }
 
 // void ft::WebServer::send_response( const std::string& response, const std::string* content ) const {
@@ -821,11 +833,11 @@ void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 
 
 
-void ft::WebServer::new_global_loop( struct pollfd fdset[] ) {
+void ft::WebServer::new_global_loop( std::vector<pollfd>& fdset ) {
 	id = -1;
 	Request request;
 	while(request.get_full_request_length() - request.get_total_bytes_read() > 0) {
-		int ret = poll( fdset, get_size_serverInfo(), TIMEOUT );
+		int ret = poll( &fdset[0], get_size_serverInfo(), TIMEOUT );
 		// проверяем успешность вызова
 		if(ret == -1)
 			std::cout << "Fail from poll\n";
