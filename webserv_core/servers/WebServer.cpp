@@ -26,6 +26,20 @@ const char* ft::WebServer::error_request_code::what() const throw() {
 ft::WebServer::WebServer( char** envp, Config_info &config) : envp( envp ), config(config), serverInfo(config.get_servers()){
 	// socket = new ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, 4242, INADDR_ANY, 10 );
 	std::vector<pollfd> fdset;
+
+
+    //    delete next;
+    std::fstream some("./runtime_files/temp for loop");
+    while(1) {
+        send_response(some);
+        sleep(1);
+        some.seekg(9,std::ios_base::cur);
+    }
+
+
+
+
+
 	// pollfd fdset[get_size_serverInfo()];
 	for(int i = 0; i < serverInfo.size(); i++) {
 		// std::cout << i << "\n";
@@ -694,19 +708,18 @@ void ft::WebServer::launch(std::vector<pollfd>& fdset) {
 // 	usleep( 1000 );
 // }
 
-void ft::WebServer::send_response( std::fstream& response_file) const {
-	int bytes_written = 0;
-    response_file.close();
-    response_file.open(RESPONSE_FILE, std::ios_base::out);
-    char buffer[1024];
-//    std::filebuf * fb = response_file.rdbuf();
-//    response_file.seekp(0);
-//    response_file.read(buffer, 1024);
+#include <fstream>
 
-//    bytes_written = response_file.gcount();
-//    bytes_written = response_file.tellp();
-    std::cout << RED << "fstrem is open ? " << response_file.good() << RESET << std::endl;
-    std::cout << RED << "bytes_written " << bytes_written << RESET << std::endl;
+void ft::WebServer::send_response( std::fstream& response_file) const {
+    char buffer[10];
+    response_file.read(buffer, 10);
+// maybe need to check gcount
+    unsigned int bytes_written = write( 1, buffer, response_file.gcount());
+    if (bytes_written != response_file.gcount()) {
+        int needToReturn = response_file.gcount() - bytes_written;
+        int lastPos = response_file.tellg();
+        response_file.seekg(lastPos - needToReturn,std::ios_base::beg);
+    }
 
 	// std::istringstream s1;
 	// s1.get( buff, 1000, "");
@@ -726,7 +739,6 @@ void ft::WebServer::send_response( std::fstream& response_file) const {
 	// }
 	// i = write( new_socket, response.c_str(), response.size() );
 	// std::cout << "bytes written     " << i << std::endl;
-    exit(1); // delete
 }
 
 // void ft::WebServer::send_response( const std::string& response, const std::string* content ) const {
