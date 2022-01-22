@@ -711,10 +711,12 @@ void ft::WebServer::launch(std::vector<pollfd>& fdset) {
 #include <fstream>
 
 void ft::WebServer::send_response( std::fstream& response_file) const {
-    char buffer[10];
+    char buffer[8000];
     response_file.read(buffer, 10);
-// maybe need to check gcount
-    unsigned int bytes_written = write( 1, buffer, response_file.gcount());
+// maybe need to check gcount for error
+
+//socket right??
+    unsigned int bytes_written = write(socket, buffer, response_file.gcount());
     if (bytes_written != response_file.gcount()) {
         int needToReturn = response_file.gcount() - bytes_written;
         int lastPos = response_file.tellg();
