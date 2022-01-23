@@ -31,8 +31,8 @@ namespace ft {
 	private:
 		// void poller(struct pollfd fdset[]); //
 		int accepter( int id );
-		bool handler( Request& );
-		void responder( Request&);
+		int handler( Request& );
+		void generate_normal_response( Request&);
 
 		bool is_directory( const std::string& path )const;
 		std::string* list_contents( const std::string& path, Request& request )const;

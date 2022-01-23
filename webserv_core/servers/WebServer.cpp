@@ -273,7 +273,7 @@ void ft::WebServer::execute_cgi( Request& request ) {
 	int fdpipe[2];
 	pipe( fdpipe );
 
-	int body_fd = open( BUFFER_FILE_OUT, O_RDONLY );
+	int body_fd = open( (BUFFER_FILE + std::to_string(request.fd)).c_str(), O_RDONLY );
 	int ret = fork();
 	if(ret == 0)
 	{
@@ -315,7 +315,7 @@ void ft::WebServer::execute_cgi( Request& request ) {
 	// 	std::cout << RESET << std::endl;
 	// }
 	std::stringstream response_headers;
-	response_headers << request.get_httpver() <<  generate_response_head(200) << "Content-Length:" << std::to_string( (*response_body).size() - strlen( "Content-Type: text/html\r\n\r\n" ) + 2 ) << "\r\n";
+	response_headers << generate_response_head(200) << "Content-Length:" << std::to_string( (*response_body).size() - strlen( "Content-Type: text/html\r\n\r\n" ) + 2 ) << "\r\n";
 
 	send_response( response_headers.str(), response_body );
 	delete response_body;
@@ -378,7 +378,7 @@ void ft::WebServer::response_DELETE( Request& request ) {
 	send_response( sresponse.str() );
 }
 
-void ft::WebServer::responder( Request& request ) {
+void ft::WebServer::generate_normal_response( Request& request ) {
 	//check availability of method in location
 	if(request.get_method() == GET)
 		response_GET( request );
@@ -440,7 +440,7 @@ void ft::WebServer::handle_errors( int error_code, Request& request ) {
 		"<h1>:-(</h1>"   <<std::endl << \
 		"<h1>" << error_code << "</h1>" << std::endl << \
 		"<p>" << response_messeges[error_code] << "</p>" << std::endl << \
-		"<a href=\"/index.html\">Back to homepage</a>" << std::endl << \
+		"<a href=\"/\">Back to homepage</a>" << std::endl << \
 		"</div>" << std::endl << \
 		"</div>" << std::endl << \
 		"</div>" << std::endl << \
@@ -648,42 +648,60 @@ int ft::WebServer::get_size_serverInfo() const {
 void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 	int lolkek = 1;
 	std::map<int, Request> requests;
+	bool is_checking = true;
 	while(true) {
 		int ret = poll( &fdset[0], fdset.size(), TIMEOUT );
 		// проверяем успешность вызова
 		if(ret == -1)
 			std::cout << "Fail from poll\n"; // ошибка
-		else if (ret >0){
-			for(int i = get_size_serverInfo(); i < fdset.size(); ++i) {
-				if (fdset[i].revents & POLLIN) { // // понять кто убирает ПОЛИН возможно нужен флаг что мы закончили читать
-					int LUL = 3;
-					if(handler( requests[fdset[i].fd] )) { //returns if read is complete
-						responder( requests[fdset[i].fd] );// need to implement fd in filename somethere!!!!!!!!!!!!!!
-						requests[fdset[i].fd].response_is_ready = true;
+		else if(ret > 0) {
+			if(!is_checking) {
+				for(int i = get_size_serverInfo(); i < fdset.size(); ++i) {
+					if(fdset[i].revents & POLLIN) { // // понять кто убирает ПОЛИН возможно нужен флаг что мы закончили читать
+						int LUL = 3;
+						int handler_ret = handler( requests[fdset[i].fd] );
+						if(handler_ret == 1) { //returns if read is complete
+							generate_normal_response( requests[fdset[i].fd] );// need to implement fd in filename somethere!!!!!!!!!!!!!!
+							requests[fdset[i].fd].response_is_ready = true;
+						}
+						else if(handler_ret == 2) {//returns if 0 bytes_read
+							handle_errors( 403, requests[fdset[i].fd] );
+							requests[fdset[i].fd].response_is_ready = true;
+						}
 					}
 				}
-			}
-			for(int i = get_size_serverInfo(); i < fdset.size(); ++i) {
-				if(fdset[i].revents & POLLOUT && requests[fdset[i].fd].response_is_ready) { // понять кто ставит ПОЛАУТ возможно нужен флаг что мы готовы ответить
-					int LUL = 5;
-					// if (send_response(requests[fdset[i].fd])) { //meaning the message is fully sent 
-					fdset.erase( fdset.begin() + i );//<------------ START HERE NEXT TIME you need to close the socket and delete it from fdset
-					//check what is happening with bufferfile, i belive it was deleted in old handler. it definith=ely should be deleted now
-				// }
+				for(int i = get_size_serverInfo(); i < fdset.size(); ++i) {
+					if(fdset[i].revents & POLLOUT && requests[fdset[i].fd].response_is_ready) { // понять кто ставит ПОЛАУТ возможно нужен флаг что мы готовы ответить
+						int LUL = 5;
+						// if (send_response(requests[fdset[i].fd])) { //meaning the message is fully sent
+						if(std::remove( (BUFFER_FILE + std::to_string( fdset[i].fd )).c_str() )) {
+							//error
+						}
+						close( fdset[i].fd );
+						fdset.erase( fdset.begin() + i );//<------------ START HERE NEXT TIME you need to close the socket and delete it from fdset
+						//check what is happening with bufferfile, i belive it was deleted in old handler. it definith=ely should be deleted now
+					// }
+					}
 				}
+				is_checking = true;
 			}
-			for(int i = 0; i < get_size_serverInfo(); ++i) {
-				if(fdset[i].revents & POLLIN) {
-					pollfd temp;
-					temp.fd = accepter( i );
-					temp.events = (POLLIN | POLLOUT | POLLERR);
-					temp.revents = 0;
-					fdset.push_back( temp );
-					requests[temp.fd] = Request();
-					requests[temp.fd].fd = temp.fd;
-					// request_data[fd]; ???
+			else {
+				for(int i = 0; i < get_size_serverInfo(); ++i) {
+					if(fdset[i].revents & POLLIN) {
+						pollfd temp;
+						temp.fd = accepter( i );
+						if(temp.fd == -1) //skip errors on accept
+							continue;
+						temp.events = (POLLIN | POLLOUT | POLLERR);
+						temp.revents = 0;
+						fdset.push_back( temp );
+						requests[temp.fd] = Request();
+						requests[temp.fd].fd = temp.fd;
+						// request_data[fd]; ???
 
+					}
 				}
+				is_checking = false;
 			}
 		}
 	}
@@ -732,7 +750,7 @@ void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 //  	id = -1;
 // }
 
-bool ft::WebServer::handler( Request& request ) {
+int ft::WebServer::handler( Request& request ) {
 	char buffer[BUFFER_SIZE + 1] = { 0 };
 	int bytes_to_read;
 	long bytes_read;
@@ -774,7 +792,7 @@ bool ft::WebServer::handler( Request& request ) {
 	int i = 0;
 	if(request.parsing_header) {
 		if(bytes_read == 0)
-			throw error_request_code();
+			return 2;
 		//parse head, if not full in buffer, then error 413
 		//this check needs implementetion somethere here
 		header_parse( buffer, request );
@@ -805,7 +823,7 @@ bool ft::WebServer::handler( Request& request ) {
 	}
 
 	if(request.get_full_request_length() - request.get_total_bytes_read() <= 0)//meaning we have read everything
-		return true;
+		return 1;
 
 	
 	//debug only
@@ -815,5 +833,5 @@ bool ft::WebServer::handler( Request& request ) {
 			std::cout << request.get_query_string()[i];
 		std::cout << "\n|" << std::endl;
 	}
-	return false;
+	return 0;
 }
