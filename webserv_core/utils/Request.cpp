@@ -15,7 +15,6 @@ ft::Request::Request() {
 	// needToReturn = 0;
 	lastPos = 0;
 	fd = -1;
-	writing_iteration = 0;
 }
 // ft::Request::Request( const ft::Request& a ) : method( a.method ), requested_url( a.requested_url ), httpver( a.httpver ), \
 // header_length( a.header_length ), query_string( a.query_string ), params( a.params ), \

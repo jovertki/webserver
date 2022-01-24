@@ -537,56 +537,6 @@ void ft::WebServer::launch(std::vector<pollfd>& fdset) {
 	}
 }
 
-
-// void ft::WebServer::send_response( const std::string* response ) const {
-// 	write( new_socket, response->c_str(), response->size() );
-// 	if(DEBUG_MODE)
-// 		std::cout << GREEN << "===RESPONSE BEGIN===\n" << *response << "\n===RESPONCE END===" << RESET << std::endl;
-
-// }
-
-// void ft::WebServer::send_response( const std::string& response ) const {
-// 	// int i;
-// 	// while(i < response.size()) {
-// 	// 	if(i != -1) {
-// 	// 		write( new_socket, &response.c_str()[i], response.size() - i * (i != -1) - 1 )
-// 	// 	}
-// 	// }
-
-
-// 	int lolkek = 0;
-// 	// while(lolkek < response.size()) {
-// 	// 	int i = write( new_socket, &response.c_str()[i], response.size() - lolkek );
-// 	// }
-
-	
-// 	for(int i = 0; lolkek != response.size(); i = write( new_socket, &response.c_str()[lolkek], response.size() - lolkek )) {
-// 		// std::cout << "bytes written     " << i << std::endl;
-// 		if(i != -1) {
-// 			lolkek += i;
-// 			std::cout << "i = " << i << std::endl;
-// 		}	// usleep( 1000 );
-// 		else {
-// 			std::cout << "i = " << i << std::endl;
-// 		}
-// 	}
-// 	// if(DEBUG_MODE) {
-// 	// 	std::cout << GREEN << "===RESPONSE BEGIN===\n" << response << "\n===RESPONCE END===" << RESET << std::endl;
-// 	// 	std::cout << "response size is  " << response.size() << std::endl;
-// 	// }
-// 	// i = write( new_socket, response.c_str(), response.size() );
-// 	// std::cout << "bytes written     " << i << std::endl;
-// 	usleep( 1000 );
-// }
-
-// void ft::WebServer::send_response( const std::string& response, const std::string* content) const {
-// 	write( new_socket, response.c_str(), response.size() );
-// 	write( new_socket, (*content).c_str(), (*content).size() );
-// 	if(DEBUG_MODE)
-// 		std::cout << GREEN << "===RESPONSE BEGIN===\n" << response << *content << "\n===RESPONCE END===" << RESET << std::endl;
-// }
-
-
 bool ft::WebServer::send_response( Request& request) const {
 	std::ifstream file;
 	unsigned int needToReturn = 0;
@@ -676,10 +626,9 @@ int ft::WebServer::get_size_serverInfo() const {
 void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 	int lolkek = 1;
 	std::map<int, Request> requests;
-	int phase = 1;
 	bool is_cheking = true;
 	while(true){
-	// for(int DEBUG_temp = 0; DEBUG_temp < 50; DEBUG_temp++) {
+	// for(int DEBUG_temp = 0; DEBUG_temp < 500; DEBUG_temp++) {
 		int ret = poll( &fdset[0], fdset.size(), TIMEOUT );
 		for(int i = 0; i < fdset.size(); i++) {
 			std::cout << RED << i << " = " << fdset[i].fd << " | " << fdset[i].events << " | " << fdset[i].revents << RESET << std::endl;
@@ -708,19 +657,17 @@ void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 							fdset.erase( fdset.begin() + i );
 						}
 					}
-				}
-				for(int i = fdset.size() - 1; i >= get_size_serverInfo(); --i) {
-					if(fdset[i].revents & POLLIN) { // // понять кто убирает ПОЛИН возможно нужен флаг что мы закончили читать
+					else if(fdset[i].revents & POLLIN) { // // понять кто убирает ПОЛИН возможно нужен флаг что мы закончили читать
 						int LUL = 3;
 						int handler_ret = handler( requests[fdset[i].fd] );
-						std::cout <<GREEN << i << ", fd = " << fdset[i].fd << " is read" << RESET << std::endl;
+						std::cout << GREEN << i << ", fd = " << fdset[i].fd << " is read" << RESET << std::endl;
 						if(handler_ret == 1) { //returns if read is complete
 							generate_normal_response( requests[fdset[i].fd] );// need to implement fd in filename somethere!!!!!!!!!!!!!!
-							requests[fdset[i].fd].response_is_ready = true;	
+							requests[fdset[i].fd].response_is_ready = true;
 						}
 						else if(handler_ret == 2) {//returns if 0 bytes_read
 							std::cout << GREEN << "read 0 on fd " << fdset[i].fd << RESET << std::endl;
-							close( fdset[i].fd);
+							close( fdset[i].fd );
 							if(std::remove( (BUFFER_FILE + std::to_string( fdset[i].fd )).c_str() )) {
 								//error
 							}
@@ -731,8 +678,8 @@ void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 							fdset.erase( fdset.begin() + i );
 						}
 					}
-				}
 
+				}
 				is_cheking = true;
 			}
 			if(is_cheking) {
@@ -759,48 +706,6 @@ void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 	exit( 1 );
 }
 
-
-
-
-
-// void ft::WebServer::new_global_loop( std::vector<pollfd>& fdset ) {
-// 	id = -1;
-// 	Request request;
-// 	while(request.get_full_request_length() - request.get_total_bytes_read() > 0) {
-// 		int ret = poll( &fdset[0], get_size_serverInfo(), TIMEOUT );
-// 		// проверяем успешность вызова
-// 		if(ret == -1)
-// 			std::cout << "Fail from poll\n";
-// 		// ошибка
-// 		else if(ret == 0)
-// 			std::cout << "I waiting...\n";
-// 		// таймаут, событий не произошло
-// 		else
-// 		{
-// 			// обнаружили событие, обнулим revents чтобы можно было переиспользовать структуру
-// 			for(int i = 0; socket_array.size() > i && id == -1; ++i)
-// 			{
-// 				if(fdset[i].revents & POLLIN)
-// 				{
-// 					id = i;
-// 					accepter( request );
-// 					request.parsing_header = true;
-// 				}
-// 			}
-// 			if(id != -1) {
-// 				handler( request );
-// 				request.parsing_header = false;
-// 			}
-
-
-			
-// 		}
-// 	}
-// 	responder( request );
-// 	close( new_socket );
-// 	fdset[id].revents &= POLLIN;
-//  	id = -1;
-// }
 
 int ft::WebServer::handler( Request& request ) {
 	char buffer[BUFFER_SIZE + 1] = { 0 };

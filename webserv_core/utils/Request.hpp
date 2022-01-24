@@ -17,8 +17,7 @@ namespace ft {
 		long total_bytes_read;
 		long full_request_length;
 	public:
-		unsigned int lastPos;
-		int writing_iteration;
+		unsigned long lastPos;
 		bool response_is_ready;
 		int fd;
 		bool parsing_header;
