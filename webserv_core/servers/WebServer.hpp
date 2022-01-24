@@ -19,7 +19,6 @@ namespace ft {
 
 		std::vector<ServerConfig> serverInfo;
 		Config_info config;
-		int new_socket;
 		char** envp;
 
 		std::map<int, std::string> response_messeges;
@@ -35,7 +34,7 @@ namespace ft {
 		void generate_normal_response( Request&);
 
 		bool is_directory( const std::string& path )const;
-		std::string* list_contents( const std::string& path, Request& request )const;
+		void list_contents( const std::string& path, Request& request )const;
 		void handle_errors( int error_code, Request& request );
 		void response_POST( Request& request );
 		void response_GET(Request& request);
@@ -47,6 +46,7 @@ namespace ft {
 		void send_response( const std::string& response )const;
 		void send_response( const std::string& response, const std::string* content ) const;
 		void send_response( const std::string* response ) const;
+		bool send_response( Request& )const;
 		void init_response_msgs();
 		void handle_multipart( Request& request, \
 			char* buffer, long& bytes_read, std::ofstream& body_file);

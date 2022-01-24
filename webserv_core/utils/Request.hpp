@@ -16,13 +16,16 @@ namespace ft {
 
 		long total_bytes_read;
 		long full_request_length;
-
 	public:
+		unsigned int lastPos;
+		int writing_iteration;
 		bool response_is_ready;
 		int fd;
 		bool parsing_header;
 		bool parsing_data_header;
-		Request();
+		Request( );
+		// Request( const Request& a );
+		// Request& operator=( const Request& a );
 		int get_method() const;
 		std::string get_requested_url() const;
 		std::string get_httpver() const;

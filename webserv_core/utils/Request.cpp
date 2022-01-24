@@ -12,8 +12,37 @@ ft::Request::Request() {
 	parsing_header = true;
 	parsing_data_header = true;
 	response_is_ready = false;
+	// needToReturn = 0;
+	lastPos = 0;
 	fd = -1;
+	writing_iteration = 0;
 }
+// ft::Request::Request( const ft::Request& a ) : method( a.method ), requested_url( a.requested_url ), httpver( a.httpver ), \
+// header_length( a.header_length ), query_string( a.query_string ), params( a.params ), \
+// total_bytes_read( a.total_bytes_read ), full_request_length( a.full_request_length ) {
+// 	a.response_file.close();
+// 	response_file.open( BUFFER_FILE_OUT + std::to_string( fd ) );
+// }
+
+// ft::Request& ft::Request::operator=( const ft::Request& a ) {
+// 	if(this != &a) {
+// 		method = a.method;
+// 		requested_url = a.requested_url;
+// 		httpver = a.httpver;
+// 		header_length = a.header_length;
+// 		query_string = a.query_string;
+// 		params = a.params;
+// 		total_bytes_read = a.total_bytes_read;
+// 		full_request_length = a.full_request_length;
+// 		response_is_ready = a.response_is_ready;
+// 		fd = a.fd;
+// 		parsing_header = a.parsing_header;
+// 		parsing_data_header = a.parsing_data_header;
+// 		response_file.open( BUFFER_FILE_OUT + std::to_string( fd ) );
+// 	}
+// 	return *this;
+// }
+
 
 int ft::Request::get_method() const {
 	return method;
@@ -77,6 +106,7 @@ long ft::Request::get_total_bytes_read() const {
 long ft::Request::get_full_request_length() const {
 	return full_request_length;
 }
+
 
 
 void ft::Request::set_method(const int &n ) {
