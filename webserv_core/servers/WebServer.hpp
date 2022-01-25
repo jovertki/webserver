@@ -12,11 +12,7 @@ namespace ft {
 		class error_request_code : public std::exception {
 			virtual const char* what() const throw();
 		};
-		//thing to change
-		// ListeningSocket* socket;
-		std::vector<ListeningSocket> socket_array; //
-		// pollfd fdset[get_size_serverInfo()];
-
+		std::vector<ListeningSocket> socket_array;
 		std::vector<ServerConfig> serverInfo;
 		Config_info config;
 		char** envp;
@@ -28,7 +24,6 @@ namespace ft {
 		int id;
 		
 	private:
-		// void poller(struct pollfd fdset[]); //
 		int accepter( int id );
 		int handler( Request& );
 		void generate_normal_response( Request&);
@@ -43,9 +38,6 @@ namespace ft {
 		void header_parse( const char*, Request& );
 		char** create_appended_envp( Request& request );
 		void init_new_envp( std::map<std::string, std::string>&, Request& );
-		void send_response( const std::string& response )const;
-		void send_response( const std::string& response, const std::string* content ) const;
-		void send_response( const std::string* response ) const;
 		bool send_response( Request& )const;
 		void init_response_msgs();
 		void handle_multipart( Request& request, \
@@ -54,11 +46,9 @@ namespace ft {
 
 
 		void newest_global_loop( std::vector<pollfd>& fdset );
-		void new_global_loop( std::vector<pollfd>& fdset );
 		std::vector<ListeningSocket> get_socket_array()const;
 		int get_size_serverInfo() const;
 		std::string generate_response_head( const int& code );
-		// ListeningSocket* get_socket()const;
 	};
 }
 

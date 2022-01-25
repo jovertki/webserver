@@ -1,8 +1,6 @@
 #include "WebServer.hpp"
 #include <cstring>
 #include <string>
-// #include "../resources/lex_defines.h"
-// #include <fstream>
 #include <sstream>
 #include <sys/types.h>
 #include <dirent.h>
@@ -24,22 +22,15 @@ const char* ft::WebServer::error_request_code::what() const throw() {
 }
 
 ft::WebServer::WebServer( char** envp, Config_info& config ) : envp( envp ), config( config ), serverInfo( config.get_servers() ) {
-	// socket = new ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, 4242, INADDR_ANY, 10 );
 	std::vector<pollfd> fdset;
-	// pollfd fdset[get_size_serverInfo()];
 	for(int i = 0; i < serverInfo.size(); i++) {
-		// std::cout << i << "\n";
-		// socket_array.push_back(ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, serverInfo[i].getListen().front(), INADDR_ANY, 10 )); //
 		socket_array.push_back( ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, serverInfo[i].getListen(), INADDR_ANY, BACKLOG ) );
-		// std::cout << RED << serverInfo[i].getListen() << RESET << std::endl;
 
 		pollfd temp;
 		temp.fd = get_socket_array()[i].get_sock();
 		temp.events = (POLLIN | POLLERR);
 		temp.revents = 0;
 		fdset.push_back( temp );
-		// fdset[i].fd = get_socket_array()[i].get_sock();
-		// fdset[i].events = (POLLIN | POLLERR);
 	}
 	init_response_msgs();
 	launch( fdset );
@@ -307,13 +298,6 @@ void ft::WebServer::execute_cgi( Request& request ) {
 	}
 	delete[] cgi_envp;
 	close( fdpipe[0] );
-	// if(DEBUG_MODE) {
-	// 	std::cout << BLUE<< "BUFF IS " << std::endl;
-	// 	for(int i = 0; i < vec_buffer.size(); i++) {
-	// 		std::cout << vec_buffer[i];
-	// 	}
-	// 	std::cout << RESET << std::endl;
-	// }
 	std::ofstream response_file;
 	response_file.open( BUFFER_FILE_OUT + std::to_string( request.fd ), std::ios::binary );
 	response_file << generate_response_head( 200 ) << "Content-Length:" << std::to_string( (*response_body).size() - strlen( "Content-Type: text/html\r\n\r\n" ) + 2 ) << "\r\n" << response_body;
@@ -521,11 +505,6 @@ void ft::WebServer::launch(std::vector<pollfd>& fdset) {
 		}
 		try {
 			newest_global_loop( fdset );
-			// request.clear();
-			// poller(fdset);
-			// accepter(request);
-			// handler(request);
-			// responder( request );
 			if(DEBUG_MODE) {
 				system( "leaks webserv" );
 			}
@@ -650,17 +629,6 @@ void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 							requests[fdset[i].fd] = Request();
 							requests[fdset[i].fd].fd = fdset[i].fd;
 							fdset[i].events = (POLLIN | POLLERR);
-							// close( fdset[i].fd );
-							// if(std::remove( (BUFFER_FILE + std::to_string( fdset[i].fd )).c_str() )) {
-							// 	//error
-							// }
-							// if(std::remove( (BUFFER_FILE_OUT + std::to_string( fdset[i].fd )).c_str() )) {
-							// 	//error
-							// }
-							// requests.erase( fdset[i].fd );
-							// // requests[fdset[i].fd] = Request();
-							// // requests[fdset[i].fd].fd = fdset[i].fd;
-							// fdset.erase( fdset.begin() + i );
 						}
 					}
 					else if(fdset[i].revents & POLLIN) { // // понять кто убирает ПОЛИН возможно нужен флаг что мы закончили читать
@@ -695,13 +663,10 @@ void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 						temp.fd = accepter( i );
 						if(temp.fd == -1) //skip errors on accept
 							continue;
-						// temp.events = (POLLIN | POLLERR);
 						temp.events = (POLLIN | POLLERR);
-						// temp.revents = 0;
 						fdset.push_back( temp );
 						requests[temp.fd] = Request();
 						requests[temp.fd].fd = temp.fd;
-						// request_data[fd]; ???
 						std::cout << GREEN << i << ", on fd = " << fdset[i].fd << " request is accepted" << RESET << std::endl;
 					}
 				}
