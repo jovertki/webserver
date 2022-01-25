@@ -561,8 +561,6 @@ bool ft::WebServer::send_response( Request& request) const {
 	return false;
 }
 
-
-
 std::string ft::WebServer::generate_response_head( const int& code ) {
 	std::stringstream ss;
 	ss << "HTTP/1.1 " << code << " " << response_messeges[code] << "\r\n";
@@ -624,16 +622,15 @@ int ft::WebServer::get_size_serverInfo() const {
 
 
 void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
-	int lolkek = 1;
 	std::map<int, Request> requests;
 	bool is_cheking = true;
 	while(true){
-	// for(int DEBUG_temp = 0; DEBUG_temp < 500; DEBUG_temp++) {
+	// for(int DEBUG_temp = 0; DEBUG_temp < 50; DEBUG_temp++) {
 		int ret = poll( &fdset[0], fdset.size(), TIMEOUT );
-		for(int i = 0; i < fdset.size(); i++) {
-			std::cout << RED << i << " = " << fdset[i].fd << " | " << fdset[i].events << " | " << fdset[i].revents << RESET << std::endl;
+		// for(int i = 0; i < fdset.size(); i++) {
+		// 	std::cout << RED << i << " = " << fdset[i].fd << " | " << fdset[i].events << " | " << fdset[i].revents << RESET << std::endl;
 
-		}
+		// }
 		// проверяем успешность вызова
 		if(ret == -1)
 			std::cout << "Fail from poll\n"; // ошибка
@@ -642,28 +639,37 @@ void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 				for(int i = fdset.size() - 1; i >= get_size_serverInfo(); --i) {
 					if(fdset[i].revents & POLLOUT && requests[fdset[i].fd].response_is_ready) { // понять кто ставит ПОЛАУТ возможно нужен флаг что мы готовы ответить
 						int LUL = 5;
-						std::cout << GREEN << i << ", fd = " << fdset[i].fd << " is being written to" << RESET << std::endl;
+						std::cout << GREEN << "socket " << i << ", fd = " << fdset[i].fd << " is being written to" << RESET << std::endl;
 						if(send_response( requests[fdset[i].fd] )) {
-							close( fdset[i].fd );
 							if(std::remove( (BUFFER_FILE + std::to_string( fdset[i].fd )).c_str() )) {
 								//error
 							}
 							if(std::remove( (BUFFER_FILE_OUT + std::to_string( fdset[i].fd )).c_str() )) {
 								//error
 							}
-							requests.erase( fdset[i].fd );
-							// requests[fdset[i].fd] = Request();
-							// requests[fdset[i].fd].fd = fdset[i].fd;
-							fdset.erase( fdset.begin() + i );
+							requests[fdset[i].fd] = Request();
+							requests[fdset[i].fd].fd = fdset[i].fd;
+							fdset[i].events = (POLLIN | POLLERR);
+							// close( fdset[i].fd );
+							// if(std::remove( (BUFFER_FILE + std::to_string( fdset[i].fd )).c_str() )) {
+							// 	//error
+							// }
+							// if(std::remove( (BUFFER_FILE_OUT + std::to_string( fdset[i].fd )).c_str() )) {
+							// 	//error
+							// }
+							// requests.erase( fdset[i].fd );
+							// // requests[fdset[i].fd] = Request();
+							// // requests[fdset[i].fd].fd = fdset[i].fd;
+							// fdset.erase( fdset.begin() + i );
 						}
 					}
 					else if(fdset[i].revents & POLLIN) { // // понять кто убирает ПОЛИН возможно нужен флаг что мы закончили читать
-						int LUL = 3;
 						int handler_ret = handler( requests[fdset[i].fd] );
 						std::cout << GREEN << i << ", fd = " << fdset[i].fd << " is read" << RESET << std::endl;
 						if(handler_ret == 1) { //returns if read is complete
 							generate_normal_response( requests[fdset[i].fd] );// need to implement fd in filename somethere!!!!!!!!!!!!!!
 							requests[fdset[i].fd].response_is_ready = true;
+							fdset[i].events = (POLLOUT | POLLERR);
 						}
 						else if(handler_ret == 2) {//returns if 0 bytes_read
 							std::cout << GREEN << "read 0 on fd " << fdset[i].fd << RESET << std::endl;
@@ -690,8 +696,8 @@ void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 						if(temp.fd == -1) //skip errors on accept
 							continue;
 						// temp.events = (POLLIN | POLLERR);
-						temp.events = (POLLIN | POLLOUT | POLLERR);
-						temp.revents = 0;
+						temp.events = (POLLIN | POLLERR);
+						// temp.revents = 0;
 						fdset.push_back( temp );
 						requests[temp.fd] = Request();
 						requests[temp.fd].fd = temp.fd;
@@ -739,7 +745,7 @@ int ft::WebServer::handler( Request& request ) {
 		return 0;
 	}
 	if(DEBUG_MODE) {//print buffer
-		std::cout << YELLOW << "buffer is \n";
+		std::cout << YELLOW << "request for fd " << request.fd << "\n";
 		for(int i = 0; i < bytes_read; i++) {
 			std::cout << buffer[i];
 		}
