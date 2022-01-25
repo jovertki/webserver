@@ -7,6 +7,7 @@
 struct Location_info {
     int autoindex;
     int bodySize;
+    std::string root;
     std::string uploadPath;
     std::string index;
     std::vector<method> methods;
