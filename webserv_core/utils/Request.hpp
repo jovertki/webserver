@@ -10,19 +10,21 @@ namespace ft {
 		std::string requested_url;
 		std::string httpver;
 		int header_length;
-		// std::ofstream body_file;
 		std::string query_string;
 		std::map <std::string, std::string> params;
 		std::string get_requested_filename() const;
 
 		long total_bytes_read;
 		long full_request_length;
-
-
 	public:
+		unsigned long lastPos;
+		bool response_is_ready;
+		int fd;
 		bool parsing_header;
 		bool parsing_data_header;
-		Request();
+		Request( );
+		// Request( const Request& a );
+		// Request& operator=( const Request& a );
 		int get_method() const;
 		std::string get_requested_url() const;
 		std::string get_httpver() const;
