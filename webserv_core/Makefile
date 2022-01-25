@@ -61,4 +61,7 @@ fclean: clean
 
 re: fclean all
 
+
+-include $(OBJ:.o=.d)
+
 .PHONY: all clean fclean re
