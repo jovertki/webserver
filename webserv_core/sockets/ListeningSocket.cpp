@@ -1,6 +1,6 @@
 #include "ListeningSocket.hpp"
 
-ft::ListeningSocket::ListeningSocket( int domain, int service, int protocol, int port, u_long interface, int bklg ) : \
+ft::ListeningSocket::ListeningSocket( int domain, int service, int protocol, int port, std::string interface, int bklg ) : \
 BindingSocket( domain, service, protocol, port, interface ) {
 	backlog = bklg;
 	start_listening();

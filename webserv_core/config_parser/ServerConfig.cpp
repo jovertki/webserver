@@ -87,8 +87,8 @@ void ServerConfig::fillLocFromDefault() {
 
 void ServerConfig::copyLocatData(std::string locName) {
     if (locations[locName].returnNum.empty()) {
-        if (locations[locName].autoindex == NOT_ASSIGN)
-            locations[locName].autoindex = locations["/"].autoindex;
+        if (locations[locName].autoIndex == NOT_ASSIGN)
+            locations[locName].autoIndex = locations["/"].autoIndex;
         if (locations[locName].bodySize == NOT_ASSIGN)
             locations[locName].bodySize = locations["/"].bodySize;
         if (locations[locName].index.empty() && locName.back() == '/')
@@ -116,7 +116,7 @@ void ServerConfig::CheckDefaultParam() {
         throw utils::parseExeption("ServerParse::can't find loctions!");
     else if (locations.find(defLocation) == locations.end())
         throw utils::parseExeption("ServerParse::can't find mandatory location / !");
-    else if (locations[defLocation].autoindex == NOT_ASSIGN)
+    else if (locations[defLocation].autoIndex == NOT_ASSIGN)
         throw utils::parseExeption("ServerParse::location can't find autoindex!");
     else if (locations[defLocation].bodySize == NOT_ASSIGN)
         throw utils::parseExeption("ServerParse::location can't find bodysize!");
@@ -205,8 +205,8 @@ Location_info ServerConfig::findLocationParameters(std::vector<std::string>::ite
             res.methods = findMethods(++iter, end);
         else if (*iter == "root" && *(iter + 2) == ";" && res.root.empty())
             res.root = findStringAndIterate(++iter, 2);
-        else if (*iter == "autoindex" && *(iter + 2) == ";" && res.autoindex == NOT_ASSIGN)
-            res.autoindex = findAutoindex(++iter);
+        else if (*iter == "autoindex" && *(iter + 2) == ";" && res.autoIndex == NOT_ASSIGN)
+            res.autoIndex = findAutoIndex(++iter);
         else if (*iter == "return" && res.returnNum.empty())
             res.returnNum = findReturn(++iter);
         else if (*iter == "error_page" && *(iter + 3) == ";")
@@ -251,7 +251,7 @@ std::map<int, std::string> ServerConfig::findReturn(std::vector<std::string>::it
 }
 
 
-int ServerConfig::findAutoindex(std::vector<std::string>::iterator& iter) {
+int ServerConfig::findAutoIndex(std::vector<std::string>::iterator& iter) {
     int result;
 
     if (*iter == "on")
@@ -313,10 +313,6 @@ const std::map<std::string, Location_info> &ServerConfig::getLocations() const {
 
 const std::string &ServerConfig::getHost() const {
     return host;
-}
-
-void ServerConfig::setHost(const std::string &host) {
-    ServerConfig::host = host;
 }
 
 

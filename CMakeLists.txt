@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 98)
 
 add_executable(webserver
         webserv_core/main.cpp
-        webserv_core/config_parser/Config_info.cpp
+        webserv_core/config_parser/ConfigInfo.cpp
         webserv_core/config_parser/Location_info.cpp
         webserv_core/config_parser/ServerConfig.cpp
         webserv_core/config_parser/Utils_parse_config.cpp
