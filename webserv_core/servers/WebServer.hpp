@@ -2,7 +2,7 @@
 #include "../utils/Request.hpp"
 #include <exception>
 #include "../resources/defines.hpp"
-#include "../config_parser/Config_info.hpp"
+#include "../config_parser/ConfigInfo.hpp"
 #include "../sockets/ListeningSocket.hpp"
 #include <sys/poll.h> //
 
@@ -13,13 +13,13 @@ namespace ft {
 			virtual const char* what() const throw();
 		};
 		std::vector<ListeningSocket> socket_array;
-		std::vector<ServerConfig> serverInfo;
-		Config_info config;
+//		std::vector<ServerConfig> serverInfo;
+		ConfigInfo config;
 		char** envp;
 
 		std::map<int, std::string> response_messeges;
 	public:
-		WebServer(char **envp, Config_info &config);
+		WebServer(char **envp, ConfigInfo &config);
 		void launch( std::vector<pollfd>& fdset );
 		int id;
 		

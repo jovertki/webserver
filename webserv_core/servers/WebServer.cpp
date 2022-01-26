@@ -22,14 +22,18 @@ const char* ft::WebServer::error_request_code::what() const throw() {
 	return ("error");
 }
 
-ft::WebServer::WebServer( char** envp, Config_info& config ) : envp( envp ), config( config ), serverInfo( config.get_servers() ) {
+ft::WebServer::WebServer(char** envp, ConfigInfo& config ) : envp(envp ), id(), config(config ) { // зачем ID???
 	std::vector<pollfd> fdset;
-	for(int i = 0; i < serverInfo.size(); i++) {
-		
-		socket_array.push_back( ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, serverInfo[i].getListen(), INADDR_ANY, BACKLOG ) );
-
+	for(int i = 0; i < config.getServers().size(); i++) {
+        if (i && config.checkHostPortDublicates(i) == -1)
+            continue;
+        if (DEBUG_MODE)
+            std::cout << BLUE << "Listening host " << config.getServers()[i].getHost() << " with port " << config.getServers()[i].getListen() << RESET << std::endl;
+		socket_array.push_back( ft::ListeningSocket( AF_INET, SOCK_STREAM, 0,
+                                                     config.getServers()[i].getListen(),
+                                                     config.getServers()[i].getHost(), BACKLOG ) );
 		pollfd temp;
-		temp.fd = get_socket_array()[i].get_sock();
+		temp.fd = get_socket_array().back().get_sock();
 		temp.events = (POLLIN | POLLERR);
 		temp.revents = 0;
 		fdset.push_back( temp );
@@ -517,9 +521,8 @@ void ft::WebServer::list_contents( const std::string& path, Request& request )co
 void ft::WebServer::launch(std::vector<pollfd>& fdset) {
 
 	if (DEBUG_MODE){
-		for(int i = 0; i < config.get_servers().size(); i++) {
-			std::cout << BOLDBLUE << (--config.get_servers()[i].getLocations().end())->second << RESET << std::endl;;
-
+		for(int i = 0; i < config.getServers().size(); i++) {
+			std::cout << BOLDBLUE << (--config.getServers()[i].getLocations().end())->second << RESET << std::endl;;
 		}
 	}
 
@@ -619,7 +622,7 @@ std::vector<ft::ListeningSocket> ft::WebServer::get_socket_array()const {
 }
 
 int ft::WebServer::get_size_serverInfo() const {
-	return serverInfo.size();
+	return config.getServers().size();
 }
 
 

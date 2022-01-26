@@ -2,12 +2,11 @@
 #include "SimpleSocket.hpp"
 #include <arpa/inet.h>
 #include "../resources/defines.hpp"
-ft::SimpleSocket::SimpleSocket( int domain, int service, int protocol, int port, u_long interface ){
+ft::SimpleSocket::SimpleSocket( int domain, int service, int protocol, int port, std::string  interface ){
 	address.sin_family = domain;
 	address.sin_port = htons( port );
-
-	// address.sin_addr.s_addr = inet_addr( "192.168.20.64" );
-	address.sin_addr.s_addr = htonl( interface );
+    address.sin_addr.s_addr = inet_addr( interface.c_str());
+//	address.sin_addr.s_addr = htonl( interface );
 	//establish socket
 	sock = socket( domain, service, protocol );
 

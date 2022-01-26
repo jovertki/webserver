@@ -1,5 +1,5 @@
 #include "servers/WebServer.hpp"
-#include "config_parser/Config_info.hpp"
+#include "config_parser/ConfigInfo.hpp"
 
 int main(int argc, char** argv, char **envp) {
 
@@ -10,7 +10,7 @@ int main(int argc, char** argv, char **envp) {
         std::cout << "Wrong arguments" << std::endl;
         exit(-1);
     }
-    Config_info config( conf_name.c_str() );
+    ConfigInfo config(conf_name.c_str() );
     // system( "leaks webserv" );
     ft::WebServer t( envp, config );
 }
