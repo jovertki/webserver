@@ -4,6 +4,14 @@
 #define MIME_FILE "./resources/mime.types"
 #define BUFFER_FILE "./runtime_files/bufferfile"
 #define BUFFER_FILE_OUT "./runtime_files/bufferfileout"
+#define BUFFER_FILE_CGIOUT "./runtime_files/bufferfilecgiout"
+
+
+
+//request stages
+#define REQUEST_PENDING 0
+#define REQUEST_READ 1
+#define REQUEST_GENERATED 2
 
 //colored output
 #define RESET   "\033[0m"

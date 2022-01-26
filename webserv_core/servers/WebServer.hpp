@@ -26,15 +26,15 @@ namespace ft {
 	private:
 		int accepter( int id );
 		int handler( Request& );
-		void generate_normal_response( Request&);
+		bool generate_normal_response( Request&);
 
 		bool is_directory( const std::string& path )const;
 		void list_contents( const std::string& path, Request& request )const;
 		void handle_errors( int error_code, Request& request );
-		void response_POST( Request& request );
-		void response_GET(Request& request);
-		void response_DELETE( Request& request );
-		void execute_cgi( Request& request );
+		bool response_POST( Request& request );
+		bool response_GET( Request& request );
+		bool response_DELETE( Request& request );
+		bool execute_cgi( Request& request );
 		void header_parse( const char*, Request& );
 		char** create_appended_envp( Request& request );
 		void init_new_envp( std::map<std::string, std::string>&, Request& );

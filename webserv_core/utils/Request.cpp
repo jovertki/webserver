@@ -12,6 +12,7 @@ ft::Request::Request() {
 	parsing_header = true;
 	parsing_data_header = true;
 	response_is_ready = false;
+	stage = REQUEST_PENDING;
 	// needToReturn = 0;
 	lastPos = 0;
 	fd = -1;

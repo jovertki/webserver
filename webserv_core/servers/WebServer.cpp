@@ -24,6 +24,7 @@ const char* ft::WebServer::error_request_code::what() const throw() {
 ft::WebServer::WebServer( char** envp, Config_info& config ) : envp( envp ), config( config ), serverInfo( config.get_servers() ) {
 	std::vector<pollfd> fdset;
 	for(int i = 0; i < serverInfo.size(); i++) {
+		
 		socket_array.push_back( ft::ListeningSocket( AF_INET, SOCK_STREAM, 0, serverInfo[i].getListen(), INADDR_ANY, BACKLOG ) );
 
 		pollfd temp;
@@ -249,20 +250,21 @@ char** ft::WebServer::create_appended_envp( Request& request ) {
 	return new_envp;
 }
 
-void ft::WebServer::response_POST( Request& request ) {
+bool ft::WebServer::response_POST( Request& request ) {
 	std::cout << "========RESPONSE POST IS ACTIVE========" << std::endl;
 
 	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > 9 /*sizeof( "/cgi-bin/" )*/) { //if it is in /cgi-bin/
-		execute_cgi( request );
+		return execute_cgi( request );
 	}
+	return true;
 }
 
 
-void ft::WebServer::execute_cgi( Request& request ) {
+bool ft::WebServer::execute_cgi( Request& request ) {
 	char** cgi_envp = create_appended_envp( request );
 
 	int body_fd = open( (BUFFER_FILE + std::to_string( request.fd )).c_str(), O_RDONLY );
-	int response_file_fd = open( (BUFFER_FILE_OUT + std::to_string( request.fd )).c_str(), O_RDWR );
+	int response_file_fd = open( (BUFFER_FILE_CGIOUT + std::to_string( request.fd )).c_str(), O_WRONLY | O_CREAT, 0666 );
 	int ret = fork();
 	if(ret == 0)
 	{
@@ -279,34 +281,62 @@ void ft::WebServer::execute_cgi( Request& request ) {
 		waitpid( ret, NULL, 0 );
 	}
 
-
-
+	std::ifstream cgi_response_file;
+	cgi_response_file.open( BUFFER_FILE_CGIOUT + std::to_string( request.fd ) );
+	if(!cgi_response_file.is_open())
+		std::cout << RED << strerror( errno ) << RESET << std::endl;
+	std::string content_type;
+	std::getline( cgi_response_file, content_type );
+	std::cout << RED << content_type << content_type.size() << " " << strlen( "Content-Type: text/html" ) << RESET << std::endl;
 	
-	char buff[BUFFER_SIZE + 1] = { 0 };
-	long total_len = 0;
-	int len = read( fdpipe[0], buff, BUFFER_SIZE );
-	total_len = len;
-	std::string *response_body = new std::string;
-	while(len > 0) {
-		(*response_body).insert((*response_body).end(), buff, buff + len );
-		total_len += len;
-		bzero( buff, BUFFER_SIZE );
-		len = read( fdpipe[0], buff, BUFFER_SIZE );
-	}
-
-	for(int i = 0; cgi_envp[i] != NULL; i++) {
-		delete cgi_envp[i];
-	}
-	delete[] cgi_envp;
-	close( fdpipe[0] );
+	cgi_response_file.seekg( 0, std::ios::end );
+	long cgi_file_length = cgi_response_file.tellg();
+	
+	cgi_response_file.close();
+	
+	cgi_response_file.open( BUFFER_FILE_CGIOUT + std::to_string( request.fd ), std::ios::binary );
+	
+	
 	std::ofstream response_file;
 	response_file.open( BUFFER_FILE_OUT + std::to_string( request.fd ), std::ios::binary );
-	response_file << generate_response_head( 200 ) << "Content-Length:" << std::to_string( (*response_body).size() - strlen( "Content-Type: text/html\r\n\r\n" ) + 2 ) << "\r\n";
+	response_file << generate_response_head( 200 ) << "Content-Length:" << std::to_string( cgi_file_length - content_type.size() - 4 ) << "\r\n";
+
+	char buffer[8000];
+	while(!cgi_response_file.eof()){
+		bzero( buffer, 8000 );
+		cgi_response_file.read( buffer, 8000 );
+		response_file.write( buffer , 8000);
+	}
+	cgi_response_file.close();
+	std::remove( (BUFFER_FILE_CGIOUT + std::to_string( request.fd )).c_str());
 	response_file.close();
-	delete response_body;
+	return true;
+	
+	// char buff[BUFFER_SIZE + 1] = { 0 };
+	// long total_len = 0;
+	// int len = read( fdpipe[0], buff, BUFFER_SIZE );
+	// total_len = len;
+	// std::string *response_body = new std::string;
+	// while(len > 0) {
+	// 	(*response_body).insert((*response_body).end(), buff, buff + len );
+	// 	total_len += len;
+	// 	bzero( buff, BUFFER_SIZE );
+	// 	len = read( fdpipe[0], buff, BUFFER_SIZE );
+	// }
+
+	// for(int i = 0; cgi_envp[i] != NULL; i++) {
+	// 	delete cgi_envp[i];
+	// }
+	// delete[] cgi_envp;
+	// close( fdpipe[0] );
+	// std::ofstream response_file;
+	// response_file.open( BUFFER_FILE_OUT + std::to_string( request.fd ), std::ios::binary );
+	// response_file << generate_response_head( 200 ) << "Content-Length:" << std::to_string( (*response_body).size() - strlen( "Content-Type: text/html\r\n\r\n" ) + 2 ) << "\r\n";
+	// response_file.close();
+	// delete response_body;
 }
 
-void ft::WebServer::response_GET( Request& request ) {
+bool ft::WebServer::response_GET( Request& request ) {
 
 	//check if rights are correct
 	//use index field from config somewhere here
@@ -316,8 +346,7 @@ void ft::WebServer::response_GET( Request& request ) {
 		list_contents( SERVER_DIR + request.get_requested_url(), request );
 	}
 	else if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > sizeof( "/cgi-bin/" )) { //if it is in /cgi-bin/
-		execute_cgi( request );
-		return;
+		return execute_cgi( request );
 	}
 	else {
 		//proceed with request
@@ -341,10 +370,11 @@ void ft::WebServer::response_GET( Request& request ) {
 		response_file.close();
 		delete response_body;
 	}
+	return true;
 	//write string to socket
 }
 
-void ft::WebServer::response_DELETE( Request& request ) {
+bool ft::WebServer::response_DELETE( Request& request ) {
 	//do smth
 	// if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS ON*/) {
 	// 	//list contents
@@ -360,16 +390,18 @@ void ft::WebServer::response_DELETE( Request& request ) {
 		response_file << generate_response_head( 200 ) << "\r\nFile " << request.get_requested_url() << " was successfully DELETED" << std::endl;
 		response_file.close();
 	}
+	return true;
 }
 
-void ft::WebServer::generate_normal_response( Request& request ) {
+bool ft::WebServer::generate_normal_response( Request& request ) {
 	//check availability of method in location
 	if(request.get_method() == GET)
-		response_GET( request );
+		return response_GET( request );
 	else if(request.get_method() == POST)
-		response_POST( request );
+		return response_POST( request );
 	else if(request.get_method() == DELETE)
-		response_DELETE( request );
+		return response_DELETE( request );
+	return true;
 }
 
 
@@ -617,7 +649,7 @@ void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 		else if(ret > 0) {
 			if(!is_cheking) {
 				for(int i = fdset.size() - 1; i >= get_size_serverInfo(); --i) {
-					if(fdset[i].revents & POLLOUT && requests[fdset[i].fd].response_is_ready) { // понять кто ставит ПОЛАУТ возможно нужен флаг что мы готовы ответить
+					if(fdset[i].revents & POLLOUT && requests[fdset[i].fd].stage == REQUEST_GENERATED) { // понять кто ставит ПОЛАУТ возможно нужен флаг что мы готовы ответить
 						int LUL = 5;
 						std::cout << GREEN << "socket " << i << ", fd = " << fdset[i].fd << " is being written to" << RESET << std::endl;
 						if(send_response( requests[fdset[i].fd] )) {
@@ -632,12 +664,11 @@ void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 							fdset[i].events = (POLLIN | POLLERR);
 						}
 					}
-					else if(fdset[i].revents & POLLIN) { // // понять кто убирает ПОЛИН возможно нужен флаг что мы закончили читать
+					else if(fdset[i].revents & POLLIN && requests[fdset[i].fd].stage == REQUEST_PENDING) { // // понять кто убирает ПОЛИН возможно нужен флаг что мы закончили читать
 						int handler_ret = handler( requests[fdset[i].fd] );
 						std::cout << GREEN << i << ", fd = " << fdset[i].fd << " is read" << RESET << std::endl;
 						if(handler_ret == 1) { //returns if read is complete
-							generate_normal_response( requests[fdset[i].fd] );// need to implement fd in filename somethere!!!!!!!!!!!!!!
-							requests[fdset[i].fd].response_is_ready = true;
+							requests[fdset[i].fd].stage = REQUEST_READ;
 							fdset[i].events = (POLLOUT | POLLERR);
 						}
 						else if(handler_ret == 2) {//returns if 0 bytes_read
@@ -651,6 +682,11 @@ void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 							}
 							requests.erase( fdset[i].fd );
 							fdset.erase( fdset.begin() + i );
+						}
+					}
+					else if(requests[fdset[i].fd].stage == REQUEST_READ) {
+						if(generate_normal_response( requests[fdset[i].fd] )) {//response is ready
+							requests[fdset[i].fd].stage = REQUEST_GENERATED;
 						}
 					}
 
@@ -734,10 +770,16 @@ int ft::WebServer::handler( Request& request ) {
 		if(!body_file.is_open()) {
 			//ERROR, WHICH ONE??
 		}
+		
 		if(request.get_param_value( "HTTP_CONTENT_TYPE" ).find( "multipart/form-data" ) != std::string::npos \
 			&& bytes_read != request.get_header_length() + 4) { //meaning file is being uploaded
 			handle_multipart( request, buffer, bytes_read, body_file );
 		}
+		// else if(request.get_param_value( "HTTP_TRANSFER_ENCODING" ).find( "chunked" ) != std::string::npos \
+		// 	&& bytes_read != request.get_header_length() + 4) {
+		// 	return parseChunkedBody();
+		// 	body_file.close();
+		// }
 		else {
 			for(; i < bytes_read && request.get_total_bytes_read() < request.get_full_request_length(); i++) {
 				body_file << buffer[i];
