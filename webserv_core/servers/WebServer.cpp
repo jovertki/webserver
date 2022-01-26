@@ -252,7 +252,7 @@ char** ft::WebServer::create_appended_envp( Request& request ) {
 }
 
 bool ft::WebServer::response_POST( Request& request ) {
-	std::cout << "========RESPONSE POST IS ACTIVE========" << std::endl;
+	// std::cout << "========RESPONSE POST IS ACTIVE========" << std::endl;
 
 	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > 9 /*sizeof( "/cgi-bin/" )*/) { //if it is in /cgi-bin/
 		return execute_cgi( request );
