@@ -38,7 +38,7 @@ ft::WebServer::WebServer(char** envp, ConfigInfo& config ) : envp(envp ), id(), 
 		temp.revents = 0;
 		fdset.push_back( temp );
 	}
-	signal( SIGPIPE, SIG_IGN);//perhaps should elaborate more
+	// signal( SIGPIPE, SIG_IGN);//perhaps should elaborate more
 	init_response_msgs();
 	launch( fdset );
 }
@@ -319,11 +319,11 @@ bool ft::WebServer::execute_cgi( Request& request ) {
 		response_file.open( BUFFER_FILE_OUT + std::to_string( request.fd ), std::ios::binary );
 		response_file << generate_response_head( 200 ) << "Content-Length:" << std::to_string( cgi_file_length - content_type.size() - 4 ) << "\r\n";
 
-		char buffer[CGI_BUFFER_SIZE];
+		char buffer[CGI_BUFFER_SIZE + 1];
 		while(!cgi_response_file.eof()) {
 			bzero( buffer, CGI_BUFFER_SIZE );
 			cgi_response_file.read( buffer, CGI_BUFFER_SIZE );
-			response_file.write( buffer, CGI_BUFFER_SIZE );
+			response_file.write( buffer, cgi_response_file.gcount() );
 		}
 		cgi_response_file.close();
 		std::remove( (BUFFER_FILE_CGIOUT + std::to_string( request.fd )).c_str() );
