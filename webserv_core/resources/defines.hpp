@@ -18,7 +18,7 @@
 #define CGI_NOT_STARTED 0
 #define CGI_PROCESSING 1
 #define CGI_FINISHED 2
-
+#define CGI_BUFFER_SIZE 8000
 //colored output
 #define RESET   "\033[0m"
 #define BLACK   "\033[30m"      /* Black */

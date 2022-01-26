@@ -313,11 +313,11 @@ bool ft::WebServer::execute_cgi( Request& request ) {
 		response_file.open( BUFFER_FILE_OUT + std::to_string( request.fd ), std::ios::binary );
 		response_file << generate_response_head( 200 ) << "Content-Length:" << std::to_string( cgi_file_length - content_type.size() - 4 ) << "\r\n";
 
-		char buffer[8000];
+		char buffer[CGI_BUFFER_SIZE];
 		while(!cgi_response_file.eof()) {
-			bzero( buffer, 8000 );
-			cgi_response_file.read( buffer, 8000 );
-			response_file.write( buffer, 8000 );
+			bzero( buffer, CGI_BUFFER_SIZE );
+			cgi_response_file.read( buffer, CGI_BUFFER_SIZE );
+			response_file.write( buffer, CGI_BUFFER_SIZE );
 		}
 		cgi_response_file.close();
 		std::remove( (BUFFER_FILE_CGIOUT + std::to_string( request.fd )).c_str() );
