@@ -25,7 +25,7 @@ const char* ft::WebServer::error_request_code::what() const throw() {
 ft::WebServer::WebServer(char** envp, ConfigInfo& config ) : envp(envp ), id(), config(config ) { // зачем ID???
 	std::vector<pollfd> fdset;
 	for(int i = 0; i < config.getServers().size(); i++) {
-        if (i && config.checkHostPortDublicates(i) == -1)
+        if (i && config.checkHostPortDublicates(i) != -1)
             continue;
         if (DEBUG_MODE)
             std::cout << BLUE << "Listening host " << config.getServers()[i].getHost() << " with port " << config.getServers()[i].getListen() << RESET << std::endl;
@@ -286,6 +286,7 @@ bool ft::WebServer::execute_cgi( Request& request ) {
 		else {
 			request.cgi_pid = ret;
 			close( response_file_fd );
+			close( body_fd );
 		}
 	}
 	if(request.cgi_stage == CGI_PROCESSING) {
@@ -554,6 +555,7 @@ bool ft::WebServer::send_response( Request& request) const {
 	char buffer[8000];
 	file.read( buffer, 8000 );
 	// check gcount
+	std::cout << GREEN << "socket is baseinsdasdasdfsfdgdfgdfgg written to" << RESET << std::endl;
 	unsigned int bytes_written = write( request.fd, buffer, file.gcount() );
 	if(bytes_written != file.gcount())
 		needToReturn = file.gcount() - bytes_written;
@@ -657,6 +659,7 @@ void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 							requests[fdset[i].fd].fd = fdset[i].fd;
 							fdset[i].events = (POLLIN | POLLERR);
 						}
+						
 					}
 					else if(fdset[i].revents & POLLIN && requests[fdset[i].fd].stage == REQUEST_PENDING) { // // понять кто убирает ПОЛИН возможно нужен флаг что мы закончили читать
 						int handler_ret = handler( requests[fdset[i].fd] );

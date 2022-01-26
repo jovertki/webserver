@@ -13,6 +13,7 @@ ft::Request::Request() {
 	parsing_data_header = true;
 	cgi_stage = 0;
 	stage = REQUEST_PENDING;
+	cgi_pid = -1;
 	// needToReturn = 0;
 	lastPos = 0;
 	fd = -1;
