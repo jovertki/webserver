@@ -261,15 +261,13 @@ void ft::WebServer::response_POST( Request& request ) {
 void ft::WebServer::execute_cgi( Request& request ) {
 	char** cgi_envp = create_appended_envp( request );
 
-	int fdpipe[2];
-	pipe( fdpipe );
-
-	int body_fd = open( (BUFFER_FILE + std::to_string(request.fd)).c_str(), O_RDONLY );
+	int body_fd = open( (BUFFER_FILE + std::to_string( request.fd )).c_str(), O_RDONLY );
+	int response_file_fd = open( (BUFFER_FILE_OUT + std::to_string( request.fd )).c_str(), O_RDWR );
 	int ret = fork();
 	if(ret == 0)
 	{
 		dup2( body_fd, 0 );
-		dup2( fdpipe[1], 1 );
+		dup2( response_file_fd, 1 );
 		std::string filename = SERVER_DIR + request.get_requested_url();
 		execve( filename.c_str(), NULL, cgi_envp );
 		std::cout << "ERRRPR" << std::endl;
@@ -277,10 +275,13 @@ void ft::WebServer::execute_cgi( Request& request ) {
 		exit( 234 );
 	}
 	else {
-		close( fdpipe[1] );
+		close( response_file_fd );
 		waitpid( ret, NULL, 0 );
 	}
 
+
+
+	
 	char buff[BUFFER_SIZE + 1] = { 0 };
 	long total_len = 0;
 	int len = read( fdpipe[0], buff, BUFFER_SIZE );
@@ -300,7 +301,7 @@ void ft::WebServer::execute_cgi( Request& request ) {
 	close( fdpipe[0] );
 	std::ofstream response_file;
 	response_file.open( BUFFER_FILE_OUT + std::to_string( request.fd ), std::ios::binary );
-	response_file << generate_response_head( 200 ) << "Content-Length:" << std::to_string( (*response_body).size() - strlen( "Content-Type: text/html\r\n\r\n" ) + 2 ) << "\r\n" << response_body;
+	response_file << generate_response_head( 200 ) << "Content-Length:" << std::to_string( (*response_body).size() - strlen( "Content-Type: text/html\r\n\r\n" ) + 2 ) << "\r\n";
 	response_file.close();
 	delete response_body;
 }
