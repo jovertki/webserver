@@ -38,6 +38,7 @@ ft::WebServer::WebServer(char** envp, ConfigInfo& config ) : envp(envp ), id(), 
 		temp.revents = 0;
 		fdset.push_back( temp );
 	}
+	signal( SIGPIPE, SIG_IGN);//perhaps should elaborate more
 	init_response_msgs();
 	launch( fdset );
 }
@@ -555,7 +556,6 @@ bool ft::WebServer::send_response( Request& request) const {
 	char buffer[8000];
 	file.read( buffer, 8000 );
 	// check gcount
-	std::cout << GREEN << "socket is baseinsdasdasdfsfdgdfgdfgg written to" << RESET << std::endl;
 	unsigned int bytes_written = write( request.fd, buffer, file.gcount() );
 	if(bytes_written != file.gcount())
 		needToReturn = file.gcount() - bytes_written;
