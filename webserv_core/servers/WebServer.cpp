@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <sstream>
 #include <map>
+#include <signal.h>
 #define DEBUG_MODE 1
 #define BUFFER_SIZE 10000 //is always bigger then 8000, max HTTP header size
 #define BACKLOG 20
@@ -261,79 +262,69 @@ bool ft::WebServer::response_POST( Request& request ) {
 
 
 bool ft::WebServer::execute_cgi( Request& request ) {
-	char** cgi_envp = create_appended_envp( request );
 
-	int body_fd = open( (BUFFER_FILE + std::to_string( request.fd )).c_str(), O_RDONLY );
-	int response_file_fd = open( (BUFFER_FILE_CGIOUT + std::to_string( request.fd )).c_str(), O_WRONLY | O_CREAT, 0666 );
-	int ret = fork();
-	if(ret == 0)
-	{
-		dup2( body_fd, 0 );
-		dup2( response_file_fd, 1 );
-		std::string filename = SERVER_DIR + request.get_requested_url();
-		execve( filename.c_str(), NULL, cgi_envp );
-		std::cout << "ERRRPR" << std::endl;
-		std::cout << strerror( errno ) << std::endl;
-		exit( 234 );
+	if(request.cgi_stage == CGI_NOT_STARTED) {
+		request.cgi_stage = CGI_PROCESSING;
+		char** cgi_envp = create_appended_envp( request );
+		int body_fd = open( (BUFFER_FILE + std::to_string( request.fd )).c_str(), O_RDONLY );
+		int response_file_fd = open( (BUFFER_FILE_CGIOUT + std::to_string( request.fd )).c_str(), O_WRONLY | O_CREAT, 0666 );
+		pid_t ret = fork();
+		if(ret == 0)
+		{
+			dup2( body_fd, 0 );
+			dup2( response_file_fd, 1 );
+			std::string filename = SERVER_DIR + request.get_requested_url();
+			execve( filename.c_str(), NULL, cgi_envp );
+			std::cout << "ERRRPR" << std::endl;
+			std::cout << strerror( errno ) << std::endl;
+			exit( 234 );
+		}
+		else {
+			request.cgi_pid = ret;
+			close( response_file_fd );
+		}
 	}
-	else {
-		close( response_file_fd );
-		waitpid( ret, NULL, 0 );
+	if(request.cgi_stage == CGI_PROCESSING) {
+		waitpid( request.cgi_pid, NULL, WNOHANG );
+		// request.cgi_stage = CGI_FINISHED;
+		if(kill( request.cgi_pid, 0 ) == -1) {
+			request.cgi_stage = CGI_FINISHED;
+		}
 	}
+	if(request.cgi_stage == CGI_FINISHED) {
 
-	std::ifstream cgi_response_file;
-	cgi_response_file.open( BUFFER_FILE_CGIOUT + std::to_string( request.fd ) );
-	if(!cgi_response_file.is_open())
-		std::cout << RED << strerror( errno ) << RESET << std::endl;
-	std::string content_type;
-	std::getline( cgi_response_file, content_type );
-	std::cout << RED << content_type << content_type.size() << " " << strlen( "Content-Type: text/html" ) << RESET << std::endl;
-	
-	cgi_response_file.seekg( 0, std::ios::end );
-	long cgi_file_length = cgi_response_file.tellg();
-	
-	cgi_response_file.close();
-	
-	cgi_response_file.open( BUFFER_FILE_CGIOUT + std::to_string( request.fd ), std::ios::binary );
-	
-	
-	std::ofstream response_file;
-	response_file.open( BUFFER_FILE_OUT + std::to_string( request.fd ), std::ios::binary );
-	response_file << generate_response_head( 200 ) << "Content-Length:" << std::to_string( cgi_file_length - content_type.size() - 4 ) << "\r\n";
+		std::ifstream cgi_response_file;
+		cgi_response_file.open( BUFFER_FILE_CGIOUT + std::to_string( request.fd ) );
+		if(!cgi_response_file.is_open())
+			std::cout << RED << strerror( errno ) << RESET << std::endl;
+		std::string content_type;
+		std::getline( cgi_response_file, content_type );
+		std::cout << RED << content_type << content_type.size() << " " << strlen( "Content-Type: text/html" ) << RESET << std::endl;
 
-	char buffer[8000];
-	while(!cgi_response_file.eof()){
-		bzero( buffer, 8000 );
-		cgi_response_file.read( buffer, 8000 );
-		response_file.write( buffer , 8000);
+		cgi_response_file.seekg( 0, std::ios::end );
+		long cgi_file_length = cgi_response_file.tellg();
+
+		cgi_response_file.close();
+
+		cgi_response_file.open( BUFFER_FILE_CGIOUT + std::to_string( request.fd ), std::ios::binary );
+
+
+		std::ofstream response_file;
+		response_file.open( BUFFER_FILE_OUT + std::to_string( request.fd ), std::ios::binary );
+		response_file << generate_response_head( 200 ) << "Content-Length:" << std::to_string( cgi_file_length - content_type.size() - 4 ) << "\r\n";
+
+		char buffer[8000];
+		while(!cgi_response_file.eof()) {
+			bzero( buffer, 8000 );
+			cgi_response_file.read( buffer, 8000 );
+			response_file.write( buffer, 8000 );
+		}
+		cgi_response_file.close();
+		std::remove( (BUFFER_FILE_CGIOUT + std::to_string( request.fd )).c_str() );
+		response_file.close();
+		return true;
 	}
-	cgi_response_file.close();
-	std::remove( (BUFFER_FILE_CGIOUT + std::to_string( request.fd )).c_str());
-	response_file.close();
-	return true;
-	
-	// char buff[BUFFER_SIZE + 1] = { 0 };
-	// long total_len = 0;
-	// int len = read( fdpipe[0], buff, BUFFER_SIZE );
-	// total_len = len;
-	// std::string *response_body = new std::string;
-	// while(len > 0) {
-	// 	(*response_body).insert((*response_body).end(), buff, buff + len );
-	// 	total_len += len;
-	// 	bzero( buff, BUFFER_SIZE );
-	// 	len = read( fdpipe[0], buff, BUFFER_SIZE );
-	// }
-
-	// for(int i = 0; cgi_envp[i] != NULL; i++) {
-	// 	delete cgi_envp[i];
-	// }
-	// delete[] cgi_envp;
-	// close( fdpipe[0] );
-	// std::ofstream response_file;
-	// response_file.open( BUFFER_FILE_OUT + std::to_string( request.fd ), std::ios::binary );
-	// response_file << generate_response_head( 200 ) << "Content-Length:" << std::to_string( (*response_body).size() - strlen( "Content-Type: text/html\r\n\r\n" ) + 2 ) << "\r\n";
-	// response_file.close();
-	// delete response_body;
+	return false;
 }
 
 bool ft::WebServer::response_GET( Request& request ) {

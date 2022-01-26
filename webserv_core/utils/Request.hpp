@@ -20,7 +20,9 @@ namespace ft {
 		unsigned long lastPos;
 
 		int stage;
-		bool response_is_ready;
+		int cgi_stage;
+		pid_t cgi_pid;
+		
 		int fd;
 		bool parsing_header;
 		bool parsing_data_header;

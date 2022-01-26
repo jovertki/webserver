@@ -15,7 +15,7 @@ int main( int argc, char** argv, char** envp ) {
 			std::size_t pos = s.find( "num1=" );
 			if(pos == std::string::npos) {
 				std::cout << "<output>Sorry, the script cannot turn your inputs into numbers (integers).</output>" << std::endl;
-				return 1;
+				exit( 1 );
 			}
 			std::string substr = s.substr( pos + 5 );
 			std::istringstream iss( substr );
@@ -24,7 +24,7 @@ int main( int argc, char** argv, char** envp ) {
 			pos = s.find( "num2=" );
 			if(pos == std::string::npos) {
 				std::cout << "<output>Sorry, the script cannot turn your inputs into numbers (integers).</output>" << std::endl;
-				return 1;
+				exit( 1 );
 			}
 			substr = s.substr( pos + 5 );
 			std::istringstream iss2( substr );
@@ -37,7 +37,7 @@ int main( int argc, char** argv, char** envp ) {
 		// }
 	}
 	std::cout << "<output>Sorry, the script cannot turn your inputs into numbers (integers).</output>" ;
-	return 1;
+	exit( 0);
 
 	
 }

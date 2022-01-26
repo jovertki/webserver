@@ -13,6 +13,12 @@
 #define REQUEST_READ 1
 #define REQUEST_GENERATED 2
 
+
+//cgi stages
+#define CGI_NOT_STARTED 0
+#define CGI_PROCESSING 1
+#define CGI_FINISHED 2
+
 //colored output
 #define RESET   "\033[0m"
 #define BLACK   "\033[30m"      /* Black */

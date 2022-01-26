@@ -37,5 +37,5 @@ int main( int argc, char** argv, char** envp ) {
 		write( 1, buffer, 8000 );
 		bzero( buffer, 8000 );
 	}
-
+	exit( 0 );
 }
