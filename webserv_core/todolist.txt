@@ -1,4 +1,0 @@
-сравнить название серверов по итогу парсера ?
-
-
-locations return by default - 1 or 0?
