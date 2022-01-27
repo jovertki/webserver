@@ -24,7 +24,7 @@ const char* ft::WebServer::error_request_code::what() const throw() {
 ft::WebServer::WebServer(char** envp, ConfigInfo& config ) : envp(envp ), id(), config(config ) { // зачем ID???
 	std::vector<pollfd> fdset;
 	for(int i = 0; i < config.getServers().size(); i++) {
-        if (i && config.checkHostPortDublicates(i) == -1)
+        if (config.checkHostPortDublicates(i) != NOT_FOUND)
             continue;
         if (DEBUG_MODE)
             std::cout << BLUE << "Listening host " << config.getServers()[i].getHost() << " with port " << config.getServers()[i].getListen() << RESET << std::endl;

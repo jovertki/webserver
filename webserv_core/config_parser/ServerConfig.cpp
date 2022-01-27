@@ -126,8 +126,6 @@ void ServerConfig::CheckDefaultParam() {
         throw utils::parseExeption("ServerParse::location can't find upload_path!");
     else if (locations[defLocation].methods.empty())
         throw utils::parseExeption("ServerParse::location can't find methods!");
-    else if (locations[defLocation].returnNum.size())
-        throw utils::parseExeption("ServerParse::default location have return!");
 }
 
 void ServerConfig::findMainValues(std::vector<std::string>::iterator iter,

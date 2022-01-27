@@ -13,18 +13,9 @@ ConfigInfo::ConfigInfo(const char* arg) : servers() {
     }
     //delete next line
     std::cout << "..........\n" << servers.size() << " servers successfully parsed" << std::endl;
-    std::cout << "ErrorPage 2222 on server 1(second) = " << getErrorPage(1, "/", 2222) << std::endl;
+//    std::cout << "ErrorPage 2222 on server 1(second) = " << getErrorPage(0, "/", 22) << std::endl;
 //    std::cout << "ServID = " << getServerID("127.0.0.1", 8080, "cwd.localhost") << std::endl;
-//    std::cout << "ServID = " << getServerID("127.0.0.1", 8080, "localhost") << std::endl;
-//    std::cout << "ServID = " << getServerID("127.0.0.1", 8080) << std::endl;
-//    std::cout << "ServID = " << getServerID("127.0.0.1", 8081) << std::endl;
-//    std::cout << "ServID = " << getServerID("127.0.0.1", 4040) << std::endl;
-//    std::cout << "ServID = " << getServerID("127.0.0.1", 4040, "localhost1") << std::endl;
-//    std::cout << "metod is " << checkMethod(0, "/upload/find/some/", GET) << std::endl;
-//    std::cout << "metod is " << checkMethod(0, "/hahah/", DELETE) << std::endl;
-//    std::cout << "autoindex is " << getAutoindex(0, "/upload/find") << std::endl;
-//    std::cout << "autoindex is " << getAutoindex(0, "/upload/find/") << std::endl;
-//    std::cout << "autoindex is " << getAutoindex(0, "/upload/find/3e3") << std::endl;
+
 }
 
 ConfigInfo::~ConfigInfo() {}
@@ -50,7 +41,7 @@ int ConfigInfo::checkHostPortDublicates(int i) {
 std::string ConfigInfo::getLocationByID(const int servId, std::string locName) {
     int pos;
 
-    while (locName.size() > 0) {
+    while (locName.size() > 1) {
         if (servers[servId].getLocations().find(locName) != servers[servId].getLocations().end()) {
             return locName;
         }
