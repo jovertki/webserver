@@ -67,7 +67,9 @@ void ft::WebServer::handle_multipart( Request& request, \
 			filename.insert( 0, upload_path );
 			if(DEBUG_MODE)
 				std::cout << BLUE << filename << RESET << std::endl;
+			std::cout << RED << "CHECK1" << data_header << RESET << std::endl;
 			request.set_param( "UPLOAD_PATH", filename );
+			std::cout << RED << "CHECK2" << data_header << RESET << std::endl;
 		}
 		i = (request.get_header_length() + 4) * request.parsing_header + data_header_end;
 		request.set_total_bytes_read( request.get_total_bytes_read() + data_header_end );
@@ -179,158 +181,14 @@ void ft::WebServer::header_parse( const char* input_buffer, Request& request ) {
 
 }
 
-void ft::WebServer::init_new_envp( std::map<std::string, std::string>& additions, Request& request ) {
-	additions["REQUEST_METHOD"] = "";
-	additions["PATH_INFO"] = "";
-	additions["AUTH_TYPE"] = "";//not used
-	additions["CONTENT_LENGTH"] = "";//needs elaboration
-	additions["CONTENT_TYPE"] = "";
-	additions["GATEWAY_INTERFACE"] = "";//not used
-	additions["PATH_TRANSLATED"] = "";//not used
-	additions["QUERY_STRING"] = "";
-	additions["REMOTE_ADDR"] = "";//not used
-	additions["REMOTE_HOST"] = "";
-	additions["REMOTE_IDENT"] = "";//not used
-	additions["REMOTE_USER"] = "";//not used
-	additions["REQUEST_METHOD"] = "";
-	additions["SCRIPT_NAME"] = "";//not perfect
-	additions["SERVER_NAME"] = "";//NYI
-	additions["SERVER_PORT"] = "";//NYI
-	additions["SERVER_PROTOCOL"] = "";
-	additions["SERVER_SOFTWARE"] = "";//not used
-	// additions["UPLOAD_PATH"] = "";//NYI
-
-
-	if(request.get_method() == GET)
-		additions["REQUEST_METHOD"] = "GET";
-	else if(request.get_method() == POST)
-		additions["REQUEST_METHOD"] = "POST";
-	else if(request.get_method() == DELETE)
-		additions["REQUEST_METHOD"] = "DELETE";
-
-	additions["PATH_INFO"] = request.get_requested_url();
-	additions["QUERY_STRING"] = request.get_query_string();
-	additions["SCRIPT_NAME"] = additions["PATH_INFO"];
-	additions["SERVER_PROTOCOL"] = "HTTP/1.1\0";
-
-	additions.insert( request.get_params_begin(), request.get_params_end() );
-
-	additions["REMOTE_HOST"] = additions["HTTP_HOST"];
-	additions["CONTENT_TYPE"] = additions["HTTP_CONTENT_TYPE"];
-
-	additions["SERVER_NAME"] = "";//NYI
-	additions["SERVER_PORT"] = "";//NYI
-
-
-
-
-}
-
-char** ft::WebServer::create_appended_envp( Request& request ) {
-	std::map<std::string, std::string> additions;
-	init_new_envp( additions, request);
-
-	int envp_len = 0;
-	while(envp[envp_len] != NULL) {
-		envp_len++;
-	}
-
-	int new_envp_len = envp_len + additions.size() + 1;
-	char** new_envp = new char* [new_envp_len];
-	for(int i = 0; i < new_envp_len; i++) {
-		new_envp[i] = NULL;
-	}
-
-	int cur = 0;
-	for(int i = 0; envp[i] != NULL; i++) {
-		new_envp[cur] = strdup( envp[i] );
-		cur++;
-	}
-
-	for(std::map<std::string, std::string>::iterator it = additions.begin(); it != additions.end(); it++) {
-		std::stringstream ss;
-		ss << it->first << "=" << it->second << "\0";
-		new_envp[cur] = strdup(ss.str().c_str());
-		cur++;
-	}
-	return new_envp;
-}
-
 bool ft::WebServer::response_POST( Request& request ) {
 	// std::cout << "========RESPONSE POST IS ACTIVE========" << std::endl;
 
 	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > 9 /*sizeof( "/cgi-bin/" )*/) { //if it is in /cgi-bin/
-		return execute_cgi( request );
+		return request.cgi_handler.execute();
+		// return execute_cgi( request );
 	}
 	return true;
-}
-
-
-bool ft::WebServer::execute_cgi( Request& request ) {
-
-	if(request.cgi_stage == CGI_NOT_STARTED) {
-		request.cgi_stage = CGI_PROCESSING;
-		char** cgi_envp = create_appended_envp( request );
-		int body_fd = open( (BUFFER_FILE + std::to_string( request.fd )).c_str(), O_RDONLY );
-		int response_file_fd = open( (BUFFER_FILE_CGIOUT + std::to_string( request.fd )).c_str(), O_WRONLY | O_CREAT, 0666 );
-		pid_t ret = fork();
-		if(ret == 0)
-		{
-			dup2( body_fd, 0 );
-			dup2( response_file_fd, 1 );
-			std::string filename = SERVER_DIR + request.get_requested_url();
-			execve( filename.c_str(), NULL, cgi_envp );
-			std::cout << "ERRRPR" << std::endl;
-			std::cout << strerror( errno ) << std::endl;
-			exit( 234 );
-		}
-		else {
-			request.cgi_pid = ret;
-			close( response_file_fd );
-			close( body_fd );
-		}
-	}
-	if(request.cgi_stage == CGI_PROCESSING) {
-		waitpid( request.cgi_pid, NULL, WNOHANG );
-		// request.cgi_stage = CGI_FINISHED;
-		if(kill( request.cgi_pid, 0 ) == -1) {
-			request.cgi_stage = CGI_FINISHED;
-		}
-	}
-	if(request.cgi_stage == CGI_FINISHED) {
-
-		std::ifstream cgi_response_file;
-		cgi_response_file.open( BUFFER_FILE_CGIOUT + std::to_string( request.fd ) );
-		if(!cgi_response_file.is_open())
-			std::cout << RED << strerror( errno ) << RESET << std::endl;
-		std::string content_type;
-		std::getline( cgi_response_file, content_type );
-		std::cout << RED << content_type << content_type.size() << " " << strlen( "Content-Type: text/html" ) << RESET << std::endl;
-
-		cgi_response_file.seekg( 0, std::ios::end );
-		long cgi_file_length = cgi_response_file.tellg();
-
-		cgi_response_file.close();
-
-		cgi_response_file.open( BUFFER_FILE_CGIOUT + std::to_string( request.fd ), std::ios::binary );
-
-
-		std::ofstream response_file;
-		response_file.open( BUFFER_FILE_OUT + std::to_string( request.fd ), std::ios::binary );
-		response_file << generate_response_head( 200 ) << "Content-Length:" << std::to_string( cgi_file_length - content_type.size() - 4 ) << "\r\n";
-
-		char buffer[CGI_BUFFER_SIZE + 1];
-		while(!cgi_response_file.eof()) {
-			bzero( buffer, CGI_BUFFER_SIZE );
-			cgi_response_file.read( buffer, CGI_BUFFER_SIZE );
-			response_file.write( buffer, cgi_response_file.gcount() );
-		}
-		cgi_response_file.close();
-		std::remove( (BUFFER_FILE_CGIOUT + std::to_string( request.fd )).c_str() );
-		response_file.close();
-		return true;
-	}
-	return false;
 }
 
 bool ft::WebServer::response_GET( Request& request ) {
@@ -343,7 +201,7 @@ bool ft::WebServer::response_GET( Request& request ) {
 		list_contents( SERVER_DIR + request.get_requested_url(), request );
 	}
 	else if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > sizeof( "/cgi-bin/" )) { //if it is in /cgi-bin/
-		return execute_cgi( request );
+		return request.cgi_handler.execute();
 	}
 	else {
 		//proceed with request
@@ -663,6 +521,7 @@ void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 					}
 					else if(fdset[i].revents & POLLIN && requests[fdset[i].fd].stage == REQUEST_PENDING) { // // понять кто убирает ПОЛИН возможно нужен флаг что мы закончили читать
 						int handler_ret = handler( requests[fdset[i].fd] );
+						requests[fdset[i].fd].set_cgi(envp);
 						std::cout << GREEN << i << ", fd = " << fdset[i].fd << " is read" << RESET << std::endl;
 						if(handler_ret == 1) { //returns if read is complete
 							requests[fdset[i].fd].stage = REQUEST_READ;

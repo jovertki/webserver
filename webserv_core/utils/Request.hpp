@@ -3,6 +3,8 @@
 #include <map>
 #include <vector>
 #include <fstream>
+#include "CGI_handler.hpp"
+
 namespace ft {
 	class Request {
 	private:
@@ -11,22 +13,20 @@ namespace ft {
 		std::string httpver;
 		int header_length;
 		std::string query_string;
-		std::map <std::string, std::string> params;
 		std::string get_requested_filename() const;
 
 		long total_bytes_read;
 		long full_request_length;
 	public:
 		unsigned long lastPos;
-
 		int stage;
-		int cgi_stage;
-		pid_t cgi_pid;
+
+		CGI_handler cgi_handler;
 		
 		int fd;
 		bool parsing_header;
 		bool parsing_data_header;
-		Request( );
+		Request();
 		// Request( const Request& a );
 		// Request& operator=( const Request& a );
 		int get_method() const;
@@ -36,14 +36,14 @@ namespace ft {
 		std::string get_content_type() const;
 		// std::ofstream get_body_fd() const;
 		std::string get_query_string() const;
-		std::map <std::string, std::string>get_params()const;
 		std::string get_param_value( const std::string& n );
 		int get_header_length()const;
-		std::map<std::string, std::string>::iterator get_params_begin();
-		std::map<std::string, std::string>::iterator get_params_end();
+		// std::map<std::string, std::string>::iterator get_params_begin() const;
+		// std::map<std::string, std::string>::iterator get_params_end() const;
 		long get_total_bytes_read() const;
 		long get_full_request_length() const;
 		
+		void set_cgi(char** envp);
 		void set_method( const int& );
 		void set_requested_url(const std::string&);
 		void set_httpver(const std::string&);
