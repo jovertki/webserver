@@ -18,7 +18,11 @@ namespace ft {
 		long full_request_length;
 	public:
 		unsigned long lastPos;
-		bool response_is_ready;
+
+		int stage;
+		int cgi_stage;
+		pid_t cgi_pid;
+		
 		int fd;
 		bool parsing_header;
 		bool parsing_data_header;

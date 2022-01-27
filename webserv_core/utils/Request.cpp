@@ -11,7 +11,9 @@ ft::Request::Request() {
 	set_full_request_length( BUFFER_SIZE );
 	parsing_header = true;
 	parsing_data_header = true;
-	response_is_ready = false;
+	cgi_stage = 0;
+	stage = REQUEST_PENDING;
+	cgi_pid = -1;
 	// needToReturn = 0;
 	lastPos = 0;
 	fd = -1;
@@ -188,6 +190,7 @@ void ft::Request::clear() {
 	params.clear();
 	total_bytes_read = 0;
 	full_request_length = 0;
+	cgi_stage = 0;
 }
 
 void ft::Request::set_param( const std::string& key, const std::string& value ) {
