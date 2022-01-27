@@ -2,7 +2,7 @@
 #include "../utils/Request.hpp"
 #include <exception>
 #include "../resources/defines.hpp"
-#include "../config_parser/Config_info.hpp"
+#include "../config_parser/ConfigInfo.hpp"
 #include "../sockets/ListeningSocket.hpp"
 #include <sys/poll.h> //
 
@@ -13,28 +13,28 @@ namespace ft {
 			virtual const char* what() const throw();
 		};
 		std::vector<ListeningSocket> socket_array;
-		std::vector<ServerConfig> serverInfo;
-		Config_info config;
+//		std::vector<ServerConfig> serverInfo;
+		ConfigInfo config;
 		char** envp;
 
 		std::map<int, std::string> response_messeges;
 	public:
-		WebServer(char **envp, Config_info &config);
+		WebServer(char **envp, ConfigInfo &config);
 		void launch( std::vector<pollfd>& fdset );
 		int id;
 		
 	private:
 		int accepter( int id );
 		int handler( Request& );
-		void generate_normal_response( Request&);
+		bool generate_normal_response( Request&);
 
 		bool is_directory( const std::string& path )const;
 		void list_contents( const std::string& path, Request& request )const;
 		void handle_errors( int error_code, Request& request );
-		void response_POST( Request& request );
-		void response_GET(Request& request);
-		void response_DELETE( Request& request );
-		void execute_cgi( Request& request );
+		bool response_POST( Request& request );
+		bool response_GET( Request& request );
+		bool response_DELETE( Request& request );
+		bool execute_cgi( Request& request );
 		void header_parse( const char*, Request& );
 		char** create_appended_envp( Request& request );
 		void init_new_envp( std::map<std::string, std::string>&, Request& );

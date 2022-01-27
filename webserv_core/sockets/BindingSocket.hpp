@@ -7,7 +7,7 @@ namespace ft {
 		int binding;
 		int connect_to_network( int sock, struct sockaddr_in address );
 	public:
-		BindingSocket( int domain, int service, int protocol, int port, u_long interface );
+		BindingSocket( int domain, int service, int protocol, int port, std::string interface );
 
 		int get_binding();
 	};
