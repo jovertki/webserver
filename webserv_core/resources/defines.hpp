@@ -8,6 +8,14 @@
 
 
 
+enum method {
+	EMPTY,
+	GET,
+	POST,
+	DELETE,
+	PUT
+};
+
 //request stages
 #define REQUEST_PENDING 0
 #define REQUEST_READ 1

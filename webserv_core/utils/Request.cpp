@@ -3,6 +3,7 @@
 #include <string>
 #include <fstream>
 #include <iostream>
+
 //#define MIME_FILE "../resources/mime.types"
 #define BUFFER_SIZE 30000 //is always bigger then 8000, max HTTP header size
 //buffer size defined not here
@@ -11,12 +12,15 @@ ft::Request::Request() {
 	set_full_request_length( BUFFER_SIZE );
 	parsing_header = true;
 	parsing_data_header = true;
-	cgi_stage = 0;
 	stage = REQUEST_PENDING;
-	cgi_pid = -1;
+	
 	// needToReturn = 0;
 	lastPos = 0;
 	fd = -1;
+}
+
+void ft::Request::set_cgi(char** envp) {
+	cgi_handler = CGI_handler( envp, fd, get_requested_url(), get_query_string(), get_method(), cgi_handler.params);
 }
 // ft::Request::Request( const ft::Request& a ) : method( a.method ), requested_url( a.requested_url ), httpver( a.httpver ), \
 // header_length( a.header_length ), query_string( a.query_string ), params( a.params ), \
@@ -96,9 +100,6 @@ std::string ft::Request::get_query_string() const {
 	return query_string;
 }
 
-std::map<std::string, std::string> ft::Request::get_params()const {
-	return params;
-}
 
 long ft::Request::get_total_bytes_read() const {
 	return total_bytes_read;
@@ -133,24 +134,24 @@ void ft::Request::set_query_string( const std::string& n ) {
 // }
 
 void ft::Request::set_params( const std::map <std::string, std::string>& n ) {
-	params = n;
+	cgi_handler.params = n;
 }
 
 
 void ft::Request::insert_param( const std::pair<std::string, std::string>& n ) {
-	params.insert( n );
+	cgi_handler.params.insert( n );
 
 }
 
 void ft::Request::print_params() {
 	//debug output
-	for(std::map<std::string, std::string>::const_iterator i = params.begin(); i != params.end(); i++) {
+	for(std::map<std::string, std::string>::const_iterator i = cgi_handler.params.begin(); i != cgi_handler.params.end(); i++) {
 		std::cout << MAGENTA << ( *i ).first << ":" << (*i).second <<RESET<< std::endl;
 	}
 }
 
 int ft::Request::param_exists( const std::string& n) const {
-	if(params.find( n ) != params.end())
+	if(cgi_handler.params.find( n ) != cgi_handler.params.end())
 		return 1;
 	else
 		return 0;
@@ -158,7 +159,7 @@ int ft::Request::param_exists( const std::string& n) const {
 
 std::string ft::Request::get_param_value( const std::string& n ) {
 	if(param_exists( n )) {
-		return params[n];
+		return cgi_handler.params[n];
 	}
 	else
 		return "";
@@ -172,13 +173,6 @@ int ft::Request::get_header_length()const {
 	return header_length;
 }
 
-std::map<std::string, std::string>::iterator ft::Request::get_params_begin() {
-	return params.begin();
-}
-std::map<std::string, std::string>::iterator ft::Request::get_params_end() {
-	return params.end();
-}
-
 void ft::Request::clear() {
 	method = 0;
 	requested_url = "";
@@ -187,14 +181,14 @@ void ft::Request::clear() {
 	// body_file.close();
 	std::remove( BUFFER_FILE );
 	query_string.clear();
-	params.clear();
+	cgi_handler.params.clear();
 	total_bytes_read = 0;
 	full_request_length = 0;
-	cgi_stage = 0;
+	cgi_handler = CGI_handler();
 }
 
 void ft::Request::set_param( const std::string& key, const std::string& value ) {
-	params[key] = value;
+	cgi_handler.params[key] = value;
 }
 
 void ft::Request::set_total_bytes_read(const long& n) {
