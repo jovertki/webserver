@@ -38,7 +38,7 @@ ft::WebServer::WebServer(char** envp, ConfigInfo& config ) : envp(envp ), id(), 
 		temp.revents = 0;
 		fdset.push_back( temp );
 	}
-	// signal( SIGPIPE, SIG_IGN);//perhaps should elaborate more
+	signal( SIGPIPE, SIG_IGN);//perhaps should elaborate more
 	init_response_msgs();
 	launch( fdset );
 }
