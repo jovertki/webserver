@@ -4,14 +4,14 @@
 #include <map>
 #include <algorithm>
 #include <fstream>
-
-enum method {
-    EMPTY,
-    GET,
-    POST,
-    DELETE,
-    PUT
-};
+#include "../resources/defines.hpp"
+// enum method {
+//     EMPTY,
+//     GET,
+//     POST,
+//     DELETE,
+//     PUT
+// };
 
 namespace utils {
     class parseExeption : public std::exception {
