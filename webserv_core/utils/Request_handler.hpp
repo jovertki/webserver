@@ -20,26 +20,28 @@ namespace ft {
 		long total_bytes_read;
 		int header_length;
 
-		//request stuff
-		//content_length value
+		
 		int* fd;
 		std::string *query_string;
 		int* method;
 		std::string* requested_url;
 		std::string* httpver;
 		std::map <std::string, std::string>* params;
-		
-		//insert param
-		//set header length
 
-		void handle_regular_body( int& current_pos, long& bytes_read, char buffer[], std::ofstream& body_file );
+		void open_file( std::ofstream& file );
+		int new_bytes_to_read();
+		
 		int handle( long& bytes_read, char buffer[], std::ofstream& body_file );
 		void header_parse( const char* input_buffer );
+		void handle_regular_body( int& current_pos, long& bytes_read, char buffer[], std::ofstream& body_file );
+
+
+		bool body_exists();
+		bool is_chunked();
+		bool is_multipart( long& bytes_read );
 		int get_method( const std::string& token );
 		void parse_query_string();
 		int find_header_length( const char* input_buffer );
 		void params_init( std::stringstream& ss );
-		void open_file( std::ofstream& file );
-		int new_bytes_to_read();
 	};
 }

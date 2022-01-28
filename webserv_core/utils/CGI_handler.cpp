@@ -12,19 +12,22 @@ ft::CGI_handler::~CGI_handler(){
 
 }
 
-ft::CGI_handler::CGI_handler( char** envp,  int* afd, \
-	 std::string* arequested_url,  std::string* aquery_string, \
-	 int* amethod,  std::map <std::string, std::string>* aparams ) : envp( envp ) {
-	stage = REQUEST_PENDING;
-	cgi_pid = -1;
-	init_response_msgs();
-	fd = afd;
-	requested_url = arequested_url;
-	query_string = aquery_string;
-	method = amethod;
-	params = aparams;
+bool ft::CGI_handler::is_initialised() {
+	if(envp == NULL) {
+		return false;
+	}
+	else
+		return true;
 }
-bool ft::CGI_handler::execute(){
+
+ft::CGI_handler::CGI_handler( char** envp, int* afd, \
+	 std::string* arequested_url,  std::string* aquery_string, \
+	int* amethod, std::map <std::string, std::string>* aparams ) : envp( envp ), stage( CGI_NOT_STARTED ), cgi_pid( -1 ), \
+	fd( afd ), requested_url( arequested_url ), query_string( aquery_string ), method( amethod ), params( aparams ) {
+	init_response_msgs();
+}
+
+bool ft::CGI_handler::execute() {
 	if (stage == CGI_NOT_STARTED){
 		this->start();
 

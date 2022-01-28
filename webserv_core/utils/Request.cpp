@@ -11,15 +11,15 @@ ft::Request::Request() {
 	clear();
 	parsing_data_header = true;
 	stage = REQUEST_PENDING;
-	
-	// needToReturn = 0;
 	lastPos = 0;
 	fd = -1;
 }
 
-void ft::Request::set_cgi(char** envp) {
-	cgi_handler = CGI_handler( envp, &fd, &requested_url, \
-		& query_string, &method, &params );
+void ft::Request::set_cgi( char** envp ) {
+	if(!cgi_handler.is_initialised()) {
+		cgi_handler = CGI_handler( envp, &fd, &requested_url, \
+			& query_string, &method, &params );
+	}
 }
 
 void ft::Request::set_request_handler() {
@@ -27,7 +27,6 @@ void ft::Request::set_request_handler() {
 		rhandler = Request_handler( &fd, &method, &requested_url, \
 			& httpver, &params, &query_string );
 	}
-
 }
 // ft::Request::Request( const ft::Request& a ) : method( a.method ), requested_url( a.requested_url ), httpver( a.httpver ), \
 // header_length( a.header_length ), query_string( a.query_string ), params( a.params ), \
@@ -150,12 +149,19 @@ std::string ft::Request::get_param_value( const std::string& n ) {
 }
 
 void ft::Request::clear() {
+	fd = -1;
 	method = 0;
 	requested_url = "";
 	httpver = "";
 	query_string.clear();
 	params.clear();
 	cgi_handler = CGI_handler();
+	rhandler = Request_handler();
+	stage = REQUEST_PENDING;
+	parsing_data_header = true;
+	stage = REQUEST_PENDING;
+	lastPos = 0;
+	fd = -1;
 }
 
 void ft::Request::set_param( const std::string& key, const std::string& value ) {

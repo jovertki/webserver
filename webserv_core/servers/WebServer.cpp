@@ -169,7 +169,7 @@ bool ft::WebServer::response_DELETE( Request& request ) {
 	return true;
 }
 
-bool ft::WebServer::generate_normal_response( Request& request ) {
+bool ft::WebServer::generate_regular_response( Request& request ) {
 	//check availability of method in location
 	if(request.get_method() == GET)
 		return response_GET( request );
@@ -332,8 +332,8 @@ bool ft::WebServer::send_response( Request& request) const {
 		std::cout << RED << "send_response: " << strerror( errno ) <<RESET<< std::endl; // exeption
 	}
 	file.seekg( request.lastPos, std::ios_base::beg );
-	char buffer[8000];
-	file.read( buffer, 8000 );
+	char buffer[30000];
+	file.read( buffer, 30000 );
 	// check gcount
 	unsigned int bytes_written = write( request.fd, buffer, file.gcount() );
 	if(bytes_written != file.gcount())
@@ -406,6 +406,87 @@ int ft::WebServer::get_size_serverInfo() const {
 	return config.getServers().size();
 }
 
+void ft::WebServer::check_new_clients( std::vector<pollfd>& fdset, std::map<int, Request>& requests ) {
+	for(int i = 0; i < get_size_serverInfo(); ++i) {
+		if(fdset[i].revents & POLLIN) {
+			pollfd temp;
+			temp.fd = accepter( i );
+			if(temp.fd == -1) //skip errors on accept
+				continue;
+			temp.events = (POLLIN | POLLERR);
+			fdset.push_back( temp );
+			requests[temp.fd] = Request();
+			requests[temp.fd].fd = temp.fd;
+			std::cout << GREEN << i << ", on fd = " << fdset[i].fd << " request is accepted" << RESET << std::endl;
+		}
+	}
+}
+
+
+void ft::WebServer::respond( pollfd& fdset, Request& request ) {
+	int fdset_fd = fdset.fd;
+	if(send_response( request )) {
+		if(std::remove( (BUFFER_FILE + std::to_string( fdset_fd )).c_str() )) {
+			//error
+		}
+		if(std::remove( (BUFFER_FILE_OUT + std::to_string( fdset_fd )).c_str() )) {
+			//error
+		}
+		request = Request();
+		request.fd = fdset_fd;
+		fdset.events = (POLLIN | POLLERR);
+		request.stage = REQUEST_PENDING;
+	}
+}
+
+
+int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
+	request.set_request_handler();
+	int handler_ret = request.rhandler.execute();
+	request.set_cgi( envp );
+	if(handler_ret == 1) { //returns if read is complete
+		fdset.events = (POLLOUT | POLLERR);
+	}
+	else if(handler_ret == 2) {//returns if 0 bytes_read
+		std::cout << GREEN << "read 0 on fd " << fdset.fd << RESET << std::endl;
+		close( fdset.fd );
+		if(std::remove( (BUFFER_FILE + std::to_string( fdset.fd )).c_str() )) {
+			//error
+		}
+		if(std::remove( (BUFFER_FILE_OUT + std::to_string( fdset.fd )).c_str() )) {
+			//error
+		}
+	}
+	return handler_ret;
+}
+
+void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int, Request>& requests ) {
+	for(int i = fdset.size() - 1; i >= get_size_serverInfo(); --i) {
+		if(fdset[i].revents & POLLIN && requests[fdset[i].fd].stage == REQUEST_PENDING) { // // понять кто убирает ПОЛИН возможно нужен флаг что мы закончили читать
+			std::cout << GREEN << i << ", fd = " << fdset[i].fd << " is read" << RESET << std::endl;
+			int recieve_ret = recieve_request( fdset[i], requests[fdset[i].fd] );
+			if(recieve_ret == 2) {
+				requests.erase( fdset[i].fd );
+				fdset.erase( fdset.begin() + i );
+			}
+			else if(recieve_ret == 1) {
+				requests[fdset[i].fd].stage = REQUEST_READ;
+			}
+		}
+		else if(requests[fdset[i].fd].stage == REQUEST_READ) {
+			if(generate_regular_response( requests[fdset[i].fd] )) {//response is ready
+				requests[fdset[i].fd].stage = REQUEST_GENERATED;
+			}
+		}
+		else if(fdset[i].revents & POLLOUT && requests[fdset[i].fd].stage == REQUEST_GENERATED) { // понять кто ставит ПОЛАУТ возможно нужен флаг что мы готовы ответить
+			std::cout << GREEN << "socket " << i << ", fd = " << fdset[i].fd << " is being written to" << RESET << std::endl;
+			respond( fdset[i], requests[fdset[i].fd] );
+		}
+
+	}
+}
+
+
 
 
 void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
@@ -419,72 +500,18 @@ void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 
 		// }
 		// проверяем успешность вызова
+		if(ret == 0) {
+			//??????
+		}
 		if(ret == -1)
 			std::cout << "Fail from poll\n"; // ошибка
 		else if(ret > 0) {
 			if(!is_cheking) {
-				for(int i = fdset.size() - 1; i >= get_size_serverInfo(); --i) {
-					if(fdset[i].revents & POLLOUT && requests[fdset[i].fd].stage == REQUEST_GENERATED) { // понять кто ставит ПОЛАУТ возможно нужен флаг что мы готовы ответить
-						int LUL = 5;
-						std::cout << GREEN << "socket " << i << ", fd = " << fdset[i].fd << " is being written to" << RESET << std::endl;
-						if(send_response( requests[fdset[i].fd] )) {
-							if(std::remove( (BUFFER_FILE + std::to_string( fdset[i].fd )).c_str() )) {
-								//error
-							}
-							if(std::remove( (BUFFER_FILE_OUT + std::to_string( fdset[i].fd )).c_str() )) {
-								//error
-							}
-							requests[fdset[i].fd] = Request();
-							requests[fdset[i].fd].fd = fdset[i].fd;
-							fdset[i].events = (POLLIN | POLLERR);
-						}
-						
-					}
-					else if(fdset[i].revents & POLLIN && requests[fdset[i].fd].stage == REQUEST_PENDING) { // // понять кто убирает ПОЛИН возможно нужен флаг что мы закончили читать
-						requests[fdset[i].fd].set_request_handler();
-						int handler_ret = requests[fdset[i].fd].rhandler.execute();
-						requests[fdset[i].fd].set_cgi( envp );
-						std::cout << GREEN << i << ", fd = " << fdset[i].fd << " is read" << RESET << std::endl;
-						if(handler_ret == 1) { //returns if read is complete
-							requests[fdset[i].fd].stage = REQUEST_READ;
-							fdset[i].events = (POLLOUT | POLLERR);
-						}
-						else if(handler_ret == 2) {//returns if 0 bytes_read
-							std::cout << GREEN << "read 0 on fd " << fdset[i].fd << RESET << std::endl;
-							close( fdset[i].fd );
-							if(std::remove( (BUFFER_FILE + std::to_string( fdset[i].fd )).c_str() )) {
-								//error
-							}
-							if(std::remove( (BUFFER_FILE_OUT + std::to_string( fdset[i].fd )).c_str() )) {
-								//error
-							}
-							requests.erase( fdset[i].fd );
-							fdset.erase( fdset.begin() + i );
-						}
-					}
-					else if(requests[fdset[i].fd].stage == REQUEST_READ) {
-						if(generate_normal_response( requests[fdset[i].fd] )) {//response is ready
-							requests[fdset[i].fd].stage = REQUEST_GENERATED;
-						}
-					}
-
-				}
+				work_with_clients( fdset, requests );
 				is_cheking = true;
 			}
 			if(is_cheking) {
-				for(int i = 0; i < get_size_serverInfo(); ++i) {
-					if(fdset[i].revents & POLLIN) {
-						pollfd temp;
-						temp.fd = accepter( i );
-						if(temp.fd == -1) //skip errors on accept
-							continue;
-						temp.events = (POLLIN | POLLERR);
-						fdset.push_back( temp );
-						requests[temp.fd] = Request();
-						requests[temp.fd].fd = temp.fd;
-						std::cout << GREEN << i << ", on fd = " << fdset[i].fd << " request is accepted" << RESET << std::endl;
-					}
-				}
+				check_new_clients( fdset, requests );
 				is_cheking = false;
 			}
 		}

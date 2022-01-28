@@ -38,7 +38,6 @@ namespace ft {
 		std::string get_httpver() const;
 		std::string get_requested_url_extention() const;
 		std::string get_content_type() const;
-		// std::ofstream get_body_fd() const;
 		std::string get_query_string() const;
 		std::string get_param_value( const std::string& n );
 		

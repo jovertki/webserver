@@ -5,19 +5,11 @@
 namespace ft {
 
 	Request_handler::Request_handler( int* afd, int* amethod, std::string* arurl, \
-		std::string* ahttpver, std::map <std::string, std::string>* aparams, std::string* aqstr ) {
-		parsing_header = true;
-		full_request_length = BUFFER_SIZE;
-		total_bytes_read = 0;
-		header_length = 0;
-
-		fd = afd;
-		method = amethod;
-		requested_url = arurl;
-		httpver = ahttpver;
-		params = aparams;
-		query_string = aqstr;
-	}
+		std::string* ahttpver, std::map <std::string, std::string>* aparams, std::string* aqstr ) \
+		: parsing_header( true ), full_request_length( BUFFER_SIZE ), \
+		total_bytes_read( 0 ), header_length( 0 ), fd( afd ), \
+		method( amethod ), requested_url( arurl ), httpver( ahttpver ), \
+		params( aparams ), query_string( aqstr ) {}
 
 	bool Request_handler::is_initialised() {
 		if(fd == NULL)
@@ -30,9 +22,6 @@ namespace ft {
 		char buffer[BUFFER_SIZE + 1] = { 0 };
 		int bytes_to_read;
 		long bytes_read;
-		std::ofstream body_file;
-		
-		open_file( body_file );
 		bytes_to_read = new_bytes_to_read();
 		bytes_read = read( *fd, buffer, bytes_to_read );
 		if(bytes_read == -1) {
@@ -42,19 +31,13 @@ namespace ft {
 			return 2;
 		}
 		else {
+			std::ofstream body_file;
+			open_file( body_file );
 			int ret = handle( bytes_read, buffer, body_file );
 			body_file.close();
 			return ret;
 		}
-
-
-		
 	}
-
-
-
-
-
 
 	void Request_handler::open_file( std::ofstream& file ) {
 		if(parsing_header) {
@@ -163,28 +146,48 @@ namespace ft {
 			total_bytes_read++;
 		}
 	}
-	
+
+	bool Request_handler::body_exists() {
+		if((*params)["HTTP_CONTENT_LENGTH"] != "" || is_chunked()) {
+			return true;
+		}
+		else
+			return false;
+	}
+
+	bool Request_handler::is_chunked() {
+		if((*params)["HTTP_TRANSFER_ENCODING"].find( "chunked" ) != std::string::npos) {
+			return true;
+		}
+		else
+			return false;
+	}
+
+	bool Request_handler::is_multipart( long& bytes_read ) {
+		if((*params)["HTTP_CONTENT_TYPE"].find( "multipart/form-data" ) != std::string::npos \
+			&& bytes_read > header_length + 4) {
+			return true;
+		}
+		else
+			return false;
+	}
 	int Request_handler::handle( long& bytes_read, char buffer[], std::ofstream& body_file ) {
 		int begin_pos = 0;
+		int is_over = 0;
 		if(parsing_header) {
 			header_parse( buffer );
 			begin_pos = header_length + 4;
 		}
-		if((*params)["HTTP_CONTENT_LENGTH"] != ""){//meaning we have  body
-			if((*params)["HTTP_CONTENT_TYPE"].find( "multipart/form-data" ) != std::string::npos \
-				&& bytes_read != header_length + 4) { //meaning file is being uploaded
+		if(body_exists()) {
+			if(is_chunked()) {
+				// is_over = parseChunkedBody();//returns 1 if we have read everything, 0 otherwise
+			}
+			if(is_multipart( bytes_read )) {
 				// handle_multipart( request, buffer, bytes_read, body_file );
 			}
-			// else if(request.get_param_value( "HTTP_TRANSFER_ENCODING" ).find( "chunked" ) != std::string::npos \
-			// 	&& bytes_read != request.get_header_length() + 4) {
-			// 	return parseChunkedBody();
-			// 	body_file.close();
-			// }
-			else {
-				handle_regular_body( begin_pos, bytes_read, buffer, body_file );
-			}
+			handle_regular_body( begin_pos, bytes_read, buffer, body_file );
 		}
-		if(full_request_length - total_bytes_read <= 0)//meaning we have read everything
+		if((!is_chunked() && full_request_length - total_bytes_read <= 0) || is_over)//meaning we have read everything
 			return 1;
 		else
 			return 0;

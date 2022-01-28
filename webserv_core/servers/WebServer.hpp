@@ -27,7 +27,7 @@ namespace ft {
 	private:
 		int accepter( int id );
 		int handler( Request& );
-		bool generate_normal_response( Request&);
+		bool generate_regular_response( Request& );
 
 		bool is_directory( const std::string& path )const;
 		void list_contents( const std::string& path, Request& request )const;
@@ -44,8 +44,12 @@ namespace ft {
 		void handle_multipart( Request& request, \
 			char* buffer, long& bytes_read, std::ofstream& body_file);
 
+		void check_new_clients( std::vector<pollfd>& fdset, std::map<int, Request>& requests );
+		void work_with_clients( std::vector<pollfd>& fdset, std::map<int, Request>& requests );
 
-
+		void respond( pollfd& fdset, Request& request );
+		int recieve_request( pollfd& fdset, Request& request );
+		
 		void newest_global_loop( std::vector<pollfd>& fdset );
 		std::vector<ListeningSocket> get_socket_array()const;
 		int get_size_serverInfo() const;

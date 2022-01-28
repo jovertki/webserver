@@ -7,6 +7,16 @@
 
 namespace ft {
 	class CGI_handler {
+	public:
+		CGI_handler( char** envp = NULL,  int* afd = NULL, \
+			std::string* arequested_url = NULL,  std::string* aquery_string = NULL, \
+			int* amethod = NULL,  std::map <std::string, std::string>* aparams = NULL );
+
+		CGI_handler(const CGI_handler& a);
+		~CGI_handler();
+		
+		bool is_initialised();
+		bool execute();
 	private:
 		int stage;
 		pid_t cgi_pid;
@@ -30,15 +40,5 @@ namespace ft {
 		void init_response_msgs();
 		std::string generate_response_head( const int& code );
 		// CGI_handler& operator=(const CGI_handler& a);
-	public:
-		CGI_handler( char** envp = NULL,  int* afd = NULL, \
-			 std::string* arequested_url = NULL,  std::string* aquery_string = NULL, \
-			 int* amethod = NULL,  std::map <std::string, std::string>* aparams = NULL );
-
-		CGI_handler(const CGI_handler& a);
-		~CGI_handler();
-		
-
-		bool execute();
 	};
 }
