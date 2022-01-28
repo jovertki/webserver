@@ -8,10 +8,13 @@
 
 
 #define DEBUG_MODE 1
+
 #define BUFFER_SIZE 30000 //is always bigger then 8000, max HTTP header size
+#define CGI_BUFFER_SIZE 8000
+
+
 #define BACKLOG 20
 #define TIMEOUT -1
-
 
 enum method {
 	EMPTY,
@@ -21,17 +24,6 @@ enum method {
 	PUT
 };
 
-//request stages
-#define REQUEST_PENDING 0
-#define REQUEST_READ 1
-#define REQUEST_GENERATED 2
-
-
-//cgi stages
-#define CGI_NOT_STARTED 0
-#define CGI_PROCESSING 1
-#define CGI_FINISHED 2
-#define CGI_BUFFER_SIZE 8000
 //colored output
 #define RESET   "\033[0m"
 #define BLACK   "\033[30m"      /* Black */

@@ -7,6 +7,11 @@
 #include <iostream>
 #include <signal.h>
 
+//cgi stages
+#define CGI_NOT_STARTED 0
+#define CGI_PROCESSING 1
+#define CGI_FINISHED 2
+
 
 ft::CGI_handler::~CGI_handler(){
 

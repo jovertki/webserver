@@ -130,7 +130,6 @@ namespace ft {
 		ss >> *httpver;
 		params_init( ss );
 		header_length = find_header_length( input_buffer );
-		// request.set_full_request_length( request.get_header_length() + 4 + atol( (request.get_param_value( "HTTP_CONTENT_LENGTH" )).c_str() ) );
 		full_request_length = header_length + 4 + atol( (*params)["HTTP_CONTENT_LENGTH"].c_str() );//!!!!!!! POSSIBLE ERROR
 		total_bytes_read = header_length + 4;
 		if(DEBUG_MODE) {

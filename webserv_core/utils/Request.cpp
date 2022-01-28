@@ -4,9 +4,11 @@
 #include <fstream>
 #include <iostream>
 
-//#define MIME_FILE "../resources/mime.types"
-// #define BUFFER_SIZE 30000 //is always bigger then 8000, max HTTP header size
-//buffer size defined not here
+//request stages
+#define REQUEST_PENDING 0
+#define REQUEST_READ 1
+#define REQUEST_GENERATED 2
+
 ft::Request::Request() {
 	clear();
 	parsing_data_header = true;
@@ -133,20 +135,20 @@ void ft::Request::print_params() {
 	}
 }
 
-int ft::Request::param_exists( const std::string& n) const {
-	if(params.find( n ) != params.end())
-		return 1;
-	else
-		return 0;
-}
+// int ft::Request::param_exists( const std::string& n) const {
+// 	if(params.find( n ) != params.end())
+// 		return 1;
+// 	else
+// 		return 0;
+// }
 
-std::string ft::Request::get_param_value( const std::string& n ) {
-	if(param_exists( n )) {
-		return params[n];
-	}
-	else
-		return "";
-}
+// std::string ft::Request::get_param_value( const std::string& n ) {
+// 	if(param_exists( n )) {
+// 		return params[n];
+// 	}
+// 	else
+// 		return "";
+// }
 
 void ft::Request::clear() {
 	fd = -1;
@@ -166,4 +168,44 @@ void ft::Request::clear() {
 
 void ft::Request::set_param( const std::string& key, const std::string& value ) {
 	params[key] = value;
+}
+
+
+bool ft::Request::is_pending() const{
+	if(stage == REQUEST_PENDING)
+		return true;
+	else
+		return false;
+}
+bool ft::Request::is_read() const{
+	if(stage == REQUEST_READ)
+		return true;
+	else
+		return false;
+}
+bool ft::Request::is_generated() const {
+	if(stage == REQUEST_GENERATED)
+		return true;
+	else
+		return false;
+}
+
+void ft::Request::set_stage( const int& n) {
+	stage = n;
+}
+
+bool ft::Request::execute_cgi() {
+	return cgi_handler.execute();
+}
+
+int ft::Request::execute_handler() {
+	return rhandler.execute();
+}
+
+int ft::Request::get_fd() const {
+	return fd;
+}
+
+void ft::Request::set_fd( const int& n) {
+	fd = n;
 }
