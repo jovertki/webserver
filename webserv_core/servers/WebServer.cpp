@@ -472,12 +472,12 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 				requests.erase( current_pollfd.fd );
 				fdset.erase( fdset.begin() + i );
 			}
-			else if(recieve_ret == 1) {
+			else if(recieve_ret == 1) {//we have read everything
 				current_request.set_stage(REQUEST_FINISHED_READING);
 			}
 		}
 		else if(current_request.is_finished_reading()) {
-			if(generate_regular_response( current_request )) {
+			if(generate_regular_response( current_request )) {//response is ready
 				current_request.set_stage(RESPONCE_GENERATED);
 			}
 		}
