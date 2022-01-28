@@ -1,4 +1,4 @@
-
+#pragma once
 #include "BindingSocket.hpp"
 
 namespace ft{
