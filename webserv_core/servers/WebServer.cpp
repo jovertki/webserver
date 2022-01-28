@@ -11,13 +11,9 @@
 #include <cctype>
 #include <errno.h>
 #include <cstdlib>
-#include <sstream>
 #include <map>
 #include <signal.h>
-#define DEBUG_MODE 1
-#define BUFFER_SIZE 10000 //is always bigger then 8000, max HTTP header size
-#define BACKLOG 20
-#define TIMEOUT -1
+
 const char* ft::WebServer::error_request_code::what() const throw() {
 	return ("error");
 }
@@ -43,57 +39,57 @@ ft::WebServer::WebServer( char** envp, ConfigInfo& config ) : envp( envp ), id()
 	launch( fdset );
 }
 
-void ft::WebServer::handle_multipart( Request& request, \
-	char* buffer, long& bytes_read, std::ofstream& body_file ) {
-	std::string type = request.get_param_value( "HTTP_CONTENT_TYPE" );
-	std::string boundary = type.substr( type.find( "boundary=" ) + 9 );
-	boundary.insert( 0, "--" );
-	boundary.insert( boundary.size(), "\0" );
-	int i = 0;
-	if(request.parsing_data_header) {
-		std::string data_header;
-		std::size_t data_header_end = 0;
-		int data_header_begin = (request.get_header_length() + 4) * request.parsing_header;
-		data_header.insert( 0, &buffer[data_header_begin] );
-		if(data_header.size() != 0) {//there is body and this is not a first post request
-			//request.print_params();
-			if(DEBUG_MODE)
-				std::cout << RED << "data header = " << data_header << RESET << std::endl;
-			std::size_t filename_start = data_header.find( "filename=" );
-			std::size_t filename_end = data_header.find( "\r\n", filename_start );
-			std::string filename( data_header.substr( filename_start + 10, filename_end - filename_start - 11 ) );
-			data_header_end = data_header.find( "\r\n\r\n" ) + 4;
-			std::string upload_path = SERVER_DIR + std::string( "/uploads" ) + "/";
-			filename.insert( 0, upload_path );
-			if(DEBUG_MODE)
-				std::cout << BLUE << filename << RESET << std::endl;
-			std::cout << RED << "CHECK1" << data_header << RESET << std::endl;
-			request.set_param( "UPLOAD_PATH", filename );
-			std::cout << RED << "CHECK2" << data_header << RESET << std::endl;
-		}
-		i = (request.get_header_length() + 4) * request.parsing_header + data_header_end;
-		request.set_total_bytes_read( request.get_total_bytes_read() + data_header_end );
-		request.parsing_data_header = false;
-	}
-	for(; i < bytes_read && request.get_total_bytes_read() < request.get_full_request_length(); i++) {
-		if(i + boundary.size() + 2 <= bytes_read) {
-			if(buffer[i] == '\r') {
-				if(strncmp( &buffer[i + 2], boundary.c_str(), boundary.size() - 1 ) == 0) {
-					request.set_total_bytes_read( request.get_total_bytes_read() + boundary.size() + 5 );
-					break;
-				}
-			}
-			if(buffer[i] == '\n') {
-				if(strncmp( &buffer[i + 1], boundary.c_str(), boundary.size() - 1 ) == 0) {
-					request.set_total_bytes_read( request.get_total_bytes_read() + boundary.size() + 4 );
-					break;
-				}
-			}
-		}
-		body_file << buffer[i];
-		request.set_total_bytes_read( request.get_total_bytes_read() + 1 );
-	}
-}
+// void ft::WebServer::handle_multipart( Request& request, \
+// 	char* buffer, long& bytes_read, std::ofstream& body_file) {
+// 	std::string type = request.get_param_value( "HTTP_CONTENT_TYPE" );
+// 	std::string boundary = type.substr( type.find( "boundary=" ) + 9 );
+// 	boundary.insert( 0, "--" );
+// 	boundary.insert( boundary.size(), "\0" );
+// 	int i = 0;
+// 	if(request.parsing_data_header) {
+// 		std::string data_header;
+// 		std::size_t data_header_end = 0;
+// 		int data_header_begin = (request.get_header_length() + 4) * request.parsing_header;
+// 		data_header.insert( 0, &buffer[data_header_begin] );
+// 		if(data_header.size() != 0) {//there is body and this is not a first post request
+// 			//request.print_params();
+// 			if(DEBUG_MODE)
+// 				std::cout << RED << "data header = " << data_header << RESET << std::endl;
+// 			std::size_t filename_start = data_header.find( "filename=" );
+// 			std::size_t filename_end = data_header.find( "\r\n", filename_start );
+// 			std::string filename( data_header.substr( filename_start + 10, filename_end - filename_start - 11 ) );
+// 			data_header_end = data_header.find( "\r\n\r\n" ) + 4;
+// 			std::string upload_path = SERVER_DIR + std::string( "/uploads" ) + "/";
+// 			filename.insert( 0, upload_path );
+// 			if(DEBUG_MODE)
+// 				std::cout << BLUE << filename << RESET << std::endl;
+// 			std::cout << RED << "CHECK1" << data_header << RESET << std::endl;
+// 			request.set_param( "UPLOAD_PATH", filename );
+// 			std::cout << RED << "CHECK2" << data_header << RESET << std::endl;
+// 		}
+// 		i = (request.get_header_length() + 4) * request.parsing_header + data_header_end;
+// 		request.set_total_bytes_read( request.get_total_bytes_read() + data_header_end );
+// 		request.parsing_data_header = false;
+// 	}
+// 	for(; i < bytes_read && request.get_total_bytes_read() < request.get_full_request_length(); i++) {
+// 		if(i + boundary.size() + 2 <= bytes_read) {
+// 			if(buffer[i] == '\r') {
+// 				if(strncmp( &buffer[i + 2], boundary.c_str(), boundary.size() - 1 ) == 0) {
+// 					request.set_total_bytes_read( request.get_total_bytes_read() + boundary.size() + 5 );
+// 					break;
+// 				}
+// 			}
+// 			if(buffer[i] == '\n') {
+// 				if(strncmp( &buffer[i + 1], boundary.c_str(), boundary.size() - 1 ) == 0) {
+// 					request.set_total_bytes_read( request.get_total_bytes_read() + boundary.size() + 4 );
+// 					break;
+// 				}
+// 			}
+// 		}
+// 		body_file << buffer[i];
+// 		request.set_total_bytes_read( request.get_total_bytes_read() + 1 );
+// 	}
+// }
 
 int ft::WebServer::accepter( int id ) {
 
@@ -104,81 +100,6 @@ int ft::WebServer::accepter( int id ) {
 	int new_socket = accept( get_socket_array()[id].get_sock(), (struct sockaddr*)&address, (socklen_t*)&addrlen ); //
 	fcntl( new_socket, F_SETFL, O_NONBLOCK );
 	return new_socket;
-}
-
-void ft::WebServer::header_parse( const char* input_buffer, Request& request ) {
-	std::stringstream ss;
-	ss << input_buffer;
-	std::string token;
-	ss >> token;
-
-	//find method
-	if(token == "GET") {
-		request.set_method( GET );
-	}
-	else if(token == "POST") {
-		request.set_method( POST );
-	}
-	else if(token == "DELETE") {
-		request.set_method( DELETE );
-	}
-	else {
-		//ERROR: INVALID METHOD
-	}
-	if(DEBUG_MODE)
-		std::cout << "Method is " << request.get_method() << std::endl;
-
-	//find url
-	ss >> token;
-	request.set_requested_url( token );
-
-	//find args in url if any
-	std::size_t questionmark = request.get_requested_url().find( "?" );
-	if(questionmark != std::string::npos) {
-		request.set_query_string( request.get_requested_url().substr( questionmark + 1 ) );
-		request.set_requested_url( request.get_requested_url().substr( 0, questionmark ) );
-	}
-	else
-		request.set_query_string( "" );
-	if(DEBUG_MODE)
-		std::cout << "URL is |" << request.get_requested_url() << "|" << std::endl;
-
-	//find httpver
-	ss >> token;
-	request.set_httpver( token );
-	if(DEBUG_MODE)
-		std::cout << "HTTPVER is |" << request.get_httpver() << "|" << std::endl;
-
-	//fill params with http request headers
-	std::string buffer;
-	getline( ss, buffer ); //empty line
-	getline( ss, buffer );//first line of headers
-	while(buffer != "\r")
-	{
-		size_t colon = buffer.find( ':' );
-		if(colon == std::string::npos) {
-			//error in header
-			break;
-		}
-		std::string key = buffer.substr( 0, colon );
-		key = "HTTP_" + key;
-		for(int i = 0; i < key.size(); i++) {
-			if(key[i] == '-')
-				key[i] = '_';
-			key[i] = std::toupper( key[i] );
-		}
-		request.insert_param( make_pair( key, buffer.substr( colon + 2, buffer.size() - colon - 2 ) ) );
-		if(!getline( ss, buffer )) {
-			//ERROR INVALID REQUEST
-		}
-
-	}
-	std::string buffer_string( input_buffer );
-	request.set_header_length( buffer_string.find( "\r\n\r\n" ) );
-
-	//debug only
-	//request.print_params();
-
 }
 
 bool ft::WebServer::response_POST( Request& request ) {
@@ -248,7 +169,7 @@ bool ft::WebServer::response_DELETE( Request& request ) {
 	return true;
 }
 
-bool ft::WebServer::generate_normal_response( Request& request ) {
+bool ft::WebServer::generate_regular_response( Request& request ) {
 	//check availability of method in location
 	if(request.get_method() == GET)
 		return response_GET( request );
@@ -411,8 +332,8 @@ bool ft::WebServer::send_response( Request& request ) const {
 		std::cout << RED << "send_response: " << strerror( errno ) << RESET << std::endl; // exeption
 	}
 	file.seekg( request.lastPos, std::ios_base::beg );
-	char buffer[8000];
-	file.read( buffer, 8000 );
+	char buffer[30000];
+	file.read( buffer, 30000 );
 	// check gcount
 	unsigned int bytes_written = write( request.fd, buffer, file.gcount() );
 	if(bytes_written != file.gcount())
@@ -485,6 +406,87 @@ int ft::WebServer::get_size_serverInfo() const {
 	return config.getServers().size();
 }
 
+void ft::WebServer::check_new_clients( std::vector<pollfd>& fdset, std::map<int, Request>& requests ) {
+	for(int i = 0; i < get_size_serverInfo(); ++i) {
+		if(fdset[i].revents & POLLIN) {
+			pollfd temp;
+			temp.fd = accepter( i );
+			if(temp.fd == -1) //skip errors on accept
+				continue;
+			temp.events = (POLLIN | POLLERR);
+			fdset.push_back( temp );
+			requests[temp.fd] = Request();
+			requests[temp.fd].fd = temp.fd;
+			std::cout << GREEN << i << ", on fd = " << fdset[i].fd << " request is accepted" << RESET << std::endl;
+		}
+	}
+}
+
+
+void ft::WebServer::respond( pollfd& fdset, Request& request ) {
+	int fdset_fd = fdset.fd;
+	if(send_response( request )) {
+		if(std::remove( (BUFFER_FILE + std::to_string( fdset_fd )).c_str() )) {
+			//error
+		}
+		if(std::remove( (BUFFER_FILE_OUT + std::to_string( fdset_fd )).c_str() )) {
+			//error
+		}
+		request = Request();
+		request.fd = fdset_fd;
+		fdset.events = (POLLIN | POLLERR);
+		request.stage = REQUEST_PENDING;
+	}
+}
+
+
+int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
+	request.set_request_handler();
+	int handler_ret = request.rhandler.execute();
+	request.set_cgi( envp );
+	if(handler_ret == 1) { //returns if read is complete
+		fdset.events = (POLLOUT | POLLERR);
+	}
+	else if(handler_ret == 2) {//returns if 0 bytes_read
+		std::cout << GREEN << "read 0 on fd " << fdset.fd << RESET << std::endl;
+		close( fdset.fd );
+		if(std::remove( (BUFFER_FILE + std::to_string( fdset.fd )).c_str() )) {
+			//error
+		}
+		if(std::remove( (BUFFER_FILE_OUT + std::to_string( fdset.fd )).c_str() )) {
+			//error
+		}
+	}
+	return handler_ret;
+}
+
+void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int, Request>& requests ) {
+	for(int i = fdset.size() - 1; i >= get_size_serverInfo(); --i) {
+		if(fdset[i].revents & POLLIN && requests[fdset[i].fd].stage == REQUEST_PENDING) { // // понять кто убирает ПОЛИН возможно нужен флаг что мы закончили читать
+			std::cout << GREEN << i << ", fd = " << fdset[i].fd << " is read" << RESET << std::endl;
+			int recieve_ret = recieve_request( fdset[i], requests[fdset[i].fd] );
+			if(recieve_ret == 2) {
+				requests.erase( fdset[i].fd );
+				fdset.erase( fdset.begin() + i );
+			}
+			else if(recieve_ret == 1) {
+				requests[fdset[i].fd].stage = REQUEST_READ;
+			}
+		}
+		else if(requests[fdset[i].fd].stage == REQUEST_READ) {
+			if(generate_regular_response( requests[fdset[i].fd] )) {//response is ready
+				requests[fdset[i].fd].stage = REQUEST_GENERATED;
+			}
+		}
+		else if(fdset[i].revents & POLLOUT && requests[fdset[i].fd].stage == REQUEST_GENERATED) { // понять кто ставит ПОЛАУТ возможно нужен флаг что мы готовы ответить
+			std::cout << GREEN << "socket " << i << ", fd = " << fdset[i].fd << " is being written to" << RESET << std::endl;
+			respond( fdset[i], requests[fdset[i].fd] );
+		}
+
+	}
+}
+
+
 
 
 void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
@@ -498,167 +500,21 @@ void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 
 		// }
 		// проверяем успешность вызова
+		if(ret == 0) {
+			//??????
+		}
 		if(ret == -1)
 			std::cout << "Fail from poll\n"; // ошибка
 		else if(ret > 0) {
 			if(!is_cheking) {
-				for(int i = fdset.size() - 1; i >= get_size_serverInfo(); --i) {
-					if(fdset[i].revents & POLLOUT && requests[fdset[i].fd].stage == REQUEST_GENERATED) { // понять кто ставит ПОЛАУТ возможно нужен флаг что мы готовы ответить
-						int LUL = 5;
-						std::cout << GREEN << "socket " << i << ", fd = " << fdset[i].fd << " is being written to" << RESET << std::endl;
-						if(send_response( requests[fdset[i].fd] )) {
-							if(std::remove( (BUFFER_FILE + std::to_string( fdset[i].fd )).c_str() )) {
-								//error
-							}
-							if(std::remove( (BUFFER_FILE_OUT + std::to_string( fdset[i].fd )).c_str() )) {
-								//error
-							}
-							requests[fdset[i].fd] = Request();
-							requests[fdset[i].fd].fd = fdset[i].fd;
-							fdset[i].events = (POLLIN | POLLERR);
-						}
-
-					}
-					else if(fdset[i].revents & POLLIN && requests[fdset[i].fd].stage == REQUEST_PENDING) { // // понять кто убирает ПОЛИН возможно нужен флаг что мы закончили читать
-						int handler_ret = handler( requests[fdset[i].fd] );
-						requests[fdset[i].fd].set_cgi( envp );
-						std::cout << GREEN << i << ", fd = " << fdset[i].fd << " is read" << RESET << std::endl;
-						if(handler_ret == 1) { //returns if read is complete
-							requests[fdset[i].fd].stage = REQUEST_READ;
-							fdset[i].events = (POLLOUT | POLLERR);
-						}
-						else if(handler_ret == 2) {//returns if 0 bytes_read
-							std::cout << GREEN << "read 0 on fd " << fdset[i].fd << RESET << std::endl;
-							close( fdset[i].fd );
-							if(std::remove( (BUFFER_FILE + std::to_string( fdset[i].fd )).c_str() )) {
-								//error
-							}
-							if(std::remove( (BUFFER_FILE_OUT + std::to_string( fdset[i].fd )).c_str() )) {
-								//error
-							}
-							requests.erase( fdset[i].fd );
-							fdset.erase( fdset.begin() + i );
-						}
-					}
-					else if(requests[fdset[i].fd].stage == REQUEST_READ) {
-						if(generate_normal_response( requests[fdset[i].fd] )) {//response is ready
-							requests[fdset[i].fd].stage = REQUEST_GENERATED;
-						}
-					}
-
-				}
+				work_with_clients( fdset, requests );
 				is_cheking = true;
 			}
 			if(is_cheking) {
-				for(int i = 0; i < get_size_serverInfo(); ++i) {
-					if(fdset[i].revents & POLLIN) {
-						pollfd temp;
-						temp.fd = accepter( i );
-						if(temp.fd == -1) //skip errors on accept
-							continue;
-						temp.events = (POLLIN | POLLERR);
-						fdset.push_back( temp );
-						requests[temp.fd] = Request();
-						requests[temp.fd].fd = temp.fd;
-						std::cout << GREEN << i << ", on fd = " << fdset[i].fd << " request is accepted" << RESET << std::endl;
-					}
-				}
+				check_new_clients( fdset, requests );
 				is_cheking = false;
 			}
 		}
 	}
 	exit( 1 );
-}
-
-
-int ft::WebServer::handler( Request& request ) {
-	char buffer[BUFFER_SIZE + 1] = { 0 };
-	int bytes_to_read;
-	long bytes_read;
-	std::ofstream body_file;
-
-
-	if(request.parsing_header) {
-		//open anew
-		body_file.open( BUFFER_FILE + std::to_string( request.fd ), std::ios::binary );
-	}
-	else {
-		//append
-		body_file.open( BUFFER_FILE + std::to_string( request.fd ), std::ios::binary | std::ios::app );
-	}
-
-	if(request.get_full_request_length() - request.get_total_bytes_read() > BUFFER_SIZE || request.parsing_header) {
-		bytes_to_read = BUFFER_SIZE;
-	}
-	else {
-		bytes_to_read = request.get_full_request_length() - request.get_total_bytes_read();
-	}
-	bytes_read = recv( request.fd, buffer, bytes_to_read, 0 );
-	if(bytes_read == -1)
-		std::cout << RED << "recv: " << strerror( errno ) << RESET << std::endl; // exeption
-	if(bytes_read == -1) {
-		if(DEBUG_MODE) {
-			std::cout << BLUE << strerror( errno ) << RESET << std::endl;
-		}
-		return 0;
-	}
-	if(DEBUG_MODE) {//print buffer
-		std::cout << YELLOW << "request for fd " << request.fd << "\n";
-		for(int i = 0; i < bytes_read; i++) {
-			std::cout << buffer[i];
-		}
-		std::cout << "bytes read = " << bytes_read << RESET << std::endl;
-	}
-
-	int i = 0;
-	if(request.parsing_header) {
-		if(bytes_read == 0)
-			return 2;
-		//parse head, if not full in buffer, then error 413
-		//this check needs implementetion somethere here
-		header_parse( buffer, request );
-		request.set_full_request_length( request.get_header_length() + 4 + atol( (request.get_param_value( "HTTP_CONTENT_LENGTH" )).c_str() ) );
-		request.set_total_bytes_read( request.get_header_length() + 4 );
-		i = request.get_header_length() + 4;
-	}
-
-	if((request.get_param_value( "HTTP_CONTENT_LENGTH" )) != "") {//meaning we have  body
-		if(!body_file.is_open()) {
-			//ERROR, WHICH ONE??
-		}
-
-		if(request.get_param_value( "HTTP_CONTENT_TYPE" ).find( "multipart/form-data" ) != std::string::npos \
-			&& bytes_read != request.get_header_length() + 4) { //meaning file is being uploaded
-			handle_multipart( request, buffer, bytes_read, body_file );
-		}
-		// else if(request.get_param_value( "HTTP_TRANSFER_ENCODING" ).find( "chunked" ) != std::string::npos \
-		// 	&& bytes_read != request.get_header_length() + 4) {
-		// 	return parseChunkedBody();
-		// 	body_file.close();
-		// }
-		else {
-			for(; i < bytes_read && request.get_total_bytes_read() < request.get_full_request_length(); i++) {
-				body_file << buffer[i];
-				request.set_total_bytes_read( request.get_total_bytes_read() + 1 );
-			}
-		}
-		// parsing_header = false;//it needs to be here, handle_multipart checks it
-		// bzero( buffer, BUFFER_SIZE );
-		//find body
-		body_file.close();
-
-	}
-
-	if(request.get_full_request_length() - request.get_total_bytes_read() <= 0)//meaning we have read everything
-		return 1;
-
-
-	//debug only
-	if(DEBUG_MODE) {
-		std::cout << "QUERY_STRING is |\n";
-		for(int i = 0; i < request.get_query_string().size(); ++i)
-			std::cout << request.get_query_string()[i];
-		std::cout << "\n|" << std::endl;
-	}
-	return 0;
 }

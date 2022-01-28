@@ -7,6 +7,11 @@
 #define BUFFER_FILE_CGIOUT "./runtime_files/bufferfilecgiout"
 
 
+#define DEBUG_MODE 1
+#define BUFFER_SIZE 30000 //is always bigger then 8000, max HTTP header size
+#define BACKLOG 20
+#define TIMEOUT -1
+
 
 enum method {
 	EMPTY,
