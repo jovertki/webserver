@@ -5,22 +5,28 @@
 #include <iostream>
 
 //#define MIME_FILE "../resources/mime.types"
-#define BUFFER_SIZE 30000 //is always bigger then 8000, max HTTP header size
+// #define BUFFER_SIZE 30000 //is always bigger then 8000, max HTTP header size
 //buffer size defined not here
 ft::Request::Request() {
 	clear();
-	set_full_request_length( BUFFER_SIZE );
-	parsing_header = true;
 	parsing_data_header = true;
 	stage = REQUEST_PENDING;
-	
-	// needToReturn = 0;
 	lastPos = 0;
 	fd = -1;
 }
 
-void ft::Request::set_cgi(char** envp) {
-	cgi_handler = CGI_handler( envp, fd, get_requested_url(), get_query_string(), get_method(), cgi_handler.params);
+void ft::Request::set_cgi( char** envp ) {
+	if(!cgi_handler.is_initialised()) {
+		cgi_handler = CGI_handler( envp, &fd, &requested_url, \
+			& query_string, &method, &params );
+	}
+}
+
+void ft::Request::set_request_handler() {
+	if(!rhandler.is_initialised()){
+		rhandler = Request_handler( &fd, &method, &requested_url, \
+			& httpver, &params, &query_string );
+	}
 }
 // ft::Request::Request( const ft::Request& a ) : method( a.method ), requested_url( a.requested_url ), httpver( a.httpver ), \
 // header_length( a.header_length ), query_string( a.query_string ), params( a.params ), \
@@ -92,24 +98,9 @@ std::string ft::Request::get_content_type() const {
 	return "no such type";
 }
 
-// std::ofstream ft::Request::get_body_fd() const {
-// 	return body_file;
-// }
-
 std::string ft::Request::get_query_string() const {
 	return query_string;
 }
-
-
-long ft::Request::get_total_bytes_read() const {
-	return total_bytes_read;
-}
-
-long ft::Request::get_full_request_length() const {
-	return full_request_length;
-}
-
-
 
 void ft::Request::set_method(const int &n ) {
 	method = n;
@@ -121,37 +112,29 @@ void ft::Request::set_httpver( const std::string& n ) {
 	httpver = n;
 }
 
-// void ft::Request::set_body( const std::ofstream& n ) {
-// 	body_file = n;
-// }
-
-
 void ft::Request::set_query_string( const std::string& n ) {
 	query_string.insert(query_string.begin(), n.begin(), n.end());
 }
-// void ft::Request::set_body_args() {
-// 	query_string = get_body();
-// }
 
 void ft::Request::set_params( const std::map <std::string, std::string>& n ) {
-	cgi_handler.params = n;
+	params = n;
 }
 
 
 void ft::Request::insert_param( const std::pair<std::string, std::string>& n ) {
-	cgi_handler.params.insert( n );
+	params.insert( n );
 
 }
 
 void ft::Request::print_params() {
 	//debug output
-	for(std::map<std::string, std::string>::const_iterator i = cgi_handler.params.begin(); i != cgi_handler.params.end(); i++) {
+	for(std::map<std::string, std::string>::const_iterator i = params.begin(); i != params.end(); i++) {
 		std::cout << MAGENTA << ( *i ).first << ":" << (*i).second <<RESET<< std::endl;
 	}
 }
 
 int ft::Request::param_exists( const std::string& n) const {
-	if(cgi_handler.params.find( n ) != cgi_handler.params.end())
+	if(params.find( n ) != params.end())
 		return 1;
 	else
 		return 0;
@@ -159,42 +142,28 @@ int ft::Request::param_exists( const std::string& n) const {
 
 std::string ft::Request::get_param_value( const std::string& n ) {
 	if(param_exists( n )) {
-		return cgi_handler.params[n];
+		return params[n];
 	}
 	else
 		return "";
 }
 
-void ft::Request::set_header_length( const int& n) {
-	header_length = n;
-}
-
-int ft::Request::get_header_length()const {
-	return header_length;
-}
-
 void ft::Request::clear() {
+	fd = -1;
 	method = 0;
 	requested_url = "";
 	httpver = "";
-	header_length = 0;
-	// body_file.close();
-	std::remove( BUFFER_FILE );
 	query_string.clear();
-	cgi_handler.params.clear();
-	total_bytes_read = 0;
-	full_request_length = 0;
+	params.clear();
 	cgi_handler = CGI_handler();
+	rhandler = Request_handler();
+	stage = REQUEST_PENDING;
+	parsing_data_header = true;
+	stage = REQUEST_PENDING;
+	lastPos = 0;
+	fd = -1;
 }
 
 void ft::Request::set_param( const std::string& key, const std::string& value ) {
-	cgi_handler.params[key] = value;
-}
-
-void ft::Request::set_total_bytes_read(const long& n) {
-	total_bytes_read = n;
-}
-
-void ft::Request::set_full_request_length( const long& n ) {
-	full_request_length = n;
+	params[key] = value;
 }
