@@ -4,11 +4,6 @@
 #include <fstream>
 #include <iostream>
 
-//request stages
-#define REQUEST_PENDING 0
-#define REQUEST_READ 1
-#define REQUEST_GENERATED 2
-
 ft::Request::Request() {
 	clear();
 	parsing_data_header = true;
@@ -177,14 +172,14 @@ bool ft::Request::is_pending() const{
 	else
 		return false;
 }
-bool ft::Request::is_read() const{
-	if(stage == REQUEST_READ)
+bool ft::Request::is_finished_reading() const{
+	if(stage == REQUEST_FINISHED_READING)
 		return true;
 	else
 		return false;
 }
-bool ft::Request::is_generated() const {
-	if(stage == REQUEST_GENERATED)
+bool ft::Request::responce_is_generated() const {
+	if(stage == RESPONCE_GENERATED)
 		return true;
 	else
 		return false;

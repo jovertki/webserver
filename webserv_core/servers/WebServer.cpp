@@ -107,7 +107,6 @@ bool ft::WebServer::response_POST( Request& request ) {
 
 	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > 9 /*sizeof( "/cgi-bin/" )*/) { //if it is in /cgi-bin/
 		return request.execute_cgi();
-		// return execute_cgi( request );
 	}
 	return true;
 }
@@ -170,7 +169,7 @@ bool ft::WebServer::response_DELETE( Request& request ) {
 }
 
 bool ft::WebServer::generate_regular_response( Request& request ) {
-	//check availability of method in location
+	//NYI check availability of method in location
 	if(request.get_method() == GET)
 		return response_GET( request );
 	else if(request.get_method() == POST)
@@ -207,6 +206,7 @@ bool ft::WebServer::is_directory( const std::string& path )const {
 	}
 	return 0;
 }
+
 void ft::WebServer::handle_errors( int error_code, Request& request ) {
 	std::ostringstream header;
 	std::ostringstream body;
@@ -465,23 +465,23 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 		pollfd& current_pollfd = fdset[i];
 		Request& current_request = requests[current_pollfd.fd];
 		
-		if(current_pollfd.revents & POLLIN && current_request.is_pending()) { // // понять кто убирает ПОЛИН возможно нужен флаг что мы закончили читать
+		if(current_pollfd.revents & POLLIN && current_request.is_pending()) {
 			std::cout << GREEN << i << ", fd = " << current_pollfd.fd << " is read" << RESET << std::endl;
 			int recieve_ret = recieve_request( current_pollfd, current_request );
-			if(recieve_ret == 2) {
+			if(recieve_ret == 2) {//connection closed
 				requests.erase( current_pollfd.fd );
 				fdset.erase( fdset.begin() + i );
 			}
 			else if(recieve_ret == 1) {
-				current_request.set_stage(REQUEST_READ);
+				current_request.set_stage(REQUEST_FINISHED_READING);
 			}
 		}
-		else if(current_request.is_read()) {
-			if(generate_regular_response( current_request )) {//response is ready
-				current_request.set_stage(REQUEST_GENERATED);
+		else if(current_request.is_finished_reading()) {
+			if(generate_regular_response( current_request )) {
+				current_request.set_stage(RESPONCE_GENERATED);
 			}
 		}
-		else if(current_pollfd.revents & POLLOUT && current_request.is_generated()) { // понять кто ставит ПОЛАУТ возможно нужен флаг что мы готовы ответить
+		else if(current_pollfd.revents & POLLOUT && current_request.responce_is_generated()) {
 			std::cout << GREEN << "socket " << i << ", fd = " << current_pollfd.fd << " is being written to" << RESET << std::endl;
 			respond( current_pollfd, current_request );
 		}
@@ -502,12 +502,11 @@ void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 		// 	std::cout << RED << i << " = " << fdset[i].fd << " | " << fdset[i].events << " | " << fdset[i].revents << RESET << std::endl;
 
 		// }
-		// проверяем успешность вызова
 		if(ret == 0) {
 			//??????
 		}
 		if(ret == -1)
-			std::cout << "Fail from poll\n"; // ошибка
+			std::cout << "Fail from poll\n";
 		else if(ret > 0) {
 			if(!is_cheking) {
 				work_with_clients( fdset, requests );

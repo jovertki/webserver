@@ -7,6 +7,11 @@
 #include "CGI_handler.hpp"
 #include "Request_handler.hpp"
 
+//request stages
+#define REQUEST_PENDING 0
+#define REQUEST_FINISHED_READING 1
+#define RESPONCE_GENERATED 2
+
 namespace ft {
 	class Request {
 	private:
@@ -57,8 +62,8 @@ namespace ft {
 		// int param_exists( const std::string& ) const;
 
 		bool is_pending() const;
-		bool is_read() const;
-		bool is_generated() const;
+		bool is_finished_reading() const;
+		bool responce_is_generated() const;
 		void set_stage( const int& );
 		bool execute_cgi();
 		int execute_handler();
