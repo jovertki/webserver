@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 #include "../resources/defines.hpp"
 #include <map>
@@ -8,22 +9,27 @@
 namespace ft {
 	class Request {
 	private:
+		//remain in request
 		int method;
 		std::string requested_url;
 		std::string httpver;
-		int header_length;
 		std::string query_string;
 		std::string get_requested_filename() const;
+		
+		int header_length;
 
 		long total_bytes_read;
 		long full_request_length;
 	public:
-		unsigned long lastPos;
+		//remain in request
 		int stage;
-
 		CGI_handler cgi_handler;
-		
 		int fd;
+		std::map <std::string, std::string> params;
+
+		unsigned long lastPos;
+
+		
 		bool parsing_header;
 		bool parsing_data_header;
 		Request();

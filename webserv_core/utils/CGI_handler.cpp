@@ -12,9 +12,9 @@ ft::CGI_handler::~CGI_handler(){
 
 }
 
-ft::CGI_handler::CGI_handler( char** envp, const int& afd, \
-	const std::string& arequested_url, const std::string& aquery_string, \
-	const int& amethod, const std::map <std::string, std::string>& aparams ) : envp( envp ) {
+ft::CGI_handler::CGI_handler( char** envp,  int* afd, \
+	 std::string* arequested_url,  std::string* aquery_string, \
+	 int* amethod,  std::map <std::string, std::string>* aparams ) : envp( envp ) {
 	stage = REQUEST_PENDING;
 	cgi_pid = -1;
 	init_response_msgs();
@@ -61,19 +61,19 @@ void ft::CGI_handler::init_new_envp( std::map<std::string, std::string>& additio
 	// additions["UPLOAD_PATH"] = "";//NYI
 
 
-	if(method == GET)
+	if(*method == GET)
 		additions["REQUEST_METHOD"] = "GET";
-	else if(method == POST)
+	else if(*method == POST)
 		additions["REQUEST_METHOD"] = "POST";
-	else if(method == DELETE)
+	else if(*method == DELETE)
 		additions["REQUEST_METHOD"] = "DELETE";
 
-	additions["PATH_INFO"] = requested_url;
-	additions["QUERY_STRING"] = query_string;
+	additions["PATH_INFO"] = *requested_url;
+	additions["QUERY_STRING"] = *query_string;
 	additions["SCRIPT_NAME"] = additions["PATH_INFO"];
 	additions["SERVER_PROTOCOL"] = "HTTP/1.1\0";
 
-	additions.insert( params.begin(), params.end() );
+	additions.insert( params->begin(), params->end() );
 
 	additions["REMOTE_HOST"] = additions["HTTP_HOST"];
 	additions["CONTENT_TYPE"] = additions["HTTP_CONTENT_TYPE"];
@@ -121,15 +121,15 @@ char** ft::CGI_handler::create_appended_envp(){
 void ft::CGI_handler::start(){
 	stage = CGI_PROCESSING;
 	char** cgi_envp = create_appended_envp();
-	int body_fd = open( (BUFFER_FILE + std::to_string( fd )).c_str(), O_RDONLY );
-	int response_file_fd = open( (BUFFER_FILE_CGIOUT + std::to_string( fd )).c_str(), O_WRONLY | O_CREAT, 0666 );
-	std::string debug = SERVER_DIR + requested_url;
+	int body_fd = open( (BUFFER_FILE + std::to_string( *fd )).c_str(), O_RDONLY );
+	int response_file_fd = open( (BUFFER_FILE_CGIOUT + std::to_string( *fd )).c_str(), O_WRONLY | O_CREAT, 0666 );
+	std::string debug = SERVER_DIR + *requested_url;
 	pid_t ret = fork();
 	if(ret == 0)
 	{
 		dup2( body_fd, 0 );
 		dup2( response_file_fd, 1 );
-		std::string filename = SERVER_DIR + requested_url;
+		std::string filename = SERVER_DIR + *requested_url;
 		execve( filename.c_str(), NULL, cgi_envp );
 		std::cout << "ERRRPR" << std::endl;
 		std::cout << strerror( errno ) << std::endl;
@@ -152,7 +152,7 @@ void ft::CGI_handler::process(){
 
 void ft::CGI_handler::write(){
 	std::ifstream cgi_response_file;
-	cgi_response_file.open( BUFFER_FILE_CGIOUT + std::to_string( fd ) );
+	cgi_response_file.open( BUFFER_FILE_CGIOUT + std::to_string( *fd ) );
 	if(!cgi_response_file.is_open())
 		std::cout << RED << strerror( errno ) << RESET << std::endl;
 	std::string content_type;
@@ -164,11 +164,11 @@ void ft::CGI_handler::write(){
 
 	cgi_response_file.close();
 
-	cgi_response_file.open( BUFFER_FILE_CGIOUT + std::to_string( fd ), std::ios::binary );
+	cgi_response_file.open( BUFFER_FILE_CGIOUT + std::to_string( *fd ), std::ios::binary );
 
 
 	std::ofstream response_file;
-	response_file.open( BUFFER_FILE_OUT + std::to_string( fd ), std::ios::binary );
+	response_file.open( BUFFER_FILE_OUT + std::to_string( *fd ), std::ios::binary );
 	response_file << generate_response_head( 200 ) << "Content-Length:" << std::to_string( cgi_file_length - content_type.size() - 4 ) << "\r\n";
 
 	char buffer[CGI_BUFFER_SIZE + 1];
@@ -178,7 +178,7 @@ void ft::CGI_handler::write(){
 		response_file.write( buffer, cgi_response_file.gcount() );
 	}
 	cgi_response_file.close();
-	std::remove( (BUFFER_FILE_CGIOUT + std::to_string( fd )).c_str() );
+	std::remove( (BUFFER_FILE_CGIOUT + std::to_string( *fd )).c_str() );
 	response_file.close();
 }
 

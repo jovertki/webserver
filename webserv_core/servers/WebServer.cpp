@@ -11,7 +11,6 @@
 #include <cctype>
 #include <errno.h>
 #include <cstdlib>
-#include <sstream>
 #include <map>
 #include <signal.h>
 #define DEBUG_MODE 1

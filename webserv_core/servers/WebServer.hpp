@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 #include "../utils/Request.hpp"
 #include <exception>
