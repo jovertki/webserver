@@ -14,7 +14,7 @@ int main( int argc, char** argv, char** envp ) {
 	}
 	std::ofstream outfile( upload_path );
 	if(!outfile.is_open()) {
-		std::cout << "error uploading" << std::endl;
+		std::cout << upload_path << std::endl;
 	}
 	std::string line;
 	while(getline( std::cin, line ))

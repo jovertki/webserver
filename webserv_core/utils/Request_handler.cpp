@@ -34,10 +34,7 @@ namespace ft {
 			return 2;
 		}
 		else {
-			std::ofstream body_file;
-			open_file( body_file );
-			int ret = handle( bytes_read, buffer, body_file );
-			body_file.close();
+			int ret = handle( buffer);
 			return ret;
 		}
 	}
@@ -135,6 +132,8 @@ namespace ft {
 		header_length = find_header_length( input_buffer );
 		full_request_length = header_length + 4 + atol( (*params)["HTTP_CONTENT_LENGTH"].c_str() );//!!!!!!! POSSIBLE ERROR
 		total_bytes_read = header_length + 4;
+		if(is_multipart())
+			multipart_boundary = set_boundary();
 		if(DEBUG_MODE) {
 			std::cout << "Method is " << *method << std::endl;
 			std::cout << "URL is |" << *requested_url << "|" << std::endl;
@@ -142,8 +141,8 @@ namespace ft {
 		}
 	}
 
-	void Request_handler::handle_regular_body( int& begin_pos, long& bytes_read, const std::string& buffer, std::ofstream& body_file ) {
-		for(int i = begin_pos; i < bytes_read && total_bytes_read < full_request_length; i++) {
+	void Request_handler::handle_regular_body( const std::string& buffer, std::ofstream& body_file ) {
+		for(int i = 0; i < buffer.size() && total_bytes_read < full_request_length; i++) {
 			body_file << buffer[i];
 			total_bytes_read++;
 		}
@@ -165,15 +164,16 @@ namespace ft {
 			return false;
 	}
 
-	bool Request_handler::is_multipart( long& bytes_read ) {
-		if((*params)["HTTP_CONTENT_TYPE"].find( "multipart/form-data" ) != std::string::npos \
-			&& bytes_read > header_length + 4) {
+	bool Request_handler::is_multipart() {
+		if((*params)["HTTP_CONTENT_TYPE"].find( "multipart/form-data" ) != std::string::npos) {
 			return true;
 		}
 		else
 			return false;
 	}
-	int Request_handler::handle( long& bytes_read, std::string& buffer, std::ofstream& body_file ) {
+	int Request_handler::handle( std::string& buffer ) {
+		std::ofstream body_file;
+		open_file( body_file );
 		int begin_pos = 0;
 		int is_over = 0;
 		if(parsing_header) {
@@ -186,93 +186,62 @@ namespace ft {
 			if(is_chunked()) {
 				// is_over = parseChunkedBody();//returns 1 if we have read everything, 0 otherwise
 			}
-			if(is_multipart( bytes_read )) {
-				handle_multipart( buffer, bytes_read, body_file );//should delete transport stuff from buffer
+			if(is_multipart()) {
+				handle_multipart( buffer );
 			}
-			handle_regular_body( begin_pos, bytes_read, buffer, body_file );
+			handle_regular_body( buffer, body_file );
 		}
-		if((!is_chunked() && full_request_length - total_bytes_read <= 0) || is_over)//meaning we have read everything
+		if((!is_chunked() && full_request_length - total_bytes_read <= 0) || is_over) {//meaning we have read everything
+			long file_len = body_file.tellp();
+			body_file.close();
+			if(is_multipart()) {
+				delete_last_line( file_len );
+			}
 			return 1;
-		else
+		}
+		else {
+			body_file.close();
 			return 0;
+		}
 	}
 
-
-
-
-	int Request_handler::multipart_parse_data_header( const std::string& buffer ) {
-		std::string data_header;
+	void Request_handler::delete_last_line(const long& file_len) {
+		truncate( (BUFFER_FILE + std::to_string( *fd )).c_str(), file_len - (multipart_boundary.size() + 4) /*(--\r\n)*/ );
+	}
+	
+	void Request_handler::multipart_parse_data_header( std::string& buffer ) {
 		std::size_t data_header_end = 0;
-		int body_begin = 0;
-		int data_header_begin = (header_length + 4) * parsing_header;
-		data_header.insert( 0, &buffer[data_header_begin] );
-		if(data_header.size() != 0) {//there is body and this is not a first post request
-			//request.print_params();
-			if(DEBUG_MODE)
-				std::cout << RED << "data header = " << data_header << RESET << std::endl;
-			std::size_t filename_start = data_header.find( "filename=" );
-			std::size_t filename_end = data_header.find( "\r\n", filename_start );
-			std::string filename( data_header.substr( filename_start + 10, filename_end - filename_start - 11 ) );
-			data_header_end = data_header.find( "\r\n\r\n" ) + 4;
+		if(buffer.size() != 0) {
+			std::size_t filename_start = buffer.find( "filename=" );
+			std::size_t filename_end = buffer.find( "\r\n", filename_start );
+			// std::string filename( buffer.begin() + filename_start, buffer.begin() + filename_end );
+			std::string filename( buffer.substr( filename_start + 10, filename_end - filename_start - 11 ) );
+			data_header_end = buffer.find( "\r\n\r\n" ) + 4;
 			std::string upload_path = SERVER_DIR + std::string( "/uploads" ) + "/";
 			filename.insert( 0, upload_path );
 			if(DEBUG_MODE)
-				std::cout << BLUE << filename << RESET << std::endl;
-			std::cout << RED << "CHECK1" << data_header << RESET << std::endl;
+				std::cout << BLUE << "filename is |" << filename << "|" << RESET << std::endl;
 			(*params)["UPLOAD_PATH"] = filename;
-			std::cout << RED << "CHECK2" << data_header << RESET << std::endl;
+			buffer.erase( buffer.begin(), buffer.begin() + data_header_end );
 		}
-		body_begin = (header_length + 4) * parsing_header + data_header_end;
 		total_bytes_read += data_header_end;
-		parsing_data_header = false;
-		return body_begin;
 	}
 
 	std::string& Request_handler::set_boundary() {
 		std::string type = (*params)["HTTP_CONTENT_TYPE"];
 		multipart_boundary = type.substr( type.find( "boundary=" ) + 9 );
-		multipart_boundary.insert( 0, "--" );
+		if(*(multipart_boundary.end() - 1) == '\r') {
+			multipart_boundary.pop_back();
+		}
+		multipart_boundary.insert( 0, "\r\n--" );
 		multipart_boundary.insert( multipart_boundary.size(), "\0" );
 		return multipart_boundary;
 	}
-
-	bool Request_handler::boundary_is_found( const int& i, const long& bytes_read, const std::string& buffer ) {
-		if(i + multipart_boundary.size() + 2 <= bytes_read) {
-			if(buffer[i] == '\r') {
-				if(strncmp( &buffer[i + 2], multipart_boundary.c_str(), multipart_boundary.size() - 1 ) == 0) {
-					total_bytes_read += multipart_boundary.size() + 5;
-					return 1;
-				}
-			}
-			if(buffer[i] == '\n') {
-				if(strncmp( &buffer[i + 1], multipart_boundary.c_str(), multipart_boundary.size() - 1 ) == 0) {
-					total_bytes_read += multipart_boundary.size() + 4;
-					return 1;
-				}
-			}
-		}
-		return 0;
-	}
-	void Request_handler::multipart_read_till_end_boundary( std::string& buffer, int& body_begin, long& bytes_read, std::ofstream& body_file ) {
-		if(multipart_boundary == "") {
-			multipart_boundary = set_boundary();
-		}
-		for(int i = body_begin; i < bytes_read && total_bytes_read < full_request_length; i++) {
-			if(boundary_is_found( i, bytes_read, buffer )) {
-				break;
-			}
-			body_file << buffer[i];
-			total_bytes_read++;
-		}
-	}
 	
-	void Request_handler::handle_multipart( std::string& buffer, long& bytes_read, std::ofstream& body_file ) {
-		int body_begin = 0;
-		if(parsing_data_header) {
-			body_begin = multipart_parse_data_header( buffer);
+	void Request_handler::handle_multipart( std::string& buffer) {
+		if(parsing_data_header && buffer.size()) {
+			multipart_parse_data_header( buffer );
 			parsing_data_header = false;
 		}
-		multipart_read_till_end_boundary(buffer, body_begin, bytes_read, body_file);
-		
 	}
 }
