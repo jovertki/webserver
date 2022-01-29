@@ -106,8 +106,7 @@ bool ft::WebServer::response_POST( Request& request ) {
 	// std::cout << "========RESPONSE POST IS ACTIVE========" << std::endl;
 
 	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > 9 /*sizeof( "/cgi-bin/" )*/) { //if it is in /cgi-bin/
-		return request.cgi_handler.execute();
-		// return execute_cgi( request );
+		return request.execute_cgi();
 	}
 	return true;
 }
@@ -122,7 +121,7 @@ bool ft::WebServer::response_GET( Request& request ) {
 		list_contents( SERVER_DIR + request.get_requested_url(), request );
 	}
 	else if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > sizeof( "/cgi-bin/" )) { //if it is in /cgi-bin/
-		return request.cgi_handler.execute();
+		return request.execute_cgi();
 	}
 	else {
 		//proceed with request
@@ -136,7 +135,7 @@ bool ft::WebServer::response_GET( Request& request ) {
 
 		//first response line
 		std::ofstream response_file;
-		response_file.open( BUFFER_FILE_OUT + std::to_string( request.fd ), std::ios::binary );
+		response_file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ), std::ios::binary );
 		response_file << generate_response_head( 200 );
 		//write file to string
 		std::string* response_body = new std::string( (std::istreambuf_iterator<char>( infile )),
@@ -162,7 +161,7 @@ bool ft::WebServer::response_DELETE( Request& request ) {
 	}
 	else {
 		std::ofstream response_file;
-		response_file.open( BUFFER_FILE_OUT + std::to_string( request.fd ), std::ios::binary );
+		response_file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ), std::ios::binary );
 		response_file << generate_response_head( 200 ) << "\r\nFile " << request.get_requested_url() << " was successfully DELETED" << std::endl;
 		response_file.close();
 	}
@@ -170,7 +169,7 @@ bool ft::WebServer::response_DELETE( Request& request ) {
 }
 
 bool ft::WebServer::generate_regular_response( Request& request ) {
-	//check availability of method in location
+	//NYI check availability of method in location
 	if(request.get_method() == GET)
 		return response_GET( request );
 	else if(request.get_method() == POST)
@@ -207,6 +206,7 @@ bool ft::WebServer::is_directory( const std::string& path )const {
 	}
 	return 0;
 }
+
 void ft::WebServer::handle_errors( int error_code, Request& request ) {
 	std::ostringstream header;
 	std::ostringstream body;
@@ -242,7 +242,7 @@ void ft::WebServer::handle_errors( int error_code, Request& request ) {
 		"Content-Type: text/html;" << std::endl << \
 		"Content-Length: " << body.str().size() << std::endl << std::endl;
 	std::ofstream response_file;
-	response_file.open( BUFFER_FILE_OUT + std::to_string( request.fd ), std::ios::binary );
+	response_file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ), std::ios::binary );
 	response_file << header.str() << body.str();
 	response_file.close();
 
@@ -294,7 +294,7 @@ void ft::WebServer::list_contents( const std::string& path, Request& request )co
 		"Content-Length: " << body.str().size() << std::endl << std::endl;
 
 	std::ofstream response_file;
-	response_file.open( BUFFER_FILE_OUT + std::to_string( request.fd ), std::ios::binary );
+	response_file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ), std::ios::binary );
 	response_file << header.str() << body.str();
 	response_file.close();
 }
@@ -327,7 +327,7 @@ void ft::WebServer::launch( std::vector<pollfd>& fdset ) {
 bool ft::WebServer::send_response( Request& request ) const {
 	std::ifstream file;
 	unsigned int needToReturn = 0;
-	file.open( BUFFER_FILE_OUT + std::to_string( request.fd ) );
+	file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ) );
 	if(!file.is_open()) {
 		std::cout << RED << "send_response: " << strerror( errno ) << RESET << std::endl; // exeption
 	}
@@ -335,7 +335,7 @@ bool ft::WebServer::send_response( Request& request ) const {
 	char buffer[30000];
 	file.read( buffer, 30000 );
 	// check gcount
-	unsigned int bytes_written = write( request.fd, buffer, file.gcount() );
+	unsigned int bytes_written = write( request.get_fd(), buffer, file.gcount() );
 	if(bytes_written != file.gcount())
 		needToReturn = file.gcount() - bytes_written;
 	request.lastPos = file.tellg();
@@ -416,7 +416,7 @@ void ft::WebServer::check_new_clients( std::vector<pollfd>& fdset, std::map<int,
 			temp.events = (POLLIN | POLLERR);
 			fdset.push_back( temp );
 			requests[temp.fd] = Request();
-			requests[temp.fd].fd = temp.fd;
+			requests[temp.fd].set_fd(temp.fd);
 			std::cout << GREEN << i << ", on fd = " << fdset[i].fd << " request is accepted" << RESET << std::endl;
 		}
 	}
@@ -433,16 +433,16 @@ void ft::WebServer::respond( pollfd& fdset, Request& request ) {
 			//error
 		}
 		request = Request();
-		request.fd = fdset_fd;
+		request.set_fd(fdset_fd);
 		fdset.events = (POLLIN | POLLERR);
-		request.stage = REQUEST_PENDING;
+		request.set_stage(REQUEST_PENDING);
 	}
 }
 
 
 int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 	request.set_request_handler();
-	int handler_ret = request.rhandler.execute();
+	int handler_ret = request.execute_handler();
 	request.set_cgi( envp );
 	if(handler_ret == 1) { //returns if read is complete
 		fdset.events = (POLLOUT | POLLERR);
@@ -462,25 +462,28 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 
 void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int, Request>& requests ) {
 	for(int i = fdset.size() - 1; i >= get_size_serverInfo(); --i) {
-		if(fdset[i].revents & POLLIN && requests[fdset[i].fd].stage == REQUEST_PENDING) { // // понять кто убирает ПОЛИН возможно нужен флаг что мы закончили читать
-			std::cout << GREEN << i << ", fd = " << fdset[i].fd << " is read" << RESET << std::endl;
-			int recieve_ret = recieve_request( fdset[i], requests[fdset[i].fd] );
-			if(recieve_ret == 2) {
-				requests.erase( fdset[i].fd );
+		pollfd& current_pollfd = fdset[i];
+		Request& current_request = requests[current_pollfd.fd];
+		
+		if(current_pollfd.revents & POLLIN && current_request.is_pending()) {
+			std::cout << GREEN << i << ", fd = " << current_pollfd.fd << " is read" << RESET << std::endl;
+			int recieve_ret = recieve_request( current_pollfd, current_request );
+			if(recieve_ret == 2) {//connection closed
+				requests.erase( current_pollfd.fd );
 				fdset.erase( fdset.begin() + i );
 			}
-			else if(recieve_ret == 1) {
-				requests[fdset[i].fd].stage = REQUEST_READ;
+			else if(recieve_ret == 1) {//we have read everything
+				current_request.set_stage(REQUEST_FINISHED_READING);
 			}
 		}
-		else if(requests[fdset[i].fd].stage == REQUEST_READ) {
-			if(generate_regular_response( requests[fdset[i].fd] )) {//response is ready
-				requests[fdset[i].fd].stage = REQUEST_GENERATED;
+		else if(current_request.is_finished_reading()) {
+			if(generate_regular_response( current_request )) {//response is ready
+				current_request.set_stage(RESPONCE_GENERATED);
 			}
 		}
-		else if(fdset[i].revents & POLLOUT && requests[fdset[i].fd].stage == REQUEST_GENERATED) { // понять кто ставит ПОЛАУТ возможно нужен флаг что мы готовы ответить
-			std::cout << GREEN << "socket " << i << ", fd = " << fdset[i].fd << " is being written to" << RESET << std::endl;
-			respond( fdset[i], requests[fdset[i].fd] );
+		else if(current_pollfd.revents & POLLOUT && current_request.responce_is_generated()) {
+			std::cout << GREEN << "socket " << i << ", fd = " << current_pollfd.fd << " is being written to" << RESET << std::endl;
+			respond( current_pollfd, current_request );
 		}
 
 	}
@@ -497,12 +500,11 @@ _Noreturn void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 		// 	std::cout << RED << i << " = " << fdset[i].fd << " | " << fdset[i].events << " | " << fdset[i].revents << RESET << std::endl;
 
 		// }
-		// проверяем успешность вызова
 		if(ret == 0) {
 			//??????
 		}
 		if(ret == -1)
-			std::cout << "Fail from poll\n"; // ошибка
+			std::cout << "Fail from poll\n";
 		else if(ret > 0) {
 			if(!is_cheking) {
 				work_with_clients( fdset, requests );

@@ -1,4 +1,4 @@
-
+#pragma once
 #include <cstddef>
 #include <sys/socket.h>
 #include <stdio.h>
