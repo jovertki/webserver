@@ -33,7 +33,7 @@ namespace ft {
 		unsigned long lastPos;
 
 		//remove candidate, used in handle multipart
-		bool parsing_data_header;
+		
 		
 		Request();
 		// Request( const Request& a );

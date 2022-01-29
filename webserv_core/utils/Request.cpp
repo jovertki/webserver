@@ -6,7 +6,7 @@
 
 ft::Request::Request() {
 	clear();
-	parsing_data_header = true;
+
 	stage = REQUEST_PENDING;
 	lastPos = 0;
 	fd = -1;
@@ -155,7 +155,6 @@ void ft::Request::clear() {
 	cgi_handler = CGI_handler();
 	rhandler = Request_handler();
 	stage = REQUEST_PENDING;
-	parsing_data_header = true;
 	stage = REQUEST_PENDING;
 	lastPos = 0;
 	fd = -1;
