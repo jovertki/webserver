@@ -165,6 +165,7 @@ void ft::CGI_handler::write(){
 		std::cout << RED << strerror( errno ) << RESET << std::endl;
 	std::string content_type;
 	std::getline( cgi_response_file, content_type );
+	content_type.pop_back();//delete extra /r
 	std::cout << RED << content_type << content_type.size() << " " << strlen( "Content-Type: text/html" ) << RESET << std::endl;
 
 	cgi_response_file.seekg( 0, std::ios::end );
@@ -177,7 +178,7 @@ void ft::CGI_handler::write(){
 
 	std::ofstream response_file;
 	response_file.open( BUFFER_FILE_OUT + std::to_string( *fd ), std::ios::binary );
-	response_file << generate_response_head( 200 ) << "Content-Length:" << std::to_string( cgi_file_length - content_type.size() - 4 ) << "\r\n";
+	response_file << generate_response_head( 200 ) << "Content-Length: " << std::to_string( cgi_file_length - content_type.size() - 4 ) << "\r\n";
 
 	char buffer[CGI_BUFFER_SIZE + 1];
 	while(!cgi_response_file.eof()) {

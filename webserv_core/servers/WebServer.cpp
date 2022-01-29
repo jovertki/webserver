@@ -327,6 +327,14 @@ void ft::WebServer::launch( std::vector<pollfd>& fdset ) {
 bool ft::WebServer::send_response( Request& request ) const {
 	std::ifstream file;
 	unsigned int needToReturn = 0;
+	// file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ) );
+	// char bufferttt[30000];
+	// while(!file.eof()) {
+	// 	file.read( bufferttt, 30000 );
+	// 	std::cout << GREEN << bufferttt << RESET << std::endl;
+	// }
+	// file.close();
+	
 	file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ) );
 	if(!file.is_open()) {
 		std::cout << RED << "send_response: " << strerror( errno ) << RESET << std::endl; // exeption

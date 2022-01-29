@@ -25,6 +25,6 @@ int main( int argc, char** argv, char** envp ) {
 	}
 	outfile.close();
 
-	std::cout << "Content-Type: text/html\n\n";
-	std::cout << "<h1>File was successfully uploaded</h1>" << std::endl;
+	std::cout << "Content-Type: text/html\r\n\r\n";
+	std::cout << "<h1>File was successfully uploaded</h1>";
 }

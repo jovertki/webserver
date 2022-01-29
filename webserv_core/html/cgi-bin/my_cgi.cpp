@@ -5,7 +5,7 @@ int main( int argc, char** argv, char** envp ) {
 
 
 	int i = 0;
-	std::cout << "Content-Type: text/html\n\n";
+	std::cout << "Content-Type: text/html\r\n\r\n";
 	std::string s;
 	std::cin >> s;
 	std::cout << "<h1>Addition Results</h1>" << std::endl;
