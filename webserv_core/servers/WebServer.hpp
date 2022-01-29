@@ -28,7 +28,6 @@ namespace ft {
 		int accepter( int id );
 		int handler( Request& );
 		bool generate_regular_response( Request& );
-
 		bool is_directory( const std::string& path )const;
 		void list_contents( const std::string& path, Request& request )const;
 		void handle_errors( int error_code, Request& request );

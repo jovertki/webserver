@@ -184,7 +184,7 @@ namespace ft {
 		}
 		if(body_exists()) {
 			if(is_chunked()) {
-				// is_over = parseChunkedBody();//returns 1 if we have read everything, 0 otherwise
+				 is_over = parseChunkedBody(buffer);//returns 1 if we have read everything, 0 otherwise
 			}
 			if(is_multipart( bytes_read )) {
 				handle_multipart( buffer, bytes_read, body_file );//should delete transport stuff from buffer
@@ -197,7 +197,53 @@ namespace ft {
 			return 0;
 	}
 
+    bool Request_handler::parseChunkedBody(std::string& buffer) {
+        unsigned long startRN = 0;
+        unsigned long position = 0;
 
+        if (end.size()) { // some inf from last buffer
+            buffer.insert(0, end);
+            end.clear();
+        }
+        while (position < buffer.size()) {
+            if (chunkSize == 0) { // find chunk
+                if ((startRN = buffer.find("\r\n"), position) != std::string::npos) {
+                    try { // before \r\n size of chunk
+                        chunkSize = utils::strhex_to_num(buffer.substr(position, startRN)); }
+                    catch (std::exception &e) {
+                        std::cerr << e.what() << std::endl; }// mistake???
+                    buffer.erase(position, startRN + 2); // delete \r\n
+                    if (chunkSize == 0) //  all chunks done!!!
+                        return true;
+                }
+                else { // \r\n and size can't be find so we need to wait next buffer
+                    end = buffer.substr(position); // reminder
+//                    std::cerr << "Error or real end buffer? END = " << end << std::endl; // delete!!!!!
+                    buffer.erase(position);
+                }
+            }
+            else {
+                unsigned long needToRead = chunkSize - chunkRead;
+                if (buffer.size() >= position + needToRead) { // if buffer more than current chunk
+                    position += needToRead; // move to place were \r\n
+                    if (buffer.size() - position < 2) { // if 1 or 0 symbols left after \r\n
+                        end = buffer.substr(position);
+                        buffer.erase(position);
+                        chunkRead = chunkSize; //  in next func needToRead will be 0
+                    }
+                    else { // everything ok so only erase and return to first condition
+                        buffer.erase(position, position + 2);
+                        chunkSize = chunkRead = 0;
+                    }
+                }
+                else { // not enough chunksize in buffer;
+                    chunkRead += buffer.size() - position;
+                    position = buffer.size(); //  stop while and  return false
+                }
+            }
+        }
+        return false;
+    }
 
 
 	int Request_handler::multipart_parse_data_header( const std::string& buffer ) {

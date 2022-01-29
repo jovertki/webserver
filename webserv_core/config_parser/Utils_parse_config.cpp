@@ -22,6 +22,19 @@ namespace utils {
             throw utils::parseExeption("Error str_to_num!");
         return (int)res;
     }
+
+    int strhex_to_num(const std::string& to_convert) {
+        long int res;
+        char *end_c;
+
+        res = strtol(to_convert.c_str(), &end_c, 16);
+        if ((errno == ERANGE && res == LONG_MAX) || res > INT_MAX ||
+            (errno == ERANGE && res == LONG_MIN) || res < 0
+            || to_convert.empty() || *end_c != '\0')
+            throw utils::parseExeption("Error strhex_to_num!");
+        return (int)res;
+    }
+
     std::vector<std::string> make_tokens(std::ifstream& input) {
         std::string oneToken;
         std::vector<std::string> tokens;
