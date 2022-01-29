@@ -179,6 +179,8 @@ namespace ft {
 		if(parsing_header) {
 			header_parse( buffer );
 			begin_pos = header_length + 4;
+			buffer.erase( buffer.begin(), buffer.begin() + begin_pos );
+			parsing_header = false;
 		}
 		if(body_exists()) {
 			if(is_chunked()) {
