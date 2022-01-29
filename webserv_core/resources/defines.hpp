@@ -13,8 +13,8 @@
 #define CGI_BUFFER_SIZE 8000
 
 
-#define BACKLOG 20
-#define TIMEOUT -1
+#define BACKLOG 30
+#define TIMEOUT 10000
 
 enum method {
 	EMPTY,

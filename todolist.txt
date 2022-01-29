@@ -16,7 +16,7 @@ chunked реквесты
 
 сделать POST == GET???
 
-python cgi
+python cgi<--START HERE NEXT TIME
 +cgi вывод в цикле
 +рефактор cgi
 +рефактор цикла
