@@ -327,14 +327,6 @@ void ft::WebServer::launch( std::vector<pollfd>& fdset ) {
 bool ft::WebServer::send_response( Request& request ) const {
 	std::ifstream file;
 	unsigned int needToReturn = 0;
-	// file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ) );
-	// char bufferttt[30000];
-	// while(!file.eof()) {
-	// 	file.read( bufferttt, 30000 );
-	// 	std::cout << GREEN << bufferttt << RESET << std::endl;
-	// }
-	// file.close();
-	
 	file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ) );
 	if(!file.is_open()) {
 		std::cout << RED << "send_response: " << strerror( errno ) << RESET << std::endl; // exeption
@@ -424,8 +416,11 @@ void ft::WebServer::check_new_clients( std::vector<pollfd>& fdset, std::map<int,
 			temp.events = (POLLIN | POLLERR);
 			fdset.push_back( temp );
 			requests[temp.fd] = Request();
-			requests[temp.fd].set_fd(temp.fd);
-			std::cout << GREEN << i << ", on fd = " << fdset[i].fd << " request is accepted" << RESET << std::endl;
+			requests[temp.fd].set_fd( temp.fd );
+			if(DEBUG_MODE) {
+				std::cout << GREEN << i << ", on fd = " << fdset[i].fd << " request is accepted" << RESET << std::endl;
+
+			}
 		}
 	}
 }
@@ -456,7 +451,8 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 		fdset.events = (POLLOUT | POLLERR);
 	}
 	else if(handler_ret == 2) {//returns if 0 bytes_read
-		std::cout << GREEN << "read 0 on fd " << fdset.fd << RESET << std::endl;
+		if(DEBUG_MODE)
+			std::cout << GREEN << "read 0 on fd " << fdset.fd << RESET << std::endl;
 		close( fdset.fd );
 		if(std::remove( (BUFFER_FILE + std::to_string( fdset.fd )).c_str() )) {
 			//error
@@ -474,7 +470,9 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 		Request& current_request = requests[current_pollfd.fd];
 		
 		if(current_pollfd.revents & POLLIN && current_request.is_pending()) {
-			std::cout << GREEN << i << ", fd = " << current_pollfd.fd << " is read" << RESET << std::endl;
+			if(DEBUG_MODE) {
+				std::cout << GREEN << i << ", fd = " << current_pollfd.fd << " is read" << RESET << std::endl;
+			}
 			int recieve_ret = recieve_request( current_pollfd, current_request );
 			if(recieve_ret == 2) {//connection closed
 				requests.erase( current_pollfd.fd );
@@ -490,9 +488,11 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 			}
 		}
 		else if(current_pollfd.revents & POLLOUT && current_request.responce_is_generated()) {
-			std::cout << GREEN << "socket " << i << ", fd = " << current_pollfd.fd << " is being written to" << RESET << std::endl;
+			if(DEBUG_MODE) {
+				std::cout << GREEN << "socket " << i << ", fd = " << current_pollfd.fd << " is being written to" << RESET << std::endl;
+			}
 			respond( current_pollfd, current_request );
-		}
+			}
 
 	}
 }
