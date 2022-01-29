@@ -49,8 +49,8 @@ namespace ft {
 
 		void respond( pollfd& fdset, Request& request );
 		int recieve_request( pollfd& fdset, Request& request );
-		
-		void newest_global_loop( std::vector<pollfd>& fdset );
+
+        _Noreturn void newest_global_loop( std::vector<pollfd>& fdset );
 		std::vector<ListeningSocket> get_socket_array()const;
 		int get_size_serverInfo() const;
 		std::string generate_response_head( const int& code );

@@ -487,9 +487,7 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 }
 
 
-
-
-void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
+_Noreturn void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 	std::map<int, Request> requests;
 	bool is_cheking = true;
 	while(true) {
