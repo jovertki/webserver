@@ -152,7 +152,6 @@ void ft::CGI_handler::start(){
 
 void ft::CGI_handler::process(){
 	waitpid( cgi_pid, NULL, WNOHANG );
-	// request->cgi_stage = CGI_FINISHED;
 	if(kill( cgi_pid, 0 ) == -1) {
 		stage = CGI_FINISHED;
 	}
