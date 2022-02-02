@@ -8,6 +8,7 @@ int main( int argc, char** argv, char** envp ) {
 	std::cout << "Content-Type: text/html\r\n\r\n";
 	std::string s;
 	std::cin >> s;
+	std::cout << "<h1>This was calculated with cpp binary and POST request</h1>" << std::endl;
 	std::cout << "<h1>Addition Results</h1>" << std::endl;
 	// std::cout << "<output>" << instr << "</output>\n<br>" << std::endl;
 	for(int i = 0; envp[i] != NULL; i++) {

@@ -30,8 +30,10 @@ namespace ft {
 		std::string* query_string;
 		std::map <std::string, std::string>* params;
 
-
-		
+		int get_bodyfile_length();
+		void execute_script();
+		long find_cgi_file_length( std::ifstream& cgi_response_file, std::string& content_type );
+		std::string get_extention()const;
 		char** create_appended_envp();
 		void init_new_envp( std::map<std::string, std::string>& );
 		void start();

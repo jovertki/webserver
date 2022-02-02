@@ -12,6 +12,9 @@
 #define BUFFER_SIZE 30000 //is always bigger then 8000, max HTTP header size
 #define CGI_BUFFER_SIZE 8000
 
+//thing to change
+#define PYTHON_INTERPRETER "/usr/local/bin/python3"
+#define PERL_INTERPRETER "/usr/bin/perl"
 
 #define BACKLOG 30
 #define TIMEOUT 10000

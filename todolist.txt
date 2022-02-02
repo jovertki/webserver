@@ -16,7 +16,10 @@ chunked реквесты
 
 сделать POST == GET???
 
-python cgi<--START HERE NEXT TIME
+
+
+execute_script needs beauty <---START HERE!!!!!!!!
++-python cgi
 +cgi вывод в цикле
 +рефактор cgi
 +рефактор цикла
@@ -29,11 +32,7 @@ python cgi<--START HERE NEXT TIME
 
 
 -----бонусы-----
-несколько cgi
++-несколько cgi
 
 
 
-
--->буффер, длина буфера, константа начальная координата тела
-
-<--перезаписанный буфер, длина буфера

@@ -51,7 +51,7 @@ void ft::CGI_handler::init_new_envp( std::map<std::string, std::string>& additio
 	additions["REQUEST_METHOD"] = "";
 	additions["PATH_INFO"] = "";
 	additions["AUTH_TYPE"] = "";//not used
-	additions["CONTENT_LENGTH"] = "";//needs elaboration
+	additions["CONTENT_LENGTH"] = std::to_string( get_bodyfile_length() );//needs elaboration
 	additions["CONTENT_TYPE"] = "";
 	additions["GATEWAY_INTERFACE"] = "";//not used
 	additions["PATH_TRANSLATED"] = "";//not used
@@ -60,7 +60,6 @@ void ft::CGI_handler::init_new_envp( std::map<std::string, std::string>& additio
 	additions["REMOTE_HOST"] = "";
 	additions["REMOTE_IDENT"] = "";//not used
 	additions["REMOTE_USER"] = "";//not used
-	additions["REQUEST_METHOD"] = "";
 	additions["SCRIPT_NAME"] = "";//not perfect
 	additions["SERVER_NAME"] = "";//NYI
 	additions["SERVER_PORT"] = "";//NYI
@@ -88,7 +87,6 @@ void ft::CGI_handler::init_new_envp( std::map<std::string, std::string>& additio
 
 	additions["SERVER_NAME"] = "";//NYI
 	additions["SERVER_PORT"] = "";//NYI
-
 
 
 
@@ -124,21 +122,61 @@ char** ft::CGI_handler::create_appended_envp(){
 	}
 	return new_envp;
 }
+void ft::CGI_handler::execute_script() {//needs beauty
+	char** cgi_envp = create_appended_envp();
+	std::string filename = SERVER_DIR + *requested_url;
 
+	std::string interpreter;
+	if(get_extention() == "py") {
+		interpreter = PYTHON_INTERPRETER;
+		char** args = new char* [3];
+		args[0] = new char[strlen( PYTHON_INTERPRETER ) + 1];
+		bzero( args[0], strlen( PYTHON_INTERPRETER ) + 1 );
+		strcpy( args[0], PYTHON_INTERPRETER );
+		args[1] = new char[filename.size() + 1];
+		bzero( args[1], filename.size() + 1 );
+		strcpy( args[1], filename.c_str() );
+		args[2] = NULL;
+		if(execve( interpreter.c_str(), args, cgi_envp ) == -1) {
+			std::cout << RED << "execute_script: " << strerror( errno ) << RESET << std::endl;
+		}
+	}
+	if(get_extention() == "pl") {
+		interpreter = PERL_INTERPRETER;
+		char** args = new char* [3];
+		args[0] = new char[strlen( PERL_INTERPRETER ) + 1];
+		bzero( args[0], strlen( PERL_INTERPRETER ) + 1 );
+		strcpy( args[0], PERL_INTERPRETER );
+		args[1] = new char[filename.size() + 1];
+		bzero( args[1], filename.size() + 1 );
+		strcpy( args[1], filename.c_str() );
+		args[2] = NULL;
+		if(execve( interpreter.c_str(), args, cgi_envp ) == -1) {
+			std::cout << RED << "execute_script: " << strerror( errno ) << RESET << std::endl;
+		}
+	}
+
+
+	
+	else
+		execve( filename.c_str(), NULL, cgi_envp );
+
+}
 
 void ft::CGI_handler::start(){
 	stage = CGI_PROCESSING;
-	char** cgi_envp = create_appended_envp();
 	int body_fd = open( (BUFFER_FILE + std::to_string( *fd )).c_str(), O_RDONLY );
 	int response_file_fd = open( (BUFFER_FILE_CGIOUT + std::to_string( *fd )).c_str(), O_WRONLY | O_CREAT, 0666 );
-	std::string debug = SERVER_DIR + *requested_url;
+	// std::cout << RED << "cgi extention is |" << get_extention() << "|" << RESET << std::endl;
+
+	
 	pid_t ret = fork();
 	if(ret == 0)
 	{
 		dup2( body_fd, 0 );
 		dup2( response_file_fd, 1 );
-		std::string filename = SERVER_DIR + *requested_url;
-		execve( filename.c_str(), NULL, cgi_envp );
+
+		execute_script();
 		std::cout << "ERRRPR" << std::endl;
 		std::cout << strerror( errno ) << std::endl;
 		exit( 234 );
@@ -157,27 +195,33 @@ void ft::CGI_handler::process(){
 	}
 }
 
-void ft::CGI_handler::write(){
+
+long ft::CGI_handler::find_cgi_file_length( std::ifstream& cgi_response_file, std::string& content_type ) {
+	cgi_response_file.seekg( 0, std::ios::end );
+	long cgi_file_length = cgi_response_file.tellg();
+	cgi_file_length -= (content_type.size() + 4);
+	cgi_response_file.close();
+	cgi_response_file.open( BUFFER_FILE_CGIOUT + std::to_string( *fd ), std::ios::binary );
+	return cgi_file_length;
+}
+
+void ft::CGI_handler::write() {
 	std::ifstream cgi_response_file;
 	cgi_response_file.open( BUFFER_FILE_CGIOUT + std::to_string( *fd ) );
 	if(!cgi_response_file.is_open())
 		std::cout << RED << strerror( errno ) << RESET << std::endl;
+		
 	std::string content_type;
 	std::getline( cgi_response_file, content_type );
 	content_type.pop_back();//delete extra /r
 	std::cout << RED << content_type << content_type.size() << " " << strlen( "Content-Type: text/html" ) << RESET << std::endl;
 
-	cgi_response_file.seekg( 0, std::ios::end );
-	long cgi_file_length = cgi_response_file.tellg();
-
-	cgi_response_file.close();
-
-	cgi_response_file.open( BUFFER_FILE_CGIOUT + std::to_string( *fd ), std::ios::binary );
+	long cgi_file_length = find_cgi_file_length( cgi_response_file, content_type );
 
 
 	std::ofstream response_file;
 	response_file.open( BUFFER_FILE_OUT + std::to_string( *fd ), std::ios::binary );
-	response_file << generate_response_head( 200 ) << "Content-Length: " << std::to_string( cgi_file_length - content_type.size() - 4 ) << "\r\n";
+	response_file << generate_response_head( 200 ) << "Content-Length: " << cgi_file_length << "\r\n";
 
 	char buffer[CGI_BUFFER_SIZE + 1];
 	while(!cgi_response_file.eof()) {
@@ -238,4 +282,20 @@ void ft::CGI_handler::init_response_msgs() {
 	response_messeges[507] = "Insufficient Storage";
 	response_messeges[508] = "Loop Detected";
 	response_messeges[510] = "Not Extended ";
+}
+
+
+std::string ft::CGI_handler::get_extention()const {
+	std::size_t dot = requested_url->find_last_of( "." );
+	return requested_url->substr( dot + 1, requested_url->size() - dot );
+}
+
+int ft::CGI_handler::get_bodyfile_length() {
+	std::ifstream body_file;
+	body_file.open( BUFFER_FILE + std::to_string( *fd ), std::ios::binary );
+	body_file.seekg( 0, std::ios::end );
+	long ret = body_file.tellg();
+	body_file.close();
+	return ret;
+
 }

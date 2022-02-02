@@ -440,7 +440,7 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 				std::cout << GREEN << "socket " << i << ", fd = " << current_pollfd.fd << " is being written to" << RESET << std::endl;
 			}
 			respond( current_pollfd, current_request );
-			}
+		}
 
 	}
 }
