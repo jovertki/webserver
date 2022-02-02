@@ -14,7 +14,7 @@ int main( int argc, char** argv, char** envp ) {
 	}
 	std::ofstream outfile( upload_path );
 	if(!outfile.is_open()) {
-		std::cout << "error uploading" << std::endl;
+		std::cout << upload_path << std::endl;
 	}
 	std::string line;
 	while(getline( std::cin, line ))
@@ -25,6 +25,6 @@ int main( int argc, char** argv, char** envp ) {
 	}
 	outfile.close();
 
-	std::cout << "Content-Type: text/html\n\n";
-	std::cout << "<h1>File was successfully uploaded</h1>" << std::endl;
+	std::cout << "Content-Type: text/html\r\n\r\n";
+	std::cout << "<h1>File was successfully uploaded</h1>";
 }

@@ -6,7 +6,7 @@ int main( int argc, char** argv, char** envp ) {
 
 	int i = 0;
 	std::string s;
-	std::cout << "Content-Type: text/html\n\n";
+	std::cout << "Content-Type: text/html\r\n\r\n";
 	std::cout << "<h1>Addition Results</h1>" << std::endl;
 	// std::cout << "<output>" << instr << "</output>\n<br>" << std::endl;
 	for(int i = 0; envp[i] != NULL; i++) {
