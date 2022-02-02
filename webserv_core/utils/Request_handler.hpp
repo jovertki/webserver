@@ -20,8 +20,8 @@ namespace ft {
 		long full_request_length;
 		long total_bytes_read;
 		int header_length;
-        unsigned long chunkSize;
-        unsigned long chunkRead;
+        std::size_t chunkSize;
+        std::size_t chunkRead;
         std::string end;
 
 		bool parsing_data_header;

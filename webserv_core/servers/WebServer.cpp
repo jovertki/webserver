@@ -428,6 +428,7 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 			}
 			else if(recieve_ret == 1) {//we have read everything
 				current_request.set_stage(REQUEST_FINISHED_READING);
+
 			}
 		}
 		else if(current_request.is_finished_reading()) {
