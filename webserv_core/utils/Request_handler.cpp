@@ -214,7 +214,7 @@ namespace ft {
                         std::cerr << e.what() << std::endl; }// mistake???
                     buffer.erase(position, startRN + 2); // delete \r\n
                     if (chunkSize == 0) { //  all chunks done!!!
-                        if (buffer.size() - position == 2)
+                        if (buffer.size() - position == 2) // > 1 ??
                             buffer.erase(position, position + 2); // delete \r\n
                         else { // \r\n in next buffer)))))))
                             std::cerr << "IGNORE NEXT BUFFER" << std::endl; }// are it's ok for program???????
