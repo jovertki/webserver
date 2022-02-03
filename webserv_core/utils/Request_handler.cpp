@@ -144,7 +144,7 @@ namespace ft {
 	}
 
 	void Request_handler::handle_regular_body( const std::string& buffer, std::ofstream& body_file ) {
-		for(int i = 0; i < buffer.size() && total_bytes_read < full_request_length; i++) {
+		for(int i = 0; i < buffer.size() && (total_bytes_read < full_request_length || is_chunked()); i++) {
 			body_file << buffer[i];
 			total_bytes_read++;
 		}

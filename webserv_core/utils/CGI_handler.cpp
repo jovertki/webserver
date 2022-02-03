@@ -135,6 +135,9 @@ void ft::CGI_handler::execute_extention_script( const std::string& filename, cha
 	else if(get_extention() == "pl") {
 		interpreter = PERL_INTERPRETER;
 	}
+	else {
+		//ERROR ???	
+	}
 	args[0] = new char[interpreter.size() + 1];
 	bzero( args[0], interpreter.size() + 1 );
 	strcpy( args[0], interpreter.data() );
@@ -146,7 +149,6 @@ void ft::CGI_handler::execute_extention_script( const std::string& filename, cha
 void ft::CGI_handler::execute_script() {//needs beauty
 	char** cgi_envp = create_appended_envp();
 	std::string filename = SERVER_DIR + *requested_url;
-	std::cout << RED << "execute_script: " << get_extention() << RESET << std::endl;
 	if(get_extention() != "") {
 		execute_extention_script( filename, cgi_envp );
 	}

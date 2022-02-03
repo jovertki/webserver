@@ -9,7 +9,7 @@
 
 #define DEBUG_MODE 1
 
-#define BUFFER_SIZE 8000 //is always bigger then 8000, max HTTP header size
+#define BUFFER_SIZE 30000 //is always bigger then 8000, max HTTP header size
 #define CGI_BUFFER_SIZE 8000
 
 //thing to change
