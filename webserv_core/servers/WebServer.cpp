@@ -14,11 +14,7 @@
 #include <map>
 #include <signal.h>
 
-const char* ft::WebServer::error_request_code::what() const throw() {
-	return ("error");
-}
-
-ft::WebServer::WebServer( char** envp, ConfigInfo& config ) : envp( envp ), id(), config( config ) { // зачем ID???
+ft::WebServer::WebServer( char** envp, ConfigInfo& config ) : envp( envp ), id(), config( config ), error_handler(Error_response_generator(&response_messeges)) { // зачем ID???
 	std::vector<pollfd> fdset;
 	for(int i = 0; i < config.getServers().size(); i++) {
 		if(config.checkHostPortDublicates( i ) != NOT_FOUND)
@@ -67,6 +63,11 @@ bool ft::WebServer::response_GET( Request& request ) {
 	if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS ON*/) {
 		//list contents
 		list_contents( SERVER_DIR + request.get_requested_url(), request );
+		return true;
+	}
+	else if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS OFF*/) {
+		handle_errors( 503, request );
+		return true;
 	}
 	else if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > sizeof( "/cgi-bin/" )) { //if it is in /cgi-bin/
 		return request.execute_cgi();
@@ -79,6 +80,7 @@ bool ft::WebServer::response_GET( Request& request ) {
 		std::ifstream infile( SERVER_DIR + request.get_requested_url() );
 		if(!infile.is_open()) {
 			handle_errors( 404, request );
+			return true;
 		}
 
 		//first response line
@@ -119,7 +121,7 @@ bool ft::WebServer::response_DELETE( Request& request ) {
 	return true;
 }
 
-bool ft::WebServer::generate_regular_response( Request& request ) {
+bool ft::WebServer::generate_response( Request& request ) {
 	//NYI check availability of method in location
 	if(request.get_method() == GET)
 		return response_GET( request );
@@ -140,65 +142,74 @@ bool ft::WebServer::is_directory( const std::string& path )const {
 			//it's a directory
 			return 1;
 		}
-		else if(s.st_mode & S_IFREG)
-		{
-			//it's a file
-			return 0;
-		}
 		else
 		{
 			//something else
 			return 0;
 		}
 	}
-	else
-	{
-		//error
-	}
 	return 0;
 }
 
-void ft::WebServer::handle_errors( int error_code, Request& request ) {
-	std::ostringstream header;
-	std::ostringstream body;
+void ft::WebServer::handle_errors(const int& error_code, Request& request ) {
 
-	body << "<!DOCTYPE html>" << std::endl << \
-		"<html lang=\"en\">" << std::endl << std::endl << \
-		"<head>" << std::endl << \
-		"<title>" << error_code << " Error Page</title>" << std::endl << std::endl << \
-		"<meta charset=\"utf-8\">" << std::endl << \
-		"<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">" << std::endl << \
-		"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" << std::endl << \
-		"<!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->" << std::endl << std::endl << \
-		"<!-- Bootstrap -->" << std::endl << std::endl << \
-		"<link rel = \"stylesheet\" href = \"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css\">" << std::endl << std::endl << \
-		"<!-- Custom stlylesheet -->" << std::endl << \
-		"<link type=\"text/css\" rel=\"stylesheet\" href=\"/css/style.css\" />" << std::endl << std::endl << \
-		"</head>" << std::endl << std::endl << \
-		"<body>" << std::endl << \
-		"<div class=\"vertical-center\">" << std::endl << \
-		"<div class=\"container\">" << std::endl << \
-		"<div id=\"notfound\" class=\"text-center\">" << std::endl << \
-		"<h1>:-(</h1>" << std::endl << \
-		"<h1>" << error_code << "</h1>" << std::endl << \
-		"<p>" << response_messeges[error_code] << "</p>" << std::endl << \
-		"<a href=\"/\">Back to homepage</a>" << std::endl << \
-		"</div>" << std::endl << \
-		"</div>" << std::endl << \
-		"</div>" << std::endl << \
-		"</body>" << std::endl << \
-		"</html>" << std::endl;
-
-	header << request.get_httpver() << " " << error_code << " " << "KO" << std::endl <<//<- needs elaboration
-		"Content-Type: text/html;" << std::endl << \
-		"Content-Length: " << body.str().size() << std::endl << std::endl;
 	std::ofstream response_file;
 	response_file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ), std::ios::binary );
-	response_file << header.str() << body.str();
+	if(!response_file.is_open()) {
+		//press F to pay respects for the server
+	}
+	if(false /*custom errorpage exists*/) {
+		// response_file << custom_error_page;
+	}
+	else {
+		response_file << error_handler.generate_errorpage( error_code );
+	}
 	response_file.close();
-
-	// throw (error_request_code());
+	request.set_stage( RESPONCE_GENERATED );
 }
+
+// void ft::WebServer::handle_errors( int error_code, Request& request ) {
+// 	std::ostringstream header;
+// 	std::ostringstream body;
+
+// 	body << "<!DOCTYPE html>" << std::endl << \
+// 		"<html lang=\"en\">" << std::endl << std::endl << \
+// 		"<head>" << std::endl << \
+// 		"<title>" << error_code << " Error Page</title>" << std::endl << std::endl << \
+// 		"<meta charset=\"utf-8\">" << std::endl << \
+// 		"<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">" << std::endl << \
+// 		"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" << std::endl << \
+// 		"<!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->" << std::endl << std::endl << \
+// 		"<!-- Bootstrap -->" << std::endl << std::endl << \
+// 		"<link rel = \"stylesheet\" href = \"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css\">" << std::endl << std::endl << \
+// 		"<!-- Custom stlylesheet -->" << std::endl << \
+// 		"<link type=\"text/css\" rel=\"stylesheet\" href=\"/css/style.css\" />" << std::endl << std::endl << \
+// 		"</head>" << std::endl << std::endl << \
+// 		"<body>" << std::endl << \
+// 		"<div class=\"vertical-center\">" << std::endl << \
+// 		"<div class=\"container\">" << std::endl << \
+// 		"<div id=\"notfound\" class=\"text-center\">" << std::endl << \
+// 		"<h1>:-(</h1>" << std::endl << \
+// 		"<h1>" << error_code << "</h1>" << std::endl << \
+// 		"<p>" << response_messeges[error_code] << "</p>" << std::endl << \
+// 		"<a href=\"/\">Back to homepage</a>" << std::endl << \
+// 		"</div>" << std::endl << \
+// 		"</div>" << std::endl << \
+// 		"</div>" << std::endl << \
+// 		"</body>" << std::endl << \
+// 		"</html>" << std::endl;
+
+// 	header << request.get_httpver() << " " << error_code << " " << "KO" << std::endl <<//<- needs elaboration
+// 		"Content-Type: text/html;" << std::endl << \
+// 		"Content-Length: " << body.str().size() << std::endl << std::endl;
+// 	std::ofstream response_file;
+// 	response_file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ), std::ios::binary );
+// 	response_file << header.str() << body.str();
+// 	response_file.close();
+// 	request.set_stage( RESPONCE_GENERATED );
+
+// 	// throw (error_request_code());
+// }
 void ft::WebServer::list_contents( const std::string& path, Request& request )const {
 	std::ostringstream header;
 	std::ostringstream body;
@@ -262,13 +273,10 @@ void ft::WebServer::launch( std::vector<pollfd>& fdset ) {
 		if(DEBUG_MODE) {
 			std::cout << "waiting" << std::endl;
 		}
-		try {
-			newest_global_loop( fdset );
-			if(DEBUG_MODE) {
-				system( "leaks webserv" );
-			}
+		newest_global_loop( fdset );
+		if(DEBUG_MODE) {
+			system( "leaks webserv" );
 		}
-		catch(error_request_code& e) {}
 		if(DEBUG_MODE) {
 			std::cout << "==== DONE ====" << std::endl;
 		}
@@ -380,6 +388,7 @@ void ft::WebServer::check_new_clients( std::vector<pollfd>& fdset, std::map<int,
 void ft::WebServer::respond( pollfd& fdset, Request& request ) {
 	int fdset_fd = fdset.fd;
 	if(send_response( request )) {
+		//this is highly questionable
 		if(std::remove( (BUFFER_FILE + std::to_string( fdset_fd )).c_str() )) {
 			//error
 		}
@@ -406,10 +415,10 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 			std::cout << GREEN << "read 0 on fd " << fdset.fd << RESET << std::endl;
 		close( fdset.fd );
 		if(std::remove( (BUFFER_FILE + std::to_string( fdset.fd )).c_str() )) {
-			//error
+			//error ignore?
 		}
 		if(std::remove( (BUFFER_FILE_OUT + std::to_string( fdset.fd )).c_str() )) {
-			//error
+			//error ignore?
 		}
 	}
 	return handler_ret;
@@ -435,7 +444,7 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 			}
 		}
 		else if(current_request.is_finished_reading()) {
-			if(generate_regular_response( current_request )) {//response is ready
+			if(generate_response( current_request )) {//response is ready
 				current_request.set_stage(RESPONCE_GENERATED);
 			}
 		}
@@ -462,6 +471,7 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 		// }
 		if(ret == 0) {
 			//??????
+			//close all and delete files????
 		}
 		if(ret == -1)
 			std::cout << "Fail from poll\n";
