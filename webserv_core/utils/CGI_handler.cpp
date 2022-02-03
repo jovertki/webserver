@@ -146,13 +146,15 @@ void ft::CGI_handler::execute_extention_script( const std::string& filename, cha
 void ft::CGI_handler::execute_script() {//needs beauty
 	char** cgi_envp = create_appended_envp();
 	std::string filename = SERVER_DIR + *requested_url;
-
+	std::cout << RED << "execute_script: " << get_extention() << RESET << std::endl;
 	if(get_extention() != "") {
 		execute_extention_script( filename, cgi_envp );
 	}
-	else//execute binary
-		execve( filename.c_str(), NULL, cgi_envp );
-
+	else {//execute binary
+		if(execve( filename.c_str(), NULL, cgi_envp ) == -1) {
+			std::cout << RED << "execute_script: " << strerror( errno ) << RESET << std::endl;
+		}
+	}
 }
 
 void ft::CGI_handler::start(){
@@ -279,7 +281,10 @@ void ft::CGI_handler::init_response_msgs() {
 
 std::string ft::CGI_handler::get_extention()const {
 	std::size_t dot = requested_url->find_last_of( "." );
-	return requested_url->substr( dot + 1, requested_url->size() - dot );
+	if(dot == std::string::npos)
+		return "";
+	else
+		return requested_url->substr( dot + 1, requested_url->size() - dot );
 }
 
 int ft::CGI_handler::get_bodyfile_length() {
