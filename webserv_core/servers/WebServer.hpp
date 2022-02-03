@@ -39,7 +39,7 @@ namespace ft {
 		void init_response_msgs();
 		void handle_multipart( Request& request, \
 			char* buffer, long& bytes_read, std::ofstream& body_file);
-
+		void write_response_to_file( Request& request );
 		void check_new_clients( std::vector<pollfd>& fdset, std::map<int, Request>& requests );
 		void work_with_clients( std::vector<pollfd>& fdset, std::map<int, Request>& requests );
 

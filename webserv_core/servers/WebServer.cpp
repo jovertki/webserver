@@ -47,21 +47,54 @@ int ft::WebServer::accepter( int id ) {
 }
 
 bool ft::WebServer::response_POST( Request& request ) {
-	// std::cout << "========RESPONSE POST IS ACTIVE========" << std::endl;
-
 	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > 9 /*sizeof( "/cgi-bin/" )*/) { //if it is in /cgi-bin/
 		return request.execute_cgi();
 	}
+	else {
+		//ERRROR ???
+	}
 	return true;
+}
+
+
+void ft::WebServer::write_response_to_file( Request& request ) {
+	std::ifstream infile( SERVER_DIR + request.get_requested_url() );
+	if(!infile.is_open()) {
+		handle_errors( 404, request );
+		return;
+	}
+	infile.seekg( 0, std::ios::end );
+	long requested_file_size = infile.tellg();
+	infile.seekg( 0, std::ios::beg );
+
+	std::ofstream response_file;
+	response_file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ), std::ios::binary );
+	response_file << generate_response_head( 200 );
+	response_file << "Content-Type: " << request.get_content_type() << ";\nContent-Length:" \
+		<< std::to_string( requested_file_size ) << "\n\n";
+
+	char buffer[CGI_BUFFER_SIZE + 1];
+	while(!infile.eof()) {
+		bzero( buffer, CGI_BUFFER_SIZE );
+		infile.read( buffer, CGI_BUFFER_SIZE );
+		response_file.write( buffer, infile.gcount() );
+	}
+	infile.close();
+	response_file.close();
 }
 
 bool ft::WebServer::response_GET( Request& request ) {
 
 	//check if rights are correct
-	//use index field from config somewhere here
+	// if(rigthts are incorrect) {
+	// 	handle_errors( some code );
+	// 	return true;
+	// }
 
+	if(is_directory( SERVER_DIR + request.get_requested_url() ) && false/*index file exists*/) {
+		//request.set_requested_url( indexfile );
+	}
 	if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS ON*/) {
-		//list contents
 		list_contents( SERVER_DIR + request.get_requested_url(), request );
 		return true;
 	}
@@ -73,61 +106,41 @@ bool ft::WebServer::response_GET( Request& request ) {
 		return request.execute_cgi();
 	}
 	else {
-		//proceed with request
-		std::string content_type = request.get_content_type();
-
-		//read file to string
-		std::ifstream infile( SERVER_DIR + request.get_requested_url() );
-		if(!infile.is_open()) {
-			handle_errors( 404, request );
-			return true;
-		}
-
-		//first response line
-		std::ofstream response_file;
-		response_file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ), std::ios::binary );
-		response_file << generate_response_head( 200 );
-		//write file to string
-		std::string* response_body = new std::string( (std::istreambuf_iterator<char>( infile )),
-			(std::istreambuf_iterator<char>()) );
-		response_file << "Content-Type: " << content_type << ";\nContent-Length:" << std::to_string( (*response_body).size() ) << "\n\n";
-		response_file << *response_body;
-		response_file.close();
-		delete response_body;
+		write_response_to_file( request );
 	}
 	return true;
-	//write string to socket
 }
 
 bool ft::WebServer::response_DELETE( Request& request ) {
-	//do smth
-	// if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS ON*/) {
-	// 	//list contents
-	// 	response = list_contents( SERVER_DIR + request.get_requested_url() );
-	// }
 	std::ofstream response_file;
+	response_file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ), std::ios::binary );
+	std::stringstream msg;
+	//do smth
+	if(is_directory( SERVER_DIR + request.get_requested_url() )) {
+		msg << "Your " << request.get_requested_url() << " is a directory, denied";
+		response_file << generate_response_head( 403 ) << "Content-Type: text/html;\n" << \
+			"Content-Length: " << std::to_string( msg.str().size() ) << "\n\n" << msg.str();
+		return true;
+	}
 	if(std::remove( (SERVER_DIR + request.get_requested_url()).c_str() ) < 0) {
 		//error
 	}
 	else {
-		std::ofstream response_file;
-		response_file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ), std::ios::binary );
-
-		std::stringstream msg;
 		msg << "File " << request.get_requested_url() << " was successfully DELETED";
 		response_file << generate_response_head( 200 ) << "Content-Type: text/html;\n" << "Content-Length: " << std::to_string( msg.str().size() ) << "\n\n" << msg.str();
-		response_file.close();
 	}
+	response_file.close();
 	return true;
 }
 
 bool ft::WebServer::generate_response( Request& request ) {
 	//NYI check availability of method in location
-	if(request.get_method() == GET)
+	int method = request.get_method();
+	if(method == GET)
 		return response_GET( request );
-	else if(request.get_method() == POST)
+	else if(method == POST)
 		return response_POST( request );
-	else if(request.get_method() == DELETE)
+	else if(method == DELETE)
 		return response_DELETE( request );
 	return true;
 }
