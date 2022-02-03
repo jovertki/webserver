@@ -28,7 +28,7 @@ namespace ft {
 
 		bytes_read = read( *fd, temp_buffer, bytes_to_read );
 		std::string buffer( temp_buffer, temp_buffer + bytes_read );//needs code review
-        std::cout << MAGENTA << buffer << RESET <<std::endl;
+        // std::cout << MAGENTA << buffer << RESET <<std::endl;
 		if(bytes_read == -1) {
 			return 0;//error connection
 		}
@@ -137,9 +137,9 @@ namespace ft {
 		if(is_multipart())
 			multipart_boundary = set_boundary();
 		if(DEBUG_MODE) {
-			std::cout << "Method is " << *method << std::endl;
-			std::cout << "URL is |" << *requested_url << "|" << std::endl;
-			std::cout << "HTTPVER is |" << *httpver << "|" << std::endl;
+			// std::cout << "Method is " << *method << std::endl;
+			// std::cout << "URL is |" << *requested_url << "|" << std::endl;
+			// std::cout << "HTTPVER is |" << *httpver << "|" << std::endl;
 		}
 	}
 
@@ -221,17 +221,17 @@ namespace ft {
         }
 //        std::cout << GREEN << buffer << RESET <<std::endl;
         while (position < buffer.size()) {
-            std::cout << RED << chunkSize << " =chunkSize ////     " << chunkRead << " =chunkRead" << RESET << std::endl;
+            // std::cout << RED << chunkSize << " =chunkSize ////     " << chunkRead << " =chunkRead" << RESET << std::endl;
 
             if (chunkSize == 0) { // find chunk
                 startRN = buffer.find("\r\n", position, 2);
-                std::cout << "position ==== " << position << " startRN === " << startRN << std::endl;
+                // std::cout << "position ==== " << position << " startRN === " << startRN << std::endl;
                 if (startRN != std::string::npos) {
                     try { // before \r\n size of chunk
                         chunkSize = utils::strhex_to_num(buffer.substr(position, startRN - position)); }
                     catch (std::exception &e) {
                         std::cerr << e.what() << std::endl; }// mistake???
-                    std::cout << "SIZE ==== " << chunkSize << " piece to delete === " << buffer.substr(position, startRN + 2) << std::endl;
+                    // std::cout << "SIZE ==== " << chunkSize << " piece to delete === " << buffer.substr(position, startRN + 2) << std::endl;
 
                     buffer.erase(position, startRN - position + 2); // delete \r\n
 
@@ -261,10 +261,10 @@ namespace ft {
                         end = buffer.substr(position);
                         buffer.erase(position);
                         chunkRead = chunkSize; //  in next func needToRead will be 0
-                        std::cout << BLUE << "2! " << "end = " << end << "chunkRead = chunkSize" << chunkRead  << RESET << std::endl;
+                        // std::cout << BLUE << "2! " << "end = " << end << "chunkRead = chunkSize" << chunkRead  << RESET << std::endl;
                     }
                     else { // everything ok so only erase and return to first condition
-                        std::cout << BLUE << "333333333333333333333" << RESET <<std::endl;
+                        // std::cout << BLUE << "333333333333333333333" << RESET <<std::endl;
 //                        std::cout << BOLDCYAN << buffer << RESET << std::endl;
                         buffer.erase(position, 2);
 //                        std::cout << BOLDMAGENTA << buffer << RESET << std::endl;
@@ -272,7 +272,7 @@ namespace ft {
                     }
                 }
                 else { // not enough chunksize in buffer;
-                    std::cout << BLUE << "4444444444444444444" << RESET <<std::endl;
+                    // std::cout << BLUE << "4444444444444444444" << RESET <<std::endl;
                     chunkRead += buffer.size() - position;
                     position = buffer.size(); //  stop while and  return false
                 }
