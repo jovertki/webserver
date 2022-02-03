@@ -110,7 +110,10 @@ bool ft::WebServer::response_DELETE( Request& request ) {
 	else {
 		std::ofstream response_file;
 		response_file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ), std::ios::binary );
-		response_file << generate_response_head( 200 ) << "\r\nFile " << request.get_requested_url() << " was successfully DELETED" << std::endl;
+
+		std::stringstream msg;
+		msg << "File " << request.get_requested_url() << " was successfully DELETED";
+		response_file << generate_response_head( 200 ) << "Content-Type: text/html;\n" << "Content-Length: " << std::to_string( msg.str().size() ) << "\n\n" << msg.str();
 		response_file.close();
 	}
 	return true;
@@ -447,7 +450,7 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 }
 
 
-_Noreturn void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
+	void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 	std::map<int, Request> requests;
 	bool is_cheking = true;
 	while(true) {
