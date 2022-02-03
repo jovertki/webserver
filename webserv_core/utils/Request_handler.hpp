@@ -16,17 +16,22 @@ namespace ft {
 			std::map <std::string, std::string>* aparams = NULL, \
 			std::string* aqstr = NULL );
 	private:
+		//request handler
 		bool parsing_header;
 		long full_request_length;
 		long total_bytes_read;
 		int header_length;
-        std::size_t chunkSize;
+
+		//parsing chunked
+		std::size_t chunkSize;
         std::size_t chunkRead;
         std::string end;
 
+		//multipart
 		bool parsing_data_header;
 		std::string multipart_boundary;
-		
+
+		//request data pointers
 		int* fd;
 		std::string *query_string;
 		int* method;

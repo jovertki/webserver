@@ -31,9 +31,6 @@ namespace ft {
 	public:
 		//used in sending response
 		unsigned long lastPos;
-
-		//remove candidate, used in handle multipart
-		
 		
 		Request();
 		// Request( const Request& a );
@@ -65,6 +62,7 @@ namespace ft {
 		bool is_finished_reading() const;
 		bool responce_is_generated() const;
 		void set_stage( const int& );
+		
 		bool execute_cgi();
 		int execute_handler();
 		

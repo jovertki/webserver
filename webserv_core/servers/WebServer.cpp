@@ -30,7 +30,7 @@ ft::WebServer::WebServer( char** envp, ConfigInfo& config ) : envp( envp ), id()
 		temp.revents = 0;
 		fdset.push_back( temp );
 	}
-	signal( SIGPIPE, SIG_IGN );//perhaps should elaborate more
+	signal( SIGPIPE, SIG_IGN );
 	init_response_msgs();
 	launch( fdset );
 }
@@ -139,7 +139,7 @@ bool ft::WebServer::generate_response( Request& request ) {
 	if(method == GET)
 		return response_GET( request );
 	else if(method == POST)
-		return response_POST( request );
+		return response_POST( request );//replace with GET??
 	else if(method == DELETE)
 		return response_DELETE( request );
 	return true;
