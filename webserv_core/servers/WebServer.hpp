@@ -38,7 +38,6 @@ namespace ft {
 		bool execute_cgi( Request& request );
 		void header_parse( const char*, Request& );
 		char** create_appended_envp( Request& request );
-		void init_new_envp( std::map<std::string, std::string>&, Request& );
 		bool send_response( Request& )const;
 		void init_response_msgs();
 		void handle_multipart( Request& request, \

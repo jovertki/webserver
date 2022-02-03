@@ -54,7 +54,7 @@ namespace ft {
 	}
 
 	int Request_handler::new_bytes_to_read() {
-		if(full_request_length - total_bytes_read > BUFFER_SIZE || parsing_header) {
+		if(full_request_length - total_bytes_read > BUFFER_SIZE || parsing_header || is_chunked()) {
 			return BUFFER_SIZE;
 		}
 		else {

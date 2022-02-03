@@ -51,7 +51,7 @@ void ft::CGI_handler::init_new_envp( std::map<std::string, std::string>& additio
 	additions["REQUEST_METHOD"] = "";
 	additions["PATH_INFO"] = "";
 	additions["AUTH_TYPE"] = "";//not used
-	additions["CONTENT_LENGTH"] = std::to_string( get_bodyfile_length() );//needs elaboration
+	additions["CONTENT_LENGTH"] = std::to_string( get_bodyfile_length() );
 	additions["CONTENT_TYPE"] = "";
 	additions["GATEWAY_INTERFACE"] = "";//not used
 	additions["PATH_TRANSLATED"] = "";//not used
@@ -60,12 +60,11 @@ void ft::CGI_handler::init_new_envp( std::map<std::string, std::string>& additio
 	additions["REMOTE_HOST"] = "";
 	additions["REMOTE_IDENT"] = "";//not used
 	additions["REMOTE_USER"] = "";//not used
-	additions["SCRIPT_NAME"] = "";//not perfect
+	additions["SCRIPT_NAME"] = "";
 	additions["SERVER_NAME"] = "";//NYI
 	additions["SERVER_PORT"] = "";//NYI
 	additions["SERVER_PROTOCOL"] = "";
 	additions["SERVER_SOFTWARE"] = "";//not used
-	// additions["UPLOAD_PATH"] = "";//NYI
 
 
 	if(*method == GET)
@@ -122,43 +121,36 @@ char** ft::CGI_handler::create_appended_envp(){
 	}
 	return new_envp;
 }
+
+void ft::CGI_handler::execute_extention_script( const std::string& filename, char** cgi_envp ) {
+	char** args = new char* [3];
+	args[1] = new char[filename.size() + 1];
+	bzero( args[1], filename.size() + 1 );
+	strcpy( args[1], filename.c_str() );
+	args[2] = NULL;
+	std::string interpreter;
+	if(get_extention() == "py") {
+		interpreter = PYTHON_INTERPRETER;
+	}
+	else if(get_extention() == "pl") {
+		interpreter = PERL_INTERPRETER;
+	}
+	args[0] = new char[interpreter.size() + 1];
+	bzero( args[0], interpreter.size() + 1 );
+	strcpy( args[0], interpreter.data() );
+	if(execve( interpreter.c_str(), args, cgi_envp ) == -1) {
+		std::cout << RED << "execute_script: " << strerror( errno ) << RESET << std::endl;
+	}
+}
+
 void ft::CGI_handler::execute_script() {//needs beauty
 	char** cgi_envp = create_appended_envp();
 	std::string filename = SERVER_DIR + *requested_url;
 
-	std::string interpreter;
-	if(get_extention() == "py") {
-		interpreter = PYTHON_INTERPRETER;
-		char** args = new char* [3];
-		args[0] = new char[strlen( PYTHON_INTERPRETER ) + 1];
-		bzero( args[0], strlen( PYTHON_INTERPRETER ) + 1 );
-		strcpy( args[0], PYTHON_INTERPRETER );
-		args[1] = new char[filename.size() + 1];
-		bzero( args[1], filename.size() + 1 );
-		strcpy( args[1], filename.c_str() );
-		args[2] = NULL;
-		if(execve( interpreter.c_str(), args, cgi_envp ) == -1) {
-			std::cout << RED << "execute_script: " << strerror( errno ) << RESET << std::endl;
-		}
+	if(get_extention() != "") {
+		execute_extention_script( filename, cgi_envp );
 	}
-	if(get_extention() == "pl") {
-		interpreter = PERL_INTERPRETER;
-		char** args = new char* [3];
-		args[0] = new char[strlen( PERL_INTERPRETER ) + 1];
-		bzero( args[0], strlen( PERL_INTERPRETER ) + 1 );
-		strcpy( args[0], PERL_INTERPRETER );
-		args[1] = new char[filename.size() + 1];
-		bzero( args[1], filename.size() + 1 );
-		strcpy( args[1], filename.c_str() );
-		args[2] = NULL;
-		if(execve( interpreter.c_str(), args, cgi_envp ) == -1) {
-			std::cout << RED << "execute_script: " << strerror( errno ) << RESET << std::endl;
-		}
-	}
-
-
-	
-	else
+	else//execute binary
 		execve( filename.c_str(), NULL, cgi_envp );
 
 }

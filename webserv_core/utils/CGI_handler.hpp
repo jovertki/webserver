@@ -32,6 +32,8 @@ namespace ft {
 
 		int get_bodyfile_length();
 		void execute_script();
+		void execute_extention_script( const std::string& filename, char** cgi_envp );
+		
 		long find_cgi_file_length( std::ifstream& cgi_response_file, std::string& content_type );
 		std::string get_extention()const;
 		char** create_appended_envp();
