@@ -21,7 +21,7 @@ const char* ft::WebServer::error_request_code::what() const throw() {
 ft::WebServer::WebServer( char** envp, ConfigInfo& config ) : envp( envp ), id(), config( config ) { // зачем ID???
 	std::vector<pollfd> fdset;
 	for(int i = 0; i < config.getServers().size(); i++) {
-		if(i && config.checkHostPortDublicates( i ) != -1)
+		if(config.checkHostPortDublicates( i ) != NOT_FOUND)
 			continue;
 		if(DEBUG_MODE)
 			std::cout << BLUE << "Listening host " << config.getServers()[i].getHost() << " with port " << config.getServers()[i].getListen() << RESET << std::endl;
@@ -428,6 +428,7 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 			}
 			else if(recieve_ret == 1) {//we have read everything
 				current_request.set_stage(REQUEST_FINISHED_READING);
+
 			}
 		}
 		else if(current_request.is_finished_reading()) {
@@ -446,9 +447,7 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 }
 
 
-
-
-void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
+_Noreturn void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 	std::map<int, Request> requests;
 	bool is_cheking = true;
 	while(true) {

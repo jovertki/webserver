@@ -3,6 +3,7 @@
 #include <string>
 #include <fstream>
 #include <map>
+#include "../config_parser/Utils_parse_config.hpp"
 
 
 namespace ft {
@@ -19,6 +20,9 @@ namespace ft {
 		long full_request_length;
 		long total_bytes_read;
 		int header_length;
+        std::size_t chunkSize;
+        std::size_t chunkRead;
+        std::string end;
 
 		bool parsing_data_header;
 		std::string multipart_boundary;
@@ -37,7 +41,7 @@ namespace ft {
 		void header_parse( const std::string& input_buffer );
 		void handle_regular_body( const std::string& buffer, std::ofstream& body_file );
 
-
+        bool parseChunkedBody(std::string& buffer);
 		bool body_exists();
 		bool is_chunked();
 		bool is_multipart();

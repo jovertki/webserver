@@ -3,13 +3,14 @@
 #include <sstream>
 #include <iostream>
 #include <vector>
-
+#include <fcntl.h>
+#include <unistd.h>
 namespace ft {
 
 	Request_handler::Request_handler( int* afd, int* amethod, std::string* arurl, \
 		std::string* ahttpver, std::map <std::string, std::string>* aparams, std::string* aqstr ) \
 		: parsing_header( true ), full_request_length( BUFFER_SIZE ), \
-		total_bytes_read( 0 ), header_length( 0 ), fd( afd ), \
+		total_bytes_read( 0 ), header_length( 0 ), chunkSize(0), chunkRead(0), end(""), fd( afd ), \
 		method( amethod ), requested_url( arurl ), httpver( ahttpver ), \
 		params( aparams ), query_string( aqstr ), parsing_data_header( true ){}
 
@@ -27,6 +28,7 @@ namespace ft {
 
 		bytes_read = read( *fd, temp_buffer, bytes_to_read );
 		std::string buffer( temp_buffer, temp_buffer + bytes_read );//needs code review
+        std::cout << MAGENTA << buffer << RESET <<std::endl;
 		if(bytes_read == -1) {
 			return 0;//error connection
 		}
@@ -176,7 +178,9 @@ namespace ft {
 		open_file( body_file );
 		int begin_pos = 0;
 		int is_over = 0;
-		if(parsing_header) {
+
+
+        if(parsing_header) {
 			header_parse( buffer );
 			begin_pos = header_length + 4;
 			buffer.erase( buffer.begin(), buffer.begin() + begin_pos );
@@ -184,8 +188,10 @@ namespace ft {
 		}
 		if(body_exists()) {
 			if(is_chunked()) {
-				// is_over = parseChunkedBody();//returns 1 if we have read everything, 0 otherwise
-			}
+				 is_over = parseChunkedBody(buffer);//returns 1 if we have read everything, 0 otherwise
+//                std::cout << RED << buffer << RESET <<std::endl;
+//                exit(1);
+            }
 			if(is_multipart()) {
 				handle_multipart( buffer );
 			}
@@ -205,11 +211,82 @@ namespace ft {
 		}
 	}
 
-	void Request_handler::delete_last_line(const long& file_len) {
-		truncate( (BUFFER_FILE + std::to_string( *fd )).c_str(), file_len - (multipart_boundary.size() + 4) /*(--\r\n)*/ );
-	}
-	
-	void Request_handler::multipart_parse_data_header( std::string& buffer ) {
+    bool Request_handler::parseChunkedBody(std::string& buffer) {
+        std::size_t startRN = 0;
+        std::size_t position = 0;
+//        std::cout << GREEN << " Start buffer \n" << buffer.substr(position) << RESET <<std::endl;
+        if (end.size()) { // some inf from last buffer
+            buffer.insert(0, end);
+            end.clear();
+        }
+//        std::cout << GREEN << buffer << RESET <<std::endl;
+        while (position < buffer.size()) {
+            std::cout << RED << chunkSize << " =chunkSize ////     " << chunkRead << " =chunkRead" << RESET << std::endl;
+
+            if (chunkSize == 0) { // find chunk
+                startRN = buffer.find("\r\n", position, 2);
+                std::cout << "position ==== " << position << " startRN === " << startRN << std::endl;
+                if (startRN != std::string::npos) {
+                    try { // before \r\n size of chunk
+                        chunkSize = utils::strhex_to_num(buffer.substr(position, startRN - position)); }
+                    catch (std::exception &e) {
+                        std::cerr << e.what() << std::endl; }// mistake???
+                    std::cout << "SIZE ==== " << chunkSize << " piece to delete === " << buffer.substr(position, startRN + 2) << std::endl;
+
+                    buffer.erase(position, startRN - position + 2); // delete \r\n
+
+//                    std::cout << "chunked piece ================== " << std::endl << buffer.substr(position, chunkSize) << "=========================" << std::endl;
+                    if (chunkSize == 0) { //  all chunks done!!!
+                        if (buffer.size() - position == 2) // > 1 ??
+                            buffer.erase(position,  2); // delete \r\n
+                        else { // \r\n in next buffer)))))))
+                            std::cerr << "IGNORE NEXT BUFFER" << std::endl; }// are it's ok for program???????
+                        return true;
+                    }
+                }
+                else { // \r\n and size can't be find so we need to wait next buffer
+                    end = buffer.substr(position); // reminder
+//                    std::cerr << "Error or real end buffer? END = " << end << std::endl; // delete!!!!!
+                    buffer.erase(position);
+                }
+            }
+            else {
+//                std::cout << BLUE << buffer.substr(position) << RESET <<std::endl;
+                std::size_t needToRead = chunkSize - chunkRead;
+                if (buffer.size() >= position + needToRead) { // if buffer more than current chunk
+                    position += needToRead; // move to place were \r\n
+//                    std::cout << BLUE << "1! chunk = " << buffer << " size buff = " << buffer.size() << RESET <<std::endl;
+                    if (buffer.size() - position < 2) { // if 1 or 0 symbols left after \r\n
+
+                        end = buffer.substr(position);
+                        buffer.erase(position);
+                        chunkRead = chunkSize; //  in next func needToRead will be 0
+                        std::cout << BLUE << "2! " << "end = " << end << "chunkRead = chunkSize" << chunkRead  << RESET << std::endl;
+                    }
+                    else { // everything ok so only erase and return to first condition
+                        std::cout << BLUE << "333333333333333333333" << RESET <<std::endl;
+//                        std::cout << BOLDCYAN << buffer << RESET << std::endl;
+                        buffer.erase(position, 2);
+//                        std::cout << BOLDMAGENTA << buffer << RESET << std::endl;
+                        chunkSize = chunkRead = 0;
+                    }
+                }
+                else { // not enough chunksize in buffer;
+                    std::cout << BLUE << "4444444444444444444" << RESET <<std::endl;
+                    chunkRead += buffer.size() - position;
+                    position = buffer.size(); //  stop while and  return false
+                }
+            }
+        }
+        return false;
+    }
+
+    void Request_handler::delete_last_line(const long& file_len) {
+        truncate( (BUFFER_FILE + std::to_string( *fd )).c_str(), file_len - (multipart_boundary.size() + 4) /*(--\r\n)*/ );
+    }
+
+    void Request_handler::multipart_parse_data_header( std::string& buffer ) {
+		std::string data_header;
 		std::size_t data_header_end = 0;
 		if(buffer.size() != 0) {
 			std::size_t filename_start = buffer.find( "filename=" );
