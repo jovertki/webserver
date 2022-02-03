@@ -10,7 +10,7 @@
 #define DEBUG_MODE 1
 
 #define BUFFER_SIZE 30000 //is always bigger then 8000, max HTTP header size
-#define CGI_BUFFER_SIZE 8000
+#define CGI_BUFFER_SIZE 30000
 
 //thing to change
 #define PYTHON_INTERPRETER "/usr/local/bin/python3"
