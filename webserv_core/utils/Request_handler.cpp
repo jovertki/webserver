@@ -159,7 +159,7 @@ namespace ft {
 			return false;
 	}
 
-	bool Request_handler::is_chunked() {
+	bool Request_handler::is_chunked() const{
 		if((*params)["HTTP_TRANSFER_ENCODING"].find( "chunked" ) != std::string::npos) {
 			return true;
 		}

@@ -18,4 +18,14 @@ namespace ft {
 		}
 		return 0;
 	}
+	long get_file_size( const std::string& filename ) {
+		std::ifstream infile( filename );
+		if(!infile.is_open()) {
+			return -1;
+		}
+		infile.seekg( 0, std::ios::end );
+		return infile.tellg();
+	}
 }
+
+

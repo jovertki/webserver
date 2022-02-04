@@ -53,7 +53,7 @@ namespace ft {
 		std::string get_serverName() const;
 
 		
-		// std::string get_param_value( const std::string& n );
+		std::string get_param_value( const std::string& n );
 		
 		void set_cgi( char** envp );
 		void set_request_handler();
@@ -70,7 +70,7 @@ namespace ft {
 		void set_param( const std::string& key, const std::string& value );
 		void insert_param( const std::pair<std::string, std::string>& );
 		void print_params()const;
-		// int param_exists( const std::string& ) const;
+		int param_exists( const std::string& ) const;
 
 		bool is_pending() const;
 		bool is_finished_reading() const;
@@ -79,7 +79,9 @@ namespace ft {
 		
 		bool execute_cgi();
 		int execute_handler();
-		
+
+
+		bool is_chunked() const;
 		void clear();
 	};
 }

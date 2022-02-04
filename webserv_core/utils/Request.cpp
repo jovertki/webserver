@@ -22,6 +22,10 @@ void ft::Request::set_request_handler() {
 			& httpver, &params, &query_string);
 	}
 }
+
+bool ft::Request::is_chunked() const{
+	return rhandler.is_chunked();
+}
 // ft::Request::Request( const ft::Request& a ) : method( a.method ), requested_url( a.requested_url ), httpver( a.httpver ), \
 // header_length( a.header_length ), query_string( a.query_string ), params( a.params ), \
 // total_bytes_read( a.total_bytes_read ), full_request_length( a.full_request_length ) {
@@ -127,20 +131,20 @@ void ft::Request::print_params() const{
 	}
 }
 
-// int ft::Request::param_exists( const std::string& n) const {
-// 	if(params.find( n ) != params.end())
-// 		return 1;
-// 	else
-// 		return 0;
-// }
+int ft::Request::param_exists( const std::string& n) const {
+	if(params.find( n ) != params.end())
+		return 1;
+	else
+		return 0;
+}
 
-// std::string ft::Request::get_param_value( const std::string& n ) {
-// 	if(param_exists( n )) {
-// 		return params[n];
-// 	}
-// 	else
-// 		return "";
-// }
+std::string ft::Request::get_param_value( const std::string& n ) {
+	if(param_exists( n )) {
+		return params[n];
+	}
+	else
+		return "";
+}
 
 void ft::Request::clear() {
 	fd = -1;

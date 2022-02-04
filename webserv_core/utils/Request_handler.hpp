@@ -9,6 +9,7 @@
 namespace ft {
 	class Request_handler {
 	public:
+		bool is_chunked()const;
 		int execute();
 		bool is_initialised();
 		Request_handler( int* afd = NULL, int* amethod = NULL, \
@@ -48,7 +49,6 @@ namespace ft {
 
         bool parseChunkedBody(std::string& buffer);
 		bool body_exists();
-		bool is_chunked();
 		bool is_multipart();
 		int get_method( const std::string& token );
 		void parse_query_string();

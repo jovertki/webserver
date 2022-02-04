@@ -363,13 +363,25 @@ int ft::WebServer::get_serverID(Request& request) {
 int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 	request.set_request_handler();
 	int handler_ret = request.execute_handler();
-	std::cout << RED << "begin" << RESET << std::endl;
-	if(request.get_servID() == -1)
+	if(request.get_servID() == -1) {//happends once per request
 		request.set_servID( get_serverID( request ) );
-	if(request.get_servID() == -1){
-		//ERROR no server with such servername
+		if(request.get_servID() == -1) {
+			//ERROR no server with such servername
+		}
+		// if REDIRECTION{
+		// 	do smth
+		// }
+		if(!request.is_chunked() && strtol( request.get_param_value( "HTTP_CONTENT_LENGTH" ).c_str(), NULL, 10 ) > \
+			config.getBodySize( request.get_servID(), request.get_requested_url() )) {
+			//ERROR
+			std::cout << RED << "CONTENT LENGTH > BODY SIZE" << RESET << std::endl;
+		}
 	}
-	std::cout << RED << "nd" << request.get_servID() << RESET << std::endl;
+	if(request.is_chunked() && get_file_size( BUFFER_FILE + std::to_string( fdset.fd ) ) > \
+		config.getBodySize( request.get_servID(), request.get_requested_url() )) {
+		//ERROR
+		std::cout << RED << "chunked CONTENT LENGTH > BODY SIZE" << RESET << std::endl;
+	}
 	request.set_cgi( envp );
 	if(handler_ret == 1) { //returns if read is complete
 		fdset.events = (POLLOUT | POLLERR);
