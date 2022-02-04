@@ -37,7 +37,7 @@ int ConfigInfo::checkHostPortDublicates(int i) {
     return NOT_FOUND;
 }
 
-/* Any locName will be truncated until "/", so every request locName need to begin with "/" */
+/* Any locName will be truncated with "/" */
 std::string ConfigInfo::getLocationByID(const int servId, std::string locName) {
     int pos;
 
@@ -53,7 +53,6 @@ std::string ConfigInfo::getLocationByID(const int servId, std::string locName) {
                 else
                     locName.resize(pos);
             }
-
         }
     }
     return locName;

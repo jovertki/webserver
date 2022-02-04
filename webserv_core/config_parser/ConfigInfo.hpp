@@ -1,5 +1,6 @@
 #pragma once
 #include "ServerConfig.hpp"
+#include "../utils/utils.hpp"
 
 #define NOT_FOUND -1
 
