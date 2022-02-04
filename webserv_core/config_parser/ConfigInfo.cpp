@@ -47,8 +47,13 @@ std::string ConfigInfo::getLocationByID(const int servId, std::string locName) {
         }
         else {
             locName.pop_back();
-            if ((pos = locName.find_last_of('/')) != std::string::npos)
-                locName.resize(pos + 1);
+            if ((pos = locName.find_last_of('/')) != std::string::npos) {
+                if (pos == 0)
+                    locName.resize(1);
+                else
+                    locName.resize(pos);
+            }
+
         }
     }
     return locName;

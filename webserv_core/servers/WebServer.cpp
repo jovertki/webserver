@@ -94,7 +94,7 @@ bool ft::WebServer::response_GET( Request& request ) {
 		//request.set_requested_url( indexfile );
 	}
 	if(is_directory( SERVER_DIR + request.get_requested_url() ) && \
-		config.getAutoIndex( request.get_servID(), request.get_requested_url() + "/"/*AUTOINDEX IS ON*/)) {
+		config.getAutoIndex( request.get_servID(), request.get_requested_url()/*AUTOINDEX IS ON*/)) {
 		list_contents( SERVER_DIR + request.get_requested_url(), request );
 		std::cout << RED << request.get_requested_url() << RESET << std::endl;
 		return true;
