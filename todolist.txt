@@ -2,9 +2,25 @@
 
 проверка несуществующей папки сохранения файла
 проверка существующего файла
-+проверка сервернейма
+
+
+
 сверка правил локейшена с конфигом
-+проверка body_size
+	+listen
+	+host
+	+server_name
+	+body_size
+	+autoindex
+	+allow_methods
+	+index
+
+	upload path
+	cgi
+	root SERVER_DIR заменить на геттер от рута
+	error page
+	return (redirection)
+
+
 
 редирекшн
 

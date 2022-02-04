@@ -90,20 +90,24 @@ bool ft::WebServer::response_GET( Request& request ) {
 	// 	return true;
 	// }
 
-	if(is_directory( SERVER_DIR + request.get_requested_url() ) && false/*index file exists*/) {
-		//request.set_requested_url( indexfile );
+	if(is_directory( SERVER_DIR + request.get_requested_url() )) {
+		if(config.getAutoIndex( request.get_servID(), request.get_requested_url()/*AUTOINDEX IS ON*/ )) {
+			list_contents( SERVER_DIR + request.get_requested_url(), request );
+			// std::cout << RED << request.get_requested_url() << RESET << std::endl;
+			return true;
+		}
+		else if("" != config.getIndex( request.get_servID(), request.get_requested_url() )) {
+			request.set_requested_url( request.get_requested_url() + "/" + config.getIndex( request.get_servID(), request.get_requested_url() ) );
+			// std::cout << RED << request.get_requested_url() << RESET << std::endl;
+		}
+		else {
+			handle_errors( 503, request );
+			return true;
+		}
 	}
-	if(is_directory( SERVER_DIR + request.get_requested_url() ) && \
-		config.getAutoIndex( request.get_servID(), request.get_requested_url()/*AUTOINDEX IS ON*/)) {
-		list_contents( SERVER_DIR + request.get_requested_url(), request );
-		std::cout << RED << request.get_requested_url() << RESET << std::endl;
-		return true;
-	}
-	else if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS OFF*/ ) {
-		handle_errors( 503, request );
-		return true;
-	}
-	else if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > sizeof( "/cgi-bin/" )) { //if it is in /cgi-bin/
+
+	
+	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > sizeof( "/cgi-bin/" )) { //if it is in /cgi-bin/
 		return request.execute_cgi();
 	}
 	else {
@@ -375,6 +379,12 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 			config.getBodySize( request.get_servID(), request.get_requested_url() )) {
 			//ERROR
 			std::cout << RED << "CONTENT LENGTH > BODY SIZE" << RESET << std::endl;
+		}
+
+
+		if(!config.checkMethod( request.get_servID(), request.get_requested_url(), static_cast<method>(request.get_method()) )) {
+			//ERROR
+			std::cout << RED << "METHOD FORBIDDEN" << RESET << std::endl;
 		}
 	}
 	if(request.is_chunked() && get_file_size( BUFFER_FILE + std::to_string( fdset.fd ) ) > \

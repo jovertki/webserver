@@ -28,11 +28,11 @@ void ServerConfig::checkAndFindValues(std::vector<std::string>& tokens) {
         throw utils::parseExeption("Error ServerParse::find values!");
     findMainValues(tokens.begin() + 1, tokens.end());
     CheckDefaultParam();
-    for (std::map<std::string, Location_info>:: iterator it = locations.begin();
-    it != locations.end(); ++it) {
-       if ((*it).first.back() != '/' && (*it).second.index.size())
-           throw utils::parseExeption("Error ServerParse::location file have index!");
-    }
+    // for (std::map<std::string, Location_info>:: iterator it = locations.begin();
+    // it != locations.end(); ++it) {
+    //    if ((*it).first.back() != '/' && (*it).second.index.size())
+    //        throw utils::parseExeption("Error ServerParse::location file have index!");
+    // }
     fillLocFromDefault();
 }
 
