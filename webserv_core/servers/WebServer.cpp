@@ -2,9 +2,7 @@
 #include <cstring>
 #include <string>
 #include <sstream>
-#include <sys/types.h>
 #include <dirent.h>
-#include <sys/stat.h>
 #include <sys/wait.h>
 #include <cstdio>
 #include <fcntl.h>
@@ -13,6 +11,7 @@
 #include <cstdlib>
 #include <map>
 #include <signal.h>
+#include "../utils/utils.hpp"
 
 ft::WebServer::WebServer( char** envp, ConfigInfo& config ) : envp( envp ), id(), config( config ), error_handler(Error_response_generator(&response_messeges)) { // зачем ID???
 	std::vector<pollfd> fdset;
@@ -145,25 +144,6 @@ bool ft::WebServer::generate_response( Request& request ) {
 	else if(method == DELETE)
 		return response_DELETE( request );
 	return true;
-}
-
-
-bool ft::WebServer::is_directory( const std::string& path )const {
-	struct stat s;
-	if(stat( path.c_str(), &s ) == 0)
-	{
-		if(s.st_mode & S_IFDIR)
-		{
-			//it's a directory
-			return 1;
-		}
-		else
-		{
-			//something else
-			return 0;
-		}
-	}
-	return 0;
 }
 
 void ft::WebServer::handle_errors(const int& error_code, Request& request ) {

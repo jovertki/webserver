@@ -26,7 +26,7 @@ namespace ft {
 		int accepter( int id );
 		int handler( Request& );
 		bool generate_response( Request& );
-		bool is_directory( const std::string& path )const;
+		// bool is_directory( const std::string& path )const;
 		void list_contents( const std::string& path, Request& request )const;
 		void handle_errors( const int& error_code, Request& request );
 		bool response_POST( Request& request );
