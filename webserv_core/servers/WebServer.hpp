@@ -43,6 +43,9 @@ namespace ft {
 		void check_new_clients( std::vector<pollfd>& fdset, std::map<int, Request>& requests );
 		void work_with_clients( std::vector<pollfd>& fdset, std::map<int, Request>& requests );
 
+		int get_serverID( Request& request );
+
+		
 		void respond( pollfd& fdset, Request& request );
 		int recieve_request( pollfd& fdset, Request& request );
 

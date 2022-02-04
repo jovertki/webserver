@@ -6,6 +6,9 @@ BindingSocket( domain, service, protocol, port, interface ) {
 	start_listening();
 	std::cout << "listening" << std::endl;
 	test_connection( listening );
+
+	this->port = port;
+	this->ip = interface;
 }
 
 
@@ -20,4 +23,13 @@ int ft::ListeningSocket::get_listening() {
 
 int ft::ListeningSocket::get_backlog() {
 	return backlog;
+}
+
+
+
+int ft::ListeningSocket::get_port() const {
+	return port;
+}
+std::string ft::ListeningSocket::get_ip() const{
+	return ip;
 }

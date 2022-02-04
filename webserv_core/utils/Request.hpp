@@ -6,6 +6,7 @@
 #include <fstream>
 #include "CGI_handler.hpp"
 #include "Request_handler.hpp"
+#include "../sockets/ListeningSocket.hpp"
 
 //request stages
 #define REQUEST_PENDING 0
@@ -16,6 +17,9 @@ namespace ft {
 	class Request {
 	private:
 		int 			stage;
+
+		const ListeningSocket* server_socket;
+		int				servID;
 		
 		int 			fd;
 		int				method;
@@ -42,11 +46,21 @@ namespace ft {
 		std::string get_content_type() const;
 		std::string get_query_string() const;
 		int get_fd() const;
+		int get_servID() const;
+		const ListeningSocket* get_socket()const;
+		std::string get_serverIP()const;
+		int get_serverPort()const;
+		std::string get_serverName() const;
+
+		
 		// std::string get_param_value( const std::string& n );
 		
 		void set_cgi( char** envp );
 		void set_request_handler();
 
+		void set_socket(const ListeningSocket*);
+
+		void set_servID(const int&);
 		void set_method( const int& );
 		void set_requested_url(const std::string&);
 		void set_httpver(const std::string&);
@@ -55,7 +69,7 @@ namespace ft {
 		void set_params( const std::map <std::string, std::string>& );
 		void set_param( const std::string& key, const std::string& value );
 		void insert_param( const std::pair<std::string, std::string>& );
-		void print_params();
+		void print_params()const;
 		// int param_exists( const std::string& ) const;
 
 		bool is_pending() const;

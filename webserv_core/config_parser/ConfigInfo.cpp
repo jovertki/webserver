@@ -68,10 +68,11 @@ bool ConfigInfo::checkMethod(const int servId, std::string locName, const method
 
 /* Вернет -1 если сервера с данными параметрами не найдено
  * Вернет ID первого в массиве сервера с подходящими параметрами, если данные совпадают */
-const int ConfigInfo::getServerID(const std::string hostIP, const int portVal, const std::string serverName) {
+const int ConfigInfo::getServerID(const std::string hostIP, const int portVal, std::string serverName) {
     std::vector<ServerConfig>::iterator it, end;
     int res;
-
+    if(serverName == hostIP)
+        serverName = "";
     it = servers.begin();
     end = servers.end();
     res = -1;

@@ -94,11 +94,13 @@ bool ft::WebServer::response_GET( Request& request ) {
 	if(is_directory( SERVER_DIR + request.get_requested_url() ) && false/*index file exists*/) {
 		//request.set_requested_url( indexfile );
 	}
-	if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS ON*/) {
+	if(is_directory( SERVER_DIR + request.get_requested_url() ) && \
+		config.getAutoIndex( request.get_servID(), request.get_requested_url() + "/"/*AUTOINDEX IS ON*/)) {
 		list_contents( SERVER_DIR + request.get_requested_url(), request );
+		std::cout << RED << request.get_requested_url() << RESET << std::endl;
 		return true;
 	}
-	else if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS OFF*/) {
+	else if(is_directory( SERVER_DIR + request.get_requested_url() ) /*&& AUTOINDEX IS OFF*/ ) {
 		handle_errors( 503, request );
 		return true;
 	}
@@ -243,9 +245,7 @@ void ft::WebServer::launch( std::vector<pollfd>& fdset ) {
 			std::cout << "waiting" << std::endl;
 		}
 		newest_global_loop( fdset );
-		if(DEBUG_MODE) {
-			system( "leaks webserv" );
-		}
+
 		if(DEBUG_MODE) {
 			std::cout << "==== DONE ====" << std::endl;
 		}
@@ -344,6 +344,8 @@ void ft::WebServer::check_new_clients( std::vector<pollfd>& fdset, std::map<int,
 			temp.events = (POLLIN | POLLERR);
 			fdset.push_back( temp );
 			requests[temp.fd] = Request();
+			requests[temp.fd].set_socket( &socket_array[i] );
+			std::cout << RED << socket_array[i].get_ip() << " " << socket_array[i].get_port() << RESET << std::endl;
 			requests[temp.fd].set_fd( temp.fd );
 			if(DEBUG_MODE) {
 				std::cout << GREEN << i << ", on fd = " << fdset[i].fd << " request is accepted" << RESET << std::endl;
@@ -364,17 +366,30 @@ void ft::WebServer::respond( pollfd& fdset, Request& request ) {
 		if(std::remove( (BUFFER_FILE_OUT + std::to_string( fdset_fd )).c_str() )) {
 			//error
 		}
+		const ListeningSocket* temp_sock = request.get_socket();
 		request = Request();
-		request.set_fd(fdset_fd);
+		request.set_fd( fdset_fd );
+		request.set_socket( temp_sock );
 		fdset.events = (POLLIN | POLLERR);
 		request.set_stage(REQUEST_PENDING);
 	}
 }
 
 
+int ft::WebServer::get_serverID(Request& request) {
+	return config.getServerID( request.get_serverIP(), request.get_serverPort(), request.get_serverName() );
+}
+
 int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 	request.set_request_handler();
 	int handler_ret = request.execute_handler();
+	std::cout << RED << "begin" << RESET << std::endl;
+	if(request.get_servID() == -1)
+		request.set_servID( get_serverID( request ) );
+	if(request.get_servID() == -1){
+		//ERROR no server with such servername
+	}
+	std::cout << RED << "nd" << request.get_servID() << RESET << std::endl;
 	request.set_cgi( envp );
 	if(handler_ret == 1) { //returns if read is complete
 		fdset.events = (POLLOUT | POLLERR);
@@ -432,11 +447,12 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 	std::map<int, Request> requests;
 	bool is_cheking = true;
 	while(true) {
+		// system( "leaks webserv" );
 		// for(int DEBUG_temp = 0; DEBUG_temp < 50; DEBUG_temp++) {
 		int ret = poll( &fdset[0], fdset.size(), TIMEOUT );
 		// for(int i = 0; i < fdset.size(); i++) {
 		// 	std::cout << RED << i << " = " << fdset[i].fd << " | " << fdset[i].events << " | " << fdset[i].revents << RESET << std::endl;
-
+		
 		// }
 		if(ret == 0) {
 			//??????

@@ -6,10 +6,7 @@
 
 ft::Request::Request() {
 	clear();
-
-	stage = REQUEST_PENDING;
-	lastPos = 0;
-	fd = -1;
+	server_socket = NULL;
 }
 
 void ft::Request::set_cgi( char** envp ) {
@@ -22,7 +19,7 @@ void ft::Request::set_cgi( char** envp ) {
 void ft::Request::set_request_handler() {
 	if(!rhandler.is_initialised()){
 		rhandler = Request_handler( &fd, &method, &requested_url, \
-			& httpver, &params, &query_string );
+			& httpver, &params, &query_string);
 	}
 }
 // ft::Request::Request( const ft::Request& a ) : method( a.method ), requested_url( a.requested_url ), httpver( a.httpver ), \
@@ -123,7 +120,7 @@ void ft::Request::insert_param( const std::pair<std::string, std::string>& n ) {
 
 }
 
-void ft::Request::print_params() {
+void ft::Request::print_params() const{
 	//debug output
 	for(std::map<std::string, std::string>::const_iterator i = params.begin(); i != params.end(); i++) {
 		std::cout << MAGENTA << ( *i ).first << ":" << (*i).second <<RESET<< std::endl;
@@ -155,9 +152,8 @@ void ft::Request::clear() {
 	cgi_handler = CGI_handler();
 	rhandler = Request_handler();
 	stage = REQUEST_PENDING;
-	stage = REQUEST_PENDING;
 	lastPos = 0;
-	fd = -1;
+	servID = -1;
 }
 
 void ft::Request::set_param( const std::string& key, const std::string& value ) {
@@ -202,4 +198,40 @@ int ft::Request::get_fd() const {
 
 void ft::Request::set_fd( const int& n) {
 	fd = n;
+}
+
+void ft::Request::set_servID( const int& n ) {
+	servID = n;
+}
+
+int ft::Request::get_servID() const {
+	return servID;
+}
+
+void ft::Request::set_socket( const ft::ListeningSocket* n ) {
+	server_socket = n;
+}
+
+
+std::string ft::Request::get_serverIP()const {
+	return server_socket->get_ip();
+}
+
+int ft::Request::get_serverPort()const {
+	return server_socket->get_port();
+}
+
+std::string ft::Request::get_serverName() const {
+	std::string out = "";
+
+	if(params.find( "HTTP_HOST" ) != params.end()) {
+		out = params.at( "HTTP_HOST" );
+		out = out.substr( 0, out.find( ":" ) );
+		std::cout << MAGENTA << out << RESET << std::endl;
+	}
+	return out;
+}
+
+const ft::ListeningSocket* ft::Request::get_socket()const {
+	return server_socket;
 }
