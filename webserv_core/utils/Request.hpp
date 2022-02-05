@@ -55,7 +55,7 @@ namespace ft {
 		
 		std::string get_param_value( const std::string& n );
 		
-		void set_cgi( char** envp );
+		void set_cgi( char** envp, const std::string& py_int = "", const std::string& pl_int = "");
 		void set_request_handler();
 
 		void set_socket(const ListeningSocket*);

@@ -9,10 +9,10 @@ ft::Request::Request() {
 	server_socket = NULL;
 }
 
-void ft::Request::set_cgi( char** envp ) {
+void ft::Request::set_cgi( char** envp, const std::string& py_int, const std::string& pl_int) {
 	if(!cgi_handler.is_initialised()) {
 		cgi_handler = CGI_handler( envp, &fd, &requested_url, \
-			& query_string, &method, &params );
+			& query_string, &method, &params, py_int, pl_int);
 	}
 }
 

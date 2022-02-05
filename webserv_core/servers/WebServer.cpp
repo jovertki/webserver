@@ -416,7 +416,7 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 		//ERROR
 		std::cout << RED << "chunked CONTENT LENGTH > BODY SIZE" << RESET << std::endl;
 	}
-	request.set_cgi( envp );
+	request.set_cgi( envp, config.getCGI( request.get_servID(), ".py" ), config.getCGI( request.get_servID(), ".pl" ) );
 	if(handler_ret == 1) { //returns if read is complete
 		fdset.events = (POLLOUT | POLLERR);
 	}

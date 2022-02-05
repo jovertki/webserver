@@ -27,8 +27,11 @@ bool ft::CGI_handler::is_initialised() {
 
 ft::CGI_handler::CGI_handler( char** envp, int* afd, \
 	 std::string* arequested_url,  std::string* aquery_string, \
-	int* amethod, std::map <std::string, std::string>* aparams ) : envp( envp ), stage( CGI_NOT_STARTED ), cgi_pid( -1 ), \
-	fd( afd ), requested_url( arequested_url ), query_string( aquery_string ), method( amethod ), params( aparams ) {
+	int* amethod, std::map <std::string, std::string>* aparams, \
+	const std::string& py_int, const std::string& pl_int ) : envp( envp ), stage( CGI_NOT_STARTED ), \
+	cgi_pid( -1 ), fd( afd ), requested_url( arequested_url ), \
+	query_string( aquery_string ), method( amethod ), params( aparams ), \
+	python_interpretator( py_int ), perl_interpretator( pl_int ) {
 	init_response_msgs();
 }
 
@@ -130,10 +133,10 @@ void ft::CGI_handler::execute_extention_script( const std::string& filename, cha
 	args[2] = NULL;
 	std::string interpreter;
 	if(get_extention() == "py") {
-		interpreter = PYTHON_INTERPRETER;
+		interpreter = python_interpretator;
 	}
 	else if(get_extention() == "pl") {
-		interpreter = PERL_INTERPRETER;
+		interpreter = perl_interpretator;
 	}
 	else {
 		//ERROR ???	
