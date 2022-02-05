@@ -95,6 +95,8 @@ void ServerConfig::copyLocatData(std::string locName) {
             locations[locName].index = locations["/"].index;
         if (locations[locName].methods.empty())
             locations[locName].methods = locations["/"].methods;
+//        if (locations[locName].root.empty())
+//            locations[locName].root = locations["/"].root;
         locations[locName].errorPage.insert(locations["/"].errorPage.begin(),
                                             locations["/"].errorPage.end());
     }
@@ -125,6 +127,8 @@ void ServerConfig::CheckDefaultParam() {
     else if (locations[defLocation].uploadPath.empty())
         throw utils::parseExeption("ServerParse::location can't find upload_path!");
     else if (locations[defLocation].methods.empty())
+        throw utils::parseExeption("ServerParse::location can't find methods!");
+    else if (locations[defLocation].root.empty())
         throw utils::parseExeption("ServerParse::location can't find methods!");
 }
 

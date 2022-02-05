@@ -19,7 +19,7 @@ public:
     int getAutoIndex(const int& servId, std::string locName) const ;
     int getBodySize(const int& servId, std::string locName) const ;
     std::string getCGI(const int& servId, const std::string& extentionCgi ) const ;
-    std::string getRoot(const int& servId, std::string locName) const ;
+    std::string getRootedUrl(const int& servId, std::string locName) const ;
     std::string getUploadPath(const int& servId, std::string locName) const ;
     std::string getIndex(const int& servId, std::string locName) const ;
     std::string getRedirect(const int& servId, std::string locName, const int& errorNum) const ;

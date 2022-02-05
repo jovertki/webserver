@@ -16,7 +16,12 @@ ConfigInfo::ConfigInfo(const char* arg) : servers() {
 //    std::cout << "ErrorPage 2222 on server 1(second) = " << getErrorPage(0, "/", 22) << std::endl;
 //    std::cout << "ServID = " << getServerID("127.0.0.1", 8080, "cwd.localhost") << std::endl;
     // std::cout << "Check method = " << checkMethod(4, "/", DELETE) << std::endl;
-    // exit(1);
+//     std::cout << "Check rootedURL / = " << getRootedUrl(0, "/") << std::endl;
+//    std::cout << "Check rootedURL /folder = " << getRootedUrl(0, "/folder") << std::endl;
+//    std::cout << "Check rootedURL /folder/25 = " << getRootedUrl(0, "/folder/25") << std::endl;
+//    std::cout << "Check rootedURL /folder/26 = " << getRootedUrl(0, "/folder/26") << std::endl;
+//    std::cout << "Check rootedURL vrfvr/rffr/111 = " << getRootedUrl(0, "/vrfvr/rffr/111") << std::endl;
+//     exit(1);
 }
 
 ConfigInfo::~ConfigInfo() {}
@@ -132,9 +137,12 @@ int ConfigInfo::getBodySize(const int& servId, std::string locName) const {
     return servers[servId].getLocations().find(locName)->second.bodySize;
 }
 
-std::string ConfigInfo::getRoot(const int& servId, std::string locName) const {
-    locName = getLocationByID(servId, locName);
-    return servers[servId].getLocations().find(locName)->second.root;
+std::string ConfigInfo::getRootedUrl(const int& servId, std::string locName) const {
+    std::string findLocName = getLocationByID(servId, locName);
+    if  ( findLocName == locName && servers[servId].getLocations().find(locName)->second.root.size())
+        return servers[servId].getLocations().find(locName)->second.root;
+    else
+        return servers[servId].getLocations().find("/")->second.root + locName;
 }
 
 std::string ConfigInfo::getUploadPath(const int& servId, std::string locName) const {
