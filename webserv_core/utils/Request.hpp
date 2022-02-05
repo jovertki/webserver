@@ -27,12 +27,12 @@ namespace ft {
 		std::string 	httpver;
 		std::string 	query_string;
 		std::map <std::string, std::string> params;
-		
+
 		CGI_handler 	cgi_handler;
 		Request_handler rhandler;
 		
-		std::string 	get_requested_filename() const;
 	public:
+		std::string 	get_requested_filename() const;
 		//used in sending response
 		unsigned long lastPos;
 		
@@ -55,7 +55,7 @@ namespace ft {
 		
 		std::string get_param_value( const std::string& n );
 		
-		void set_cgi( char** envp );
+		void set_cgi( char** envp, const std::string& py_int = "", const std::string& pl_int = "");
 		void set_request_handler();
 
 		void set_socket(const ListeningSocket*);

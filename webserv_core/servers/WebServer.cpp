@@ -82,6 +82,25 @@ void ft::WebServer::write_response_to_file( Request& request ) {
 	response_file.close();
 }
 
+void ft::WebServer::generate_upload_response( Request& request) {
+	std::ostringstream header;
+	std::ostringstream body;
+
+	std::cout << RED << "kjbdfjghsdjfkjdfgsdkmf " << config.getUploadPath( request.get_servID(), request.get_requested_url() ) << RESET << std::endl;
+
+	body << "<!DOCTYPE html><html><body><form id = \"uploadbanner\" enctype = \"multipart/form-data\" method = \"post\" action = \"/cgi-bin/upload";
+	body << "?path=" << SERVER_DIR + config.getUploadPath( request.get_servID(), request.get_requested_url() ) << "\"><input id = \"fileupload\" name = \"myfile\" type = \"file\"/><input type = \"submit\" value = \"submit\" id = \"submit\"/></form></body></html>";
+
+	header << request.get_httpver() << " 200 " << "OK" << std::endl <<
+		"Content-Type: text/html;" << std::endl << \
+		"Content-Length: " << body.str().size() << std::endl << std::endl;
+
+	std::ofstream response_file;
+	response_file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ), std::ios::binary );
+	response_file << header.str() << body.str();
+	response_file.close();
+}
+
 bool ft::WebServer::response_GET( Request& request ) {
 
 	//check if rights are correct
@@ -105,8 +124,11 @@ bool ft::WebServer::response_GET( Request& request ) {
 			return true;
 		}
 	}
-
-	
+	if(request.get_requested_filename() == "/upload.html") {
+		generate_upload_response(request);
+		std::cout << RED << "SDJHSDFJSHFKJSDBFKSDJF" << RESET << std::endl;
+		return true;
+	}
 	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > sizeof( "/cgi-bin/" )) { //if it is in /cgi-bin/
 		return request.execute_cgi();
 	}
@@ -144,7 +166,7 @@ bool ft::WebServer::generate_response( Request& request ) {
 	if(method == GET)
 		return response_GET( request );
 	else if(method == POST)
-		return response_POST( request );//replace with GET??
+		return response_GET( request );//replace with GET??
 	else if(method == DELETE)
 		return response_DELETE( request );
 	return true;
@@ -202,7 +224,7 @@ void ft::WebServer::list_contents( const std::string& path, Request& request )co
 	else {
 		/* could not open directory */
 	}
-
+	
 	body << "</body>" << std::endl << \
 		"</html>" << std::endl;
 
@@ -380,19 +402,21 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 			//ERROR
 			std::cout << RED << "CONTENT LENGTH > BODY SIZE" << RESET << std::endl;
 		}
-
-
-		if(!config.checkMethod( request.get_servID(), request.get_requested_url(), static_cast<method>(request.get_method()) )) {
-			//ERROR
-			std::cout << RED << "METHOD FORBIDDEN" << RESET << std::endl;
-		}
+		
+		// if(!config.checkMethod( request.get_servID(), request.get_requested_url(), static_cast<method>(request.get_method()) )) {
+		// 	//ERROR
+		// 	std::cout << RED << "METHOD FORBIDDEN" << RESET << std::endl;
+		// }
+		
+		// request.set_param( "UPLOAD_PATH", SERVER_DIR + config.getUploadPath( request.get_servID(), request.get_requested_url() ) + "/" );
+		// std::cout << MAGENTA << request.get_param_value( "UPLOAD_PATH" );
 	}
 	if(request.is_chunked() && get_file_size( BUFFER_FILE + std::to_string( fdset.fd ) ) > \
 		config.getBodySize( request.get_servID(), request.get_requested_url() )) {
 		//ERROR
 		std::cout << RED << "chunked CONTENT LENGTH > BODY SIZE" << RESET << std::endl;
 	}
-	request.set_cgi( envp );
+	request.set_cgi( envp, config.getCGI( request.get_servID(), ".py" ), config.getCGI( request.get_servID(), ".pl" ) );
 	if(handler_ret == 1) { //returns if read is complete
 		fdset.events = (POLLOUT | POLLERR);
 	}

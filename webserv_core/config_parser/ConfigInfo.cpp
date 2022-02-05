@@ -15,8 +15,8 @@ ConfigInfo::ConfigInfo(const char* arg) : servers() {
     std::cout << "..........\n" << servers.size() << " servers successfully parsed" << std::endl;
 //    std::cout << "ErrorPage 2222 on server 1(second) = " << getErrorPage(0, "/", 22) << std::endl;
 //    std::cout << "ServID = " << getServerID("127.0.0.1", 8080, "cwd.localhost") << std::endl;
-    std::cout << "Check method = " << checkMethod(4, "/", DELETE) << std::endl;
-    exit(1);
+    // std::cout << "Check method = " << checkMethod(4, "/", DELETE) << std::endl;
+    // exit(1);
 }
 
 ConfigInfo::~ConfigInfo() {}
@@ -138,8 +138,12 @@ std::string ConfigInfo::getRoot(const int& servId, std::string locName) const {
 }
 
 std::string ConfigInfo::getUploadPath(const int& servId, std::string locName) const {
-    locName = getLocationByID(servId, locName);
-    return servers[servId].getLocations().find(locName)->second.uploadPath;
+    locName = getLocationByID( servId, locName );
+    if(locName == "/")
+        locName = servers[servId].getLocations().find( locName )->second.uploadPath;
+    else
+        locName += servers[servId].getLocations().find( locName )->second.uploadPath;
+    return locName;
 }
 
 std::string ConfigInfo::getIndex(const int& servId, std::string locName) const {
