@@ -1,5 +1,6 @@
 #pragma once
 #include "ServerConfig.hpp"
+#include "../utils/utils.hpp"
 
 #define NOT_FOUND -1
 
@@ -17,6 +18,7 @@ public:
     bool checkMethod(int id, std::string locName, method methodForCheck);
     int getAutoIndex(int servId, std::string locName);
     int getBodySize(int servId, std::string locName);
+    std::string getCGI( int servId, const std::string& extentionCgi );
     std::string getRoot(int servId, std::string locName);
     std::string getUploadPath(int servId, std::string locName);
     std::string getIndex(int servId, std::string locName);

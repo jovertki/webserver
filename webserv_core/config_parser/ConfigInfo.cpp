@@ -15,7 +15,8 @@ ConfigInfo::ConfigInfo(const char* arg) : servers() {
     std::cout << "..........\n" << servers.size() << " servers successfully parsed" << std::endl;
 //    std::cout << "ErrorPage 2222 on server 1(second) = " << getErrorPage(0, "/", 22) << std::endl;
 //    std::cout << "ServID = " << getServerID("127.0.0.1", 8080, "cwd.localhost") << std::endl;
-
+    std::cout << "Check method = " << checkMethod(4, "/", DELETE) << std::endl;
+    exit(1);
 }
 
 ConfigInfo::~ConfigInfo() {}
@@ -37,10 +38,21 @@ int ConfigInfo::checkHostPortDublicates(int i) {
     return NOT_FOUND;
 }
 
-/* Any locName will be truncated until "/", so every request locName need to begin with "/" */
+std::string ConfigInfo::getCGI( const int servId, const std::string& extentionCgi ) {
+    if (servers[servId].getCgi().find(extentionCgi) != servers[servId].getCgi().end())
+        return servers[servId].getCgi().find(extentionCgi)->second;
+    else
+        return "";
+}
+
+/* Any locName will be truncated with "/" */
 std::string ConfigInfo::getLocationByID(const int servId, std::string locName) {
     int pos;
 
+    if (servId > servers.size() || locName.front() != '/') {
+        std::cout << BOLDRED << "ERROR !!!!!!!\n\n\n\n ERROR !!!!!!!"
+                                " \n getLocationByID\n\n\nERROR !!!!!!!" << RESET << std::endl;
+    }
     while (locName.size() > 1) {
         if (servers[servId].getLocations().find(locName) != servers[servId].getLocations().end()) {
             return locName;
@@ -53,7 +65,6 @@ std::string ConfigInfo::getLocationByID(const int servId, std::string locName) {
                 else
                     locName.resize(pos);
             }
-
         }
     }
     return locName;
