@@ -57,6 +57,7 @@ int ft::WebServer::accepter( int id ) {
 
 
 void ft::WebServer::write_response_to_file( Request& request ) {
+
 	std::ifstream infile( request.get_rooted_url() );
 	if(!infile.is_open()) {
 		handle_errors( 404, request );
@@ -117,7 +118,8 @@ bool ft::WebServer::response_GET( Request& request ) {
 			return true;
 		}
 		else if("" != config.getIndex( request.get_servID(), request.get_requested_url() )) {
-			request.set_requested_url( request.get_requested_url() + "/" + config.getIndex( request.get_servID(), request.get_requested_url() ) );
+			request.set_requested_url( request.get_requested_url() + config.getIndex( request.get_servID(), request.get_requested_url() ) );
+			request.set_rooted_url( config.getRootedUrl( request.get_servID(), request.get_requested_url() ) );
 			// std::cout << RED << request.get_requested_url() << RESET << std::endl;
 		}
 		else {
