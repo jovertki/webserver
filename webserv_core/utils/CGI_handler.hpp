@@ -30,7 +30,7 @@ namespace ft {
 		std::string* requested_url;
 		std::string* query_string;
 		std::map <std::string, std::string>* params;
-		std::string* server_dir;
+		std::string* rooted_url;
 		
 		std::string python_interpretator;
 		std::string perl_interpretator;

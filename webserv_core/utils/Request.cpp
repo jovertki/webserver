@@ -12,7 +12,7 @@ ft::Request::Request() {
 void ft::Request::set_cgi( char** envp, const std::string& py_int, const std::string& pl_int) {
 	if(!cgi_handler.is_initialised()) {
 		cgi_handler = CGI_handler( envp, &fd, &requested_url, \
-			& query_string, &method, &params, py_int, pl_int, &server_dir);
+			& query_string, &method, &params, py_int, pl_int, &rooted_url);
 	}
 }
 
@@ -241,9 +241,9 @@ const ft::ListeningSocket* ft::Request::get_socket()const {
 }
 
 
-void ft::Request::set_server_dir( const std::string& n) {
-	server_dir = n;
+void ft::Request::set_rooted_url( const std::string& n) {
+	rooted_url = n;
 }
-std::string ft::Request::get_server_dir() const {
-	return server_dir;
+std::string ft::Request::get_rooted_url() const {
+	return rooted_url;
 }

@@ -20,8 +20,8 @@ ConfigInfo::ConfigInfo(const char* arg) : servers() {
 //    std::cout << "Check rootedURL /folder = " << getRootedUrl(0, "/folder") << std::endl;
 //    std::cout << "Check rootedURL /folder/25 = " << getRootedUrl(0, "/folder/25") << std::endl;
 //    std::cout << "Check rootedURL /folder/26 = " << getRootedUrl(0, "/folder/26") << std::endl;
-//    std::cout << "Check rootedURL vrfvr/rffr/111 = " << getRootedUrl(0, "/vrfvr/rffr/111") << std::endl;
-//     exit(1);
+    // std::cout << "Check rootedURL /cgi-bin/my_cgi_add_get = " << getRootedUrl( 0, "/cgi-bin/my_cgi_add_get" ) << std::endl;
+    // exit(1);
 }
 
 ConfigInfo::~ConfigInfo() {}
@@ -147,10 +147,10 @@ std::string ConfigInfo::getRootedUrl(const int& servId, std::string locName) con
 
 std::string ConfigInfo::getUploadPath(const int& servId, std::string locName) const {
     locName = getLocationByID( servId, locName );
-    if(locName == "/")
-        locName = servers[servId].getLocations().find( locName )->second.uploadPath;
-    else
-        locName += servers[servId].getLocations().find( locName )->second.uploadPath;
+    // if(locName == "/")
+    locName = servers[servId].getLocations().find( locName )->second.uploadPath;
+    // else
+    //     locName += servers[servId].getLocations().find( locName )->second.uploadPath;
     return locName;
 }
 
