@@ -400,7 +400,7 @@ void ft::WebServer::respond( pollfd& fdset, Request& request ) {
 }
 
 
-int ft::WebServer::get_serverID(Request& request) {
+int ft::WebServer::get_serverID( Request& request ) {
 	return config.getServerID( request.get_serverIP(), request.get_serverPort(), request.get_serverName() );
 }
 
@@ -413,8 +413,6 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 	}
 	if(request.get_query_string() != "")
 		request.set_cookie( request.get_query_string() );
-	
-	//get cookie value
 
 	std::cout << MAGENTA << request.get_requested_url() << RESET << std::endl;
 	request.print_params();
@@ -423,10 +421,10 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 		request.set_servID( get_serverID( request ) );
 
 		// std::cout << RED << "getRootedUrl = " << config.getRootedUrl( request.get_servID(), request.get_requested_url()) << RESET << std::endl;
-		request.set_rooted_url( config.getRootedUrl( request.get_servID(), request.get_requested_url() ) );
 		if(request.get_servID() == -1) {
 			//ERROR no server with such servername
 		}
+		request.set_rooted_url( config.getRootedUrl( request.get_servID(), request.get_requested_url() ) );
 		// if REDIRECTION{
 		// 	do smth
 		// }
