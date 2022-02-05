@@ -86,7 +86,7 @@ void ServerConfig::fillLocFromDefault() {
 //}
 
 void ServerConfig::copyLocatData(std::string locName) {
-    if (locations[locName].returnNum.empty()) {
+    if (locations[locName].redirection.empty()) {
         if (locations[locName].autoIndex == NOT_ASSIGN)
             locations[locName].autoIndex = locations["/"].autoIndex;
         if (locations[locName].bodySize == NOT_ASSIGN)
@@ -205,8 +205,8 @@ Location_info ServerConfig::findLocationParameters(std::vector<std::string>::ite
             res.root = findStringAndIterate(++iter, 2);
         else if (*iter == "autoindex" && *(iter + 2) == ";" && res.autoIndex == NOT_ASSIGN)
             res.autoIndex = findAutoIndex(++iter);
-        else if (*iter == "return" && res.returnNum.empty())
-            res.returnNum = findReturn(++iter);
+        else if (*iter == "return" && res.redirection.empty())
+            res.redirection = findReturn(++iter);
         else if (*iter == "error_page" && *(iter + 3) == ";")
             findErrorPage(++iter, res.errorPage);
         else if (*iter == "index" && *(iter + 2) == ";" && res.index.empty())
