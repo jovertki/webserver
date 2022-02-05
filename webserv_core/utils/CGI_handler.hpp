@@ -11,7 +11,7 @@ namespace ft {
 		CGI_handler( char** envp = NULL,  int* afd = NULL, \
 			std::string* arequested_url = NULL,  std::string* aquery_string = NULL, \
 			int* amethod = NULL, std::map <std::string, std::string>* aparams = NULL, \
-			const std::string& py_int = "", const std::string& pl_int = "" );
+			const std::string& py_int = "", const std::string& pl_int = "", std::string* aserver_dir = NULL);
 
 		CGI_handler(const CGI_handler& a);
 		~CGI_handler();
@@ -30,6 +30,8 @@ namespace ft {
 		std::string* requested_url;
 		std::string* query_string;
 		std::map <std::string, std::string>* params;
+		std::string* server_dir;
+		
 		std::string python_interpretator;
 		std::string perl_interpretator;
 

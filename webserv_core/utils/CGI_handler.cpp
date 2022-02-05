@@ -28,10 +28,10 @@ bool ft::CGI_handler::is_initialised() {
 ft::CGI_handler::CGI_handler( char** envp, int* afd, \
 	 std::string* arequested_url,  std::string* aquery_string, \
 	int* amethod, std::map <std::string, std::string>* aparams, \
-	const std::string& py_int, const std::string& pl_int ) : envp( envp ), stage( CGI_NOT_STARTED ), \
+	const std::string& py_int, const std::string& pl_int, std::string* aserver_dir ) : envp( envp ), stage( CGI_NOT_STARTED ), \
 	cgi_pid( -1 ), fd( afd ), requested_url( arequested_url ), \
 	query_string( aquery_string ), method( amethod ), params( aparams ), \
-	python_interpretator( py_int ), perl_interpretator( pl_int ) {
+	python_interpretator( py_int ), perl_interpretator( pl_int ), server_dir(aserver_dir){
 	init_response_msgs();
 }
 
@@ -151,7 +151,7 @@ void ft::CGI_handler::execute_extention_script( const std::string& filename, cha
 
 void ft::CGI_handler::execute_script() {//needs beauty
 	char** cgi_envp = create_appended_envp();
-	std::string filename = SERVER_DIR + *requested_url;
+	std::string filename = *server_dir + *requested_url;
 	if(get_extention() != "") {
 		execute_extention_script( filename, cgi_envp );
 	}
@@ -173,6 +173,7 @@ void ft::CGI_handler::start(){
 			std::cout << MAGENTA << (*i).first << " " << (*i).second << RESET << std::endl;
 		}
 		std::cout << MAGENTA << *query_string << RESET << std::endl << std::endl;
+		std::cout << RED << "server_dir cgi = " << *server_dir << RESET << std::endl;
 	}
 	pid_t ret = fork();
 	if(ret == 0)

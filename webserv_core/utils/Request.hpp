@@ -27,7 +27,9 @@ namespace ft {
 		std::string 	httpver;
 		std::string 	query_string;
 		std::map <std::string, std::string> params;
+		std::string		server_dir;
 
+		
 		CGI_handler 	cgi_handler;
 		Request_handler rhandler;
 		
@@ -51,15 +53,16 @@ namespace ft {
 		std::string get_serverIP()const;
 		int get_serverPort()const;
 		std::string get_serverName() const;
-
+		std::string get_server_dir() const;
 		
+
 		std::string get_param_value( const std::string& n );
 		
 		void set_cgi( char** envp, const std::string& py_int = "", const std::string& pl_int = "");
 		void set_request_handler();
 
 		void set_socket(const ListeningSocket*);
-
+		void set_server_dir(const std::string&);
 		void set_servID(const int&);
 		void set_method( const int& );
 		void set_requested_url(const std::string&);

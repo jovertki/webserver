@@ -45,19 +45,19 @@ int ft::WebServer::accepter( int id ) {
 	return new_socket;
 }
 
-bool ft::WebServer::response_POST( Request& request ) {
-	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > 9 /*sizeof( "/cgi-bin/" )*/) { //if it is in /cgi-bin/
-		return request.execute_cgi();
-	}
-	else {
-		//ERRROR ???
-	}
-	return true;
-}
+// bool ft::WebServer::response_POST( Request& request ) {
+// 	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > 9 /*sizeof( "/cgi-bin/" )*/) { //if it is in /cgi-bin/
+// 		return request.execute_cgi();
+// 	}
+// 	else {
+// 		//ERRROR ???
+// 	}
+// 	return true;
+// }
 
 
 void ft::WebServer::write_response_to_file( Request& request ) {
-	std::ifstream infile( SERVER_DIR + request.get_requested_url() );
+	std::ifstream infile( request.get_server_dir() + request.get_requested_url() );
 	if(!infile.is_open()) {
 		handle_errors( 404, request );
 		return;
@@ -89,7 +89,7 @@ void ft::WebServer::generate_upload_response( Request& request) {
 	std::cout << RED << "kjbdfjghsdjfkjdfgsdkmf " << config.getUploadPath( request.get_servID(), request.get_requested_url() ) << RESET << std::endl;
 
 	body << "<!DOCTYPE html><html><body><form id = \"uploadbanner\" enctype = \"multipart/form-data\" method = \"post\" action = \"/cgi-bin/upload";
-	body << "?path=" << SERVER_DIR + config.getUploadPath( request.get_servID(), request.get_requested_url() ) << "\"><input id = \"fileupload\" name = \"myfile\" type = \"file\"/><input type = \"submit\" value = \"submit\" id = \"submit\"/></form></body></html>";
+	body << "?path=" << request.get_server_dir() + config.getUploadPath( request.get_servID(), request.get_requested_url() ) << "\"><input id = \"fileupload\" name = \"myfile\" type = \"file\"/><input type = \"submit\" value = \"submit\" id = \"submit\"/></form></body></html>";
 
 	header << request.get_httpver() << " 200 " << "OK" << std::endl <<
 		"Content-Type: text/html;" << std::endl << \
@@ -109,9 +109,9 @@ bool ft::WebServer::response_GET( Request& request ) {
 	// 	return true;
 	// }
 
-	if(is_directory( SERVER_DIR + request.get_requested_url() )) {
+	if(is_directory( request.get_server_dir() + request.get_requested_url() )) {
 		if(config.getAutoIndex( request.get_servID(), request.get_requested_url()/*AUTOINDEX IS ON*/ )) {
-			list_contents( SERVER_DIR + request.get_requested_url(), request );
+			list_contents( request.get_server_dir() + request.get_requested_url(), request );
 			// std::cout << RED << request.get_requested_url() << RESET << std::endl;
 			return true;
 		}
@@ -130,6 +130,7 @@ bool ft::WebServer::response_GET( Request& request ) {
 		return true;
 	}
 	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > sizeof( "/cgi-bin/" )) { //if it is in /cgi-bin/
+		request.set_server_dir( config.getRoot( request.get_servID(), "/" ) );
 		return request.execute_cgi();
 	}
 	else {
@@ -143,13 +144,13 @@ bool ft::WebServer::response_DELETE( Request& request ) {
 	response_file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ), std::ios::binary );
 	std::stringstream msg;
 	//do smth
-	if(is_directory( SERVER_DIR + request.get_requested_url() )) {
+	if(is_directory( request.get_server_dir() + request.get_requested_url() )) {
 		msg << "Your " << request.get_requested_url() << " is a directory, denied";
 		response_file << generate_response_head( 403 ) << "Content-Type: text/html;\n" << \
 			"Content-Length: " << std::to_string( msg.str().size() ) << "\n\n" << msg.str();
 		return true;
 	}
-	if(std::remove( (SERVER_DIR + request.get_requested_url()).c_str() ) < 0) {
+	if(std::remove( (request.get_server_dir() + request.get_requested_url()).c_str() ) < 0) {
 		//error
 	}
 	else {
@@ -389,8 +390,12 @@ int ft::WebServer::get_serverID(Request& request) {
 int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 	request.set_request_handler();
 	int handler_ret = request.execute_handler();
+	std::cout << " Requested url = " << request.get_requested_url() << std::endl;
 	if(request.get_servID() == -1) {//happends once per request
 		request.set_servID( get_serverID( request ) );
+
+		std::cout << RED << "getRoot = " << config.getRoot( request.get_servID(), request.get_requested_url()) << RESET << std::endl;
+		request.set_server_dir( config.getRoot( request.get_servID(), request.get_requested_url() ) );
 		if(request.get_servID() == -1) {
 			//ERROR no server with such servername
 		}
@@ -408,7 +413,7 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 		// 	std::cout << RED << "METHOD FORBIDDEN" << RESET << std::endl;
 		// }
 		
-		// request.set_param( "UPLOAD_PATH", SERVER_DIR + config.getUploadPath( request.get_servID(), request.get_requested_url() ) + "/" );
+		// request.set_param( "UPLOAD_PATH", request.get_server_dir() + config.getUploadPath( request.get_servID(), request.get_requested_url() ) + "/" );
 		// std::cout << MAGENTA << request.get_param_value( "UPLOAD_PATH" );
 	}
 	if(request.is_chunked() && get_file_size( BUFFER_FILE + std::to_string( fdset.fd ) ) > \

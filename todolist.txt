@@ -13,8 +13,8 @@
 	+allow_methods
 	+index
 	+upload path
+	+cgi
 
-	cgi
 	root SERVER_DIR заменить на геттер от рута
 	error page
 	return (redirection)
