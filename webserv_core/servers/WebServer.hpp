@@ -27,7 +27,7 @@ namespace ft {
 		int handler( Request& );
 		bool generate_response( Request& );
 		// bool is_directory( const std::string& path )const;
-		void list_contents( const std::string& path, Request& request )const;
+		void list_contents( const std::string& path, Request& request );
 		void handle_errors( const int& error_code, Request& request );
 		bool response_POST( Request& request );
 		bool response_GET( Request& request );
@@ -52,7 +52,7 @@ namespace ft {
         void newest_global_loop( std::vector<pollfd>& fdset );
 		std::vector<ListeningSocket> get_socket_array()const;
 		int get_size_serverInfo() const;
-		std::string generate_response_head( const int& code );
+		std::string generate_response_head( const int& code, Request& request );
 
 		void generate_upload_response( Request& request );
 	};

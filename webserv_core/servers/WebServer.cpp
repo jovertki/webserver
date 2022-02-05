@@ -69,7 +69,7 @@ void ft::WebServer::write_response_to_file( Request& request ) {
 
 	std::ofstream response_file;
 	response_file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ), std::ios::binary );
-	response_file << generate_response_head( 200 );
+	response_file << generate_response_head( 200, request);
 	response_file << "Content-Type: " << request.get_content_type() << ";\nContent-Length:" \
 		<< std::to_string( requested_file_size ) << "\n\n";
 
@@ -94,8 +94,8 @@ void ft::WebServer::generate_upload_response( Request& request) {
 	body << "<!DOCTYPE html><html><body><form id = \"uploadbanner\" enctype = \"multipart/form-data\" method = \"post\" action = \"/cgi-bin/upload";
 	body << "?path=" << path << "\"><input id = \"fileupload\" name = \"myfile\" type = \"file\"/><input type = \"submit\" value = \"submit\" id = \"submit\"/></form></body></html>";
 
-	header << request.get_httpver() << " 200 " << "OK" << std::endl <<
-		"Content-Type: text/html;" << std::endl << \
+	header << generate_response_head( 200, request );
+	header << "Content-Type: text/html;" << std::endl << \
 		"Content-Length: " << body.str().size() << std::endl << std::endl;
 
 	std::ofstream response_file;
@@ -149,7 +149,7 @@ bool ft::WebServer::response_DELETE( Request& request ) {
 	//do smth
 	if(is_directory( request.get_rooted_url() )) {
 		msg << "Your " << request.get_requested_url() << " is a directory, denied";
-		response_file << generate_response_head( 403 ) << "Content-Type: text/html;\n" << \
+		response_file << generate_response_head( 403, request ) << "Content-Type: text/html;\n" << \
 			"Content-Length: " << std::to_string( msg.str().size() ) << "\n\n" << msg.str();
 		return true;
 	}
@@ -158,7 +158,7 @@ bool ft::WebServer::response_DELETE( Request& request ) {
 	}
 	else {
 		msg << "File " << request.get_rooted_url() << " was successfully DELETED";
-		response_file << generate_response_head( 200 ) << "Content-Type: text/html;\n" << "Content-Length: " << std::to_string( msg.str().size() ) << "\n\n" << msg.str();
+		response_file << generate_response_head( 200, request ) << "Content-Type: text/html;\n" << "Content-Length: " << std::to_string( msg.str().size() ) << "\n\n" << msg.str();
 	}
 	response_file.close();
 	return true;
@@ -193,7 +193,7 @@ void ft::WebServer::handle_errors(const int& error_code, Request& request ) {
 	request.set_stage( RESPONCE_GENERATED );
 }
 
-void ft::WebServer::list_contents( const std::string& path, Request& request )const {
+void ft::WebServer::list_contents( const std::string& path, Request& request ) {
 	std::ostringstream header;
 	std::ostringstream body;
 
@@ -210,7 +210,7 @@ void ft::WebServer::list_contents( const std::string& path, Request& request )co
 		"<!-- Custom stlylesheet -->" << std::endl << \
 		"<link type=\"text/css\" rel=\"stylesheet\" href=\"/css/listing.css\" />" << std::endl << std::endl << \
 		"</head>" << std::endl << std::endl << \
-		"<body>" << std::endl << \
+		"<body style=\"background-color:" << request.get_cookie() << ";\">" << std::endl << \
 		"<h1>Contents\n\n</h1> " << std::endl;
 	DIR* dir;
 	struct dirent* ent;
@@ -228,11 +228,22 @@ void ft::WebServer::list_contents( const std::string& path, Request& request )co
 	else {
 		/* could not open directory */
 	}
+	body << "<br><br><br><br><br><br><br><br><br>";
+	body << "<form method=\"GET\" action=\"" << request.get_requested_url() << "\">" << \
+		"<input type=\"hidden\" name=\"color\" value=\"Beige\">"<< \
+		"<button style=\"background-color:beige;\" type=\"submit\">Beige</button></form>";
+	body << "<form method=\"GET\" action=\"" << request.get_requested_url() << "\">" << \
+		"<input type=\"hidden\" name=\"color\" value=\"CadetBlue\">" << \
+		"<button style=\"background-color:CadetBlue;\" type=\"submit\">Blue</button></form>";
+
 	
+	body << "<form method=\"GET\" action=\"" << request.get_requested_url() << "\">" << \
+		"<input type=\"hidden\" name=\"color\" value=\"DarkOliveGreen\">" << \
+		"<button style=\"background-color:DarkOliveGreen;\" type=\"submit\">Green</button></form>";
 	body << "</body>" << std::endl << \
 		"</html>" << std::endl;
 
-	header << request.get_httpver() << " 200 " << "OK" << std::endl <<
+	header << generate_response_head( 200, request ) << \
 		"Content-Type: text/html;" << std::endl << \
 		"Content-Length: " << body.str().size() << std::endl << std::endl;
 
@@ -286,9 +297,12 @@ bool ft::WebServer::send_response( Request& request ) const {
 	return false;
 }
 
-std::string ft::WebServer::generate_response_head( const int& code ) {
+std::string ft::WebServer::generate_response_head( const int& code, Request& request){
 	std::stringstream ss;
 	ss << "HTTP/1.1 " << code << " " << response_messeges[code] << "\r\n";
+	// if(request.get_param_value("HTTP_COOKIE") ==  )
+	if(request.get_param_value( "HTTP_COOKIE" ) != "color=" + request.get_cookie())
+		ss << "Set-Cookie:color=" << request.get_cookie() << "\n";
 	return ss.str();
 }
 
@@ -393,6 +407,18 @@ int ft::WebServer::get_serverID(Request& request) {
 int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 	request.set_request_handler();
 	int handler_ret = request.execute_handler();
+
+	if(request.get_param_value( "HTTP_COOKIE" ) != "") {
+		request.set_cookie( request.get_param_value( "HTTP_COOKIE" ) );
+	}
+	if(request.get_query_string() != "")
+		request.set_cookie( request.get_query_string() );
+	
+	//get cookie value
+
+	std::cout << MAGENTA << request.get_requested_url() << RESET << std::endl;
+	request.print_params();
+
 	if(request.get_servID() == -1) {//happends once per request
 		request.set_servID( get_serverID( request ) );
 
@@ -437,6 +463,9 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 		if(std::remove( (BUFFER_FILE_OUT + std::to_string( fdset.fd )).c_str() )) {
 			//error ignore?
 		}
+	}
+	else if(handler_ret == -1) {
+		//ERROR returns if headers are too long
 	}
 	return handler_ret;
 }

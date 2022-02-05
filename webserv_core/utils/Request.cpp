@@ -7,6 +7,7 @@
 ft::Request::Request() {
 	clear();
 	server_socket = NULL;
+	cookie = "LightGray";
 }
 
 void ft::Request::set_cgi( char** envp, const std::string& py_int, const std::string& pl_int) {
@@ -246,4 +247,14 @@ void ft::Request::set_rooted_url( const std::string& n) {
 }
 std::string ft::Request::get_rooted_url() const {
 	return rooted_url;
+}
+
+void	ft::Request::set_cookie( const std::string& query_string ) {
+
+	if(query_string.find( "color=" ) != std::string::npos) {
+		cookie = query_string.substr( query_string.find( "color=" ) + 6 );
+	}
+}
+std::string ft::Request::get_cookie() const {
+	return cookie;
 }

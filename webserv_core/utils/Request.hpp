@@ -30,6 +30,7 @@ namespace ft {
 		std::string		rooted_url;
 
 		
+		std::string			cookie;
 		CGI_handler 	cgi_handler;
 		Request_handler rhandler;
 		
@@ -54,8 +55,9 @@ namespace ft {
 		int get_serverPort()const;
 		std::string get_serverName() const;
 		std::string get_rooted_url() const;
-		
 
+		void	set_cookie( const std::string& );
+		std::string get_cookie() const;
 		std::string get_param_value( const std::string& n );
 		
 		void set_cgi( char** envp, const std::string& py_int = "", const std::string& pl_int = "");
