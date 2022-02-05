@@ -154,7 +154,7 @@ bool ft::WebServer::response_DELETE( Request& request ) {
 		//error
 	}
 	else {
-		msg << "File " << request.get_requested_url() << " was successfully DELETED";
+		msg << "File " << request.get_server_dir() + request.get_requested_url() << " was successfully DELETED";
 		response_file << generate_response_head( 200 ) << "Content-Type: text/html;\n" << "Content-Length: " << std::to_string( msg.str().size() ) << "\n\n" << msg.str();
 	}
 	response_file.close();
