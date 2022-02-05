@@ -12,7 +12,7 @@ struct Location_info {
     std::string index;
     std::vector<method> methods;
     std::map<int, std::string> errorPage;
-    std::map<int, std::string> returnNum; // not yet getter
+    std::map<int, std::string> redirection; // not yet getter
     Location_info();
 
     friend std::ostream &operator<<(std::ostream &os, const Location_info &info);

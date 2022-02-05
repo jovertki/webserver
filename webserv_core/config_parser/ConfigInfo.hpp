@@ -13,17 +13,18 @@ public:
     ~ConfigInfo();
 
     std::vector<ServerConfig> getServers()const;
-    std::string getLocationByID(const int servId, std::string locName);
+    std::string getLocationByID(const int &servId, std::string locName)const;
     int checkHostPortDublicates(int i);
-    bool checkMethod(int id, std::string locName, method methodForCheck);
-    int getAutoIndex(int servId, std::string locName);
-    int getBodySize(int servId, std::string locName);
-    std::string getCGI( int servId, const std::string& extentionCgi );
-    std::string getRoot(int servId, std::string locName);
-    std::string getUploadPath(int servId, std::string locName);
-    std::string getIndex(int servId, std::string locName);
-    std::string getErrorPage(int servId, std::string locName, int errorNum);
-    const int getServerID(std::string hostIP, int portVal, std::string serverName = "");
+    bool checkMethod(const int& servId, std::string locName, const method& methodForCheck) const;
+    int getAutoIndex(const int& servId, std::string locName) const ;
+    int getBodySize(const int& servId, std::string locName) const ;
+    std::string getCGI(const int& servId, const std::string& extentionCgi ) const ;
+    std::string getRoot(const int& servId, std::string locName) const ;
+    std::string getUploadPath(const int& servId, std::string locName) const ;
+    std::string getIndex(const int& servId, std::string locName) const ;
+    std::string getRedirect(const int& servId, std::string locName, const int& errorNum) const ;
+    std::string getErrorPage(const int& servId, std::string locName, const int& errorNum) const ;
+    int getServerID(const std::string& hostIP, const int& portVal, std::string serverName = "");
 private:
 
     void _checkServNames();
