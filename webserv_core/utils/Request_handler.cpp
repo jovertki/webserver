@@ -295,11 +295,9 @@ namespace ft {
 			// std::string filename( buffer.begin() + filename_start, buffer.begin() + filename_end );
 			std::string filename( buffer.substr( filename_start + 10, filename_end - filename_start - 11 ) );
 			data_header_end = buffer.find( "\r\n\r\n" ) + 4;
-			std::string upload_path = SERVER_DIR + std::string( "/uploads" ) + "/";
-			filename.insert( 0, upload_path );
+			(*params)["UPLOAD_FILENAME"] = filename;
 			if(DEBUG_MODE)
-				std::cout << BLUE << "filename is |" << filename << "|" << RESET << std::endl;
-			(*params)["UPLOAD_PATH"] = filename;
+				std::cout << BLUE << "filename is |" << (*params)["UPLOAD_FILENAME"] << "|" << RESET << std::endl;
 			buffer.erase( buffer.begin(), buffer.begin() + data_header_end );
 		}
 		total_bytes_read += data_header_end;

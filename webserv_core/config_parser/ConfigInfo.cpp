@@ -119,8 +119,12 @@ std::string ConfigInfo::getRoot(const int servId, std::string locName) {
 }
 
 std::string ConfigInfo::getUploadPath(const int servId, std::string locName) {
-    locName = getLocationByID(servId, locName);
-    return servers[servId].getLocations().find(locName)->second.uploadPath;
+    locName = getLocationByID( servId, locName );
+    if(locName == "/")
+        locName = servers[servId].getLocations().find( locName )->second.uploadPath;
+    else
+        locName += servers[servId].getLocations().find( locName )->second.uploadPath;
+    return locName;
 }
 
 std::string ConfigInfo::getIndex(const int servId, std::string locName) {

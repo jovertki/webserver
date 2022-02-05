@@ -53,6 +53,8 @@ namespace ft {
 		std::vector<ListeningSocket> get_socket_array()const;
 		int get_size_serverInfo() const;
 		std::string generate_response_head( const int& code );
+
+		void generate_upload_response( Request& request );
 	};
 }
 

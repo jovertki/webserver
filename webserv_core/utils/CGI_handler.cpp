@@ -165,7 +165,12 @@ void ft::CGI_handler::start(){
 	int response_file_fd = open( (BUFFER_FILE_CGIOUT + std::to_string( *fd )).c_str(), O_WRONLY | O_CREAT, 0666 );
 	// std::cout << RED << "cgi extention is |" << get_extention() << "|" << RESET << std::endl;
 
-	
+	if(DEBUG_MODE) {
+		for(std::map <std::string, std::string>::iterator i = params->begin(); i != params->end(); i++) {
+			std::cout << MAGENTA << (*i).first << " " << (*i).second << RESET << std::endl;
+		}
+		std::cout << MAGENTA << *query_string << RESET << std::endl << std::endl;
+	}
 	pid_t ret = fork();
 	if(ret == 0)
 	{

@@ -27,12 +27,12 @@ namespace ft {
 		std::string 	httpver;
 		std::string 	query_string;
 		std::map <std::string, std::string> params;
-		
+
 		CGI_handler 	cgi_handler;
 		Request_handler rhandler;
 		
-		std::string 	get_requested_filename() const;
 	public:
+		std::string 	get_requested_filename() const;
 		//used in sending response
 		unsigned long lastPos;
 		
