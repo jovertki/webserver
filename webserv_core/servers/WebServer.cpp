@@ -229,6 +229,7 @@ void ft::WebServer::list_contents( const std::string& path, Request& request ) {
 		/* could not open directory */
 	}
 	body << "<br><br><br><br><br><br><br><br><br>";
+    body << "<div style=\"display:flex\">";
 	body << "<form method=\"GET\" action=\"" << request.get_requested_url() << "\">" << \
 		"<input type=\"hidden\" name=\"color\" value=\"Lavender\">"<< \
 		"<button style=\"background-color:Lavender;height:50px;width:50px;\" type=\"submit\"></button></form>";
@@ -249,7 +250,8 @@ void ft::WebServer::list_contents( const std::string& path, Request& request ) {
 	body << "<form method=\"GET\" action=\"" << request.get_requested_url() << "\">" << \
 		"<input type=\"hidden\" name=\"color\" value=\"Pink\">" << \
 		"<button style=\"background-color:Pink;height:50px;width:50px;\" type=\"submit\"></button></form>";
-	body << "</body>" << std::endl << \
+    body << "</div>";
+        body << "</body>" << std::endl << \
 		"</html>" << std::endl;
 
 	header << generate_response_head( 200, request ) << \
