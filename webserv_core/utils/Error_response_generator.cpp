@@ -10,7 +10,7 @@ namespace ft {
 
 	Error_response_generator::~Error_response_generator(){}
 	
-	std::string Error_response_generator::generate_errorpage( const int& error_code ) const {
+	std::string Error_response_generator::generate_errorpage( const int& error_code, const std::string& color) const {
 		std::ostringstream header;
 		std::ostringstream body;
 
@@ -27,7 +27,7 @@ namespace ft {
 			"<!-- Custom stlylesheet -->" << std::endl << \
 			"<link type=\"text/css\" rel=\"stylesheet\" href=\"/css/style.css\" />" << std::endl << std::endl << \
 			"</head>" << std::endl << std::endl << \
-			"<body>" << std::endl << \
+			"<body style=\"background-color:" << color << ";\">" << std::endl << \
 			"<div class=\"vertical-center\">" << std::endl << \
 			"<div class=\"container\">" << std::endl << \
 			"<div id=\"notfound\" class=\"text-center\">" << std::endl << \

@@ -206,10 +206,10 @@ void ft::WebServer::handle_errors(const int& error_code, Request& request) {
 				response_file.write( buffer, error_page_file.gcount() );
 			}
 		}
-		response_file << error_handler.generate_errorpage( error_code );
+		response_file << error_handler.generate_errorpage( error_code, request.get_cookie());
 	}
 	else
-		response_file << error_handler.generate_errorpage( error_code );
+		response_file << error_handler.generate_errorpage( error_code, request.get_cookie() );
 	response_file.close();
 	request.set_stage( RESPONCE_GENERATED );
 	request.set_fd_events( POLLOUT | POLLERR );
