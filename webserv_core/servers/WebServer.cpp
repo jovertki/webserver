@@ -191,12 +191,25 @@ void ft::WebServer::handle_errors(const int& error_code, Request& request) {
 	if(!response_file.is_open()) {
 		//press F to pay respects for the server
 	}
-	if(false /*custom errorpage exists*/) {
-		// response_file << custom_error_page;
-	}
-	else {
+	std::string error_page = config.getErrorPage( request.get_servID(), request.get_requested_url(), error_code );
+	if(error_page != "") {
+		int file_size = get_file_size( error_page );
+		std::cout << error_page << std::endl;
+		std::ifstream error_page_file( error_page );
+		char buffer[30000];
+		if(error_page_file.is_open()) {
+			response_file << "HTTP/1.1" << " " << error_code << " " << response_messeges.at( error_code ) << "\n" <<
+				"Content-Type: text/html;" << std::endl << \
+				"Content-Length: " << std::to_string( file_size ) << std::endl << std::endl;
+			while(!error_page_file.eof()) {
+				error_page_file.read( buffer, 30000 );
+				response_file.write( buffer, error_page_file.gcount() );
+			}
+		}
 		response_file << error_handler.generate_errorpage( error_code );
 	}
+	else
+		response_file << error_handler.generate_errorpage( error_code );
 	response_file.close();
 	request.set_stage( RESPONCE_GENERATED );
 	request.set_fd_events( POLLOUT | POLLERR );
@@ -439,7 +452,7 @@ bool ft::WebServer::respond_out_of_line( Request& request, pollfd& fdset ) {
 		// std::cout << RED << "getRootedUrl = " << config.getRootedUrl( serverID, requested_url) << RESET << std::endl;
 		if(serverID == -1) {
 			//ERRORresolved no server with such servername
-			handle_errors( 418, request );
+			handle_errors( 421, request );
 			return true;
 		}
 		request.set_rooted_url( config.getRootedUrl( serverID, requested_url ) );
@@ -495,7 +508,7 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 		return 2;
 	}
 	else if(handler_ret == -1) {
-		handle_errors( 418, request );
+		handle_errors( 413, request );
 		return -1;
 		//ERRORresolved returns if headers are too long
 	}
