@@ -134,7 +134,15 @@ bool ft::WebServer::response_GET( Request& request ) {
 	}
 	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > sizeof( "/cgi-bin/" )) { //if it is in /cgi-bin/
 		// request.set_rooted_url( config.getRootedUrl( request.get_servID(), "/" ) );
-		return request.execute_cgi();
+		int exit_code = request.execute_cgi();
+		if(exit_code && exit_code != 1) {
+			if(response_messeges.find( exit_code ) == response_messeges.end()) {
+				exit_code = 500;
+			}
+			handle_errors( exit_code, request );
+			return true;
+		}
+		return static_cast<bool>(request.execute_cgi());
 	}
 	else {
 		write_response_to_file( request );
@@ -422,11 +430,12 @@ bool ft::WebServer::respond_out_of_line( Request& request, pollfd& fdset ) {
 	int serverID = request.get_servID();
 	std::string requested_url = request.get_requested_url();
 	bool is_chunked = request.is_chunked();
-
+	int body_size = 0;
 	
 	if(serverID == -1) {//happends once per request
 		request.set_servID( get_serverID( request ) );
 		serverID = request.get_servID();
+		body_size = config.getBodySize( serverID, requested_url );
 		// std::cout << RED << "getRootedUrl = " << config.getRootedUrl( serverID, requested_url) << RESET << std::endl;
 		if(serverID == -1) {
 			//ERRORresolved no server with such servername
@@ -438,11 +447,11 @@ bool ft::WebServer::respond_out_of_line( Request& request, pollfd& fdset ) {
 		// 	do smth
 		// return true;
 		// }
-		if(!is_chunked && strtol( request.get_param_value( "HTTP_CONTENT_LENGTH" ).c_str(), NULL, 10 ) > \
-			config.getBodySize( serverID, requested_url )) {
-			//ERROR
+		if(!is_chunked && body_size && strtol( request.get_param_value( "HTTP_CONTENT_LENGTH" ).c_str(), NULL, 10 ) > body_size) {
+			//ERRORresolved
 			handle_errors( 413, request );
-			std::cout << RED << "CONTENT LENGTH > BODY SIZE" << RESET << std::endl;
+			std::cout << body_size << std::endl;
+			std::cout << std::endl << RED << "CONTENT LENGTH > BODY SIZE : " << request.get_param_value( "HTTP_CONTENT_LENGTH" ) << ">" << body_size << RESET << std::endl << std::endl;
 			return true;
 		}
 
@@ -456,8 +465,8 @@ bool ft::WebServer::respond_out_of_line( Request& request, pollfd& fdset ) {
 		// request.set_param( "UPLOAD_PATH", request.get_rooted_url() + config.getUploadPath( serverID, requested_url ) + "/" );
 		// std::cout << MAGENTA << request.get_param_value( "UPLOAD_PATH" );
 	}
-	if(is_chunked && get_file_size( BUFFER_FILE + std::to_string( fdset.fd ) ) > \
-		config.getBodySize( serverID, requested_url )) {
+	body_size = config.getBodySize( serverID, requested_url );
+	if(is_chunked && body_size && get_file_size( BUFFER_FILE + std::to_string( fdset.fd ) ) > body_size) {
 		//ERRORresolved
 		handle_errors( 413, request );
 		std::cout << RED << "chunked CONTENT LENGTH > BODY SIZE" << RESET << std::endl;
@@ -471,24 +480,10 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 	request.set_request_handler();
 	int handler_ret = request.execute_handler();
 
-	if(request.get_param_value( "HTTP_COOKIE" ) != "") {
-		request.set_cookie( request.get_param_value( "HTTP_COOKIE" ) );
-	}
-	if(request.get_query_string() != "")
-		request.set_cookie( request.get_query_string() );
-
-	std::cout << MAGENTA << request.get_requested_url() << RESET << std::endl;
-	request.print_params();
-
-	if(respond_out_of_line( request, fdset )) {
+	
+	if(handler_ret > 2) {
+		handle_errors( handler_ret, request );
 		return -1;
-	}
-	else {
-		
-	}
-	request.set_cgi( envp, config.getCGI( request.get_servID(), ".py" ), config.getCGI( request.get_servID(), ".pl" ) );
-	if(handler_ret == 1) { //returns if read is complete
-		fdset.events = (POLLOUT | POLLERR);
 	}
 	else if(handler_ret == 2) {//returns if 0 bytes_read
 		if(DEBUG_MODE)
@@ -497,10 +492,27 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 		if(remove_buffer_files( fdset.fd )) {
 			//error deleting
 		}
+		return 2;
 	}
 	else if(handler_ret == -1) {
 		handle_errors( 418, request );
+		return -1;
 		//ERRORresolved returns if headers are too long
+	}
+	if(request.get_param_value( "HTTP_COOKIE" ) != "") {
+		request.set_cookie( request.get_param_value( "HTTP_COOKIE" ) );
+	}
+	if(request.get_query_string() != "")
+		request.set_cookie( request.get_query_string() );
+
+	// std::cout << MAGENTA << request.get_requested_url() << RESET << std::endl;
+	// request.print_params();
+	if(respond_out_of_line( request, fdset )) {
+		return -1;
+	}
+	request.set_cgi( envp, config.getCGI( request.get_servID(), ".py" ), config.getCGI( request.get_servID(), ".pl" ) );
+	if(handler_ret == 1) { //returns if read is complete
+		fdset.events = (POLLOUT | POLLERR);
 	}
 	return handler_ret;
 }

@@ -189,7 +189,7 @@ void ft::Request::set_stage( const int& n) {
 	stage = n;
 }
 
-bool ft::Request::execute_cgi() {
+int ft::Request::execute_cgi() {
 	return cgi_handler.execute();
 }
 

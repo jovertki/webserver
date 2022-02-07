@@ -89,7 +89,7 @@ namespace ft {
 		bool responce_is_generated() const;
 		void set_stage( const int& );
 		
-		bool execute_cgi();
+		int execute_cgi();
 		int execute_handler();
 
 

@@ -17,7 +17,7 @@ namespace ft {
 		~CGI_handler();
 		
 		bool is_initialised();
-		bool execute();
+		int execute();
 	private:
 		int stage;
 		pid_t cgi_pid;
@@ -44,8 +44,8 @@ namespace ft {
 		char** create_appended_envp();
 		void init_new_envp( std::map<std::string, std::string>& );
 		void start();
-		void process();
-		void write();
+		int process();
+		int write();
 		void init_response_msgs();
 		std::string generate_response_head( const int& code );
 		// CGI_handler& operator=(const CGI_handler& a);

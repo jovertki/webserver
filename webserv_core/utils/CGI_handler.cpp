@@ -35,19 +35,25 @@ ft::CGI_handler::CGI_handler( char** envp, int* afd, \
 	init_response_msgs();
 }
 
-bool ft::CGI_handler::execute() {
-	if (stage == CGI_NOT_STARTED){
+int ft::CGI_handler::execute() {
+	int error_code = 0;
+	if(stage == CGI_NOT_STARTED) {
 		this->start();
-
 	}
-	if (stage == CGI_PROCESSING){
-		this->process();
+	if(stage == CGI_PROCESSING) {
+		error_code = this->process();
+		if(error_code) {
+			return error_code;
+		}
 	}
 	if (stage == CGI_FINISHED){
-		this->write();
-		return true;
+		error_code = this->write();
+		if(error_code) {
+			return error_code;
+		}
+		return 1;
 	}
-	return false;
+	return 0;
 }
 
 void ft::CGI_handler::init_new_envp( std::map<std::string, std::string>& additions) {
@@ -138,15 +144,12 @@ void ft::CGI_handler::execute_extention_script( const std::string& filename, cha
 	else if(get_extention() == "pl") {
 		interpreter = perl_interpretator;
 	}
-	else {
-		//ERROR ???	
-	}
 	args[0] = new char[interpreter.size() + 1];
 	bzero( args[0], interpreter.size() + 1 );
 	strcpy( args[0], interpreter.data() );
 	if(execve( interpreter.c_str(), args, cgi_envp ) == -1) {
-		std::cout << RED << "execute_script: " << strerror( errno ) << RESET << std::endl;
-		exit( 1 );
+		// std::cout << RED << "execute_script: " << strerror( errno ) << RESET << std::endl;
+		exit( 404 );
 	}
 }
 
@@ -158,8 +161,8 @@ void ft::CGI_handler::execute_script() {//needs beauty
 	}
 	else {//execute binary
 		if(execve( filename.c_str(), NULL, cgi_envp ) == -1) {
-			std::cout << RED << "execute_script: " << strerror( errno ) << RESET << std::endl;
-			exit( 1 );
+			// std::cout << RED << "execute_script: " << strerror( errno ) << RESET << std::endl;
+			exit( 404 );
 		}
 	}
 }
@@ -184,9 +187,9 @@ void ft::CGI_handler::start(){
 		dup2( response_file_fd, 1 );
 
 		execute_script();
-		std::cout << "ERRRPR" << std::endl;
-		std::cout << strerror( errno ) << std::endl;
-		exit( 234 );
+		// std::cout << "ERRRPR" << std::endl;
+		// std::cout << strerror( errno ) << std::endl;
+		exit( 404 );
 	}
 	else {
 		cgi_pid = ret;
@@ -195,13 +198,15 @@ void ft::CGI_handler::start(){
 	}
 }
 
-void ft::CGI_handler::process() {
+int ft::CGI_handler::process() {
 	int status;
 	waitpid( cgi_pid, &status, WNOHANG );
 	if(kill( cgi_pid, 0 ) == -1) {
 		stage = CGI_FINISHED;
-		
+		if(WEXITSTATUS( status ) != 0)
+			return WEXITSTATUS( status );
 	}
+	return 0;
 }
 
 
@@ -214,11 +219,11 @@ long ft::CGI_handler::find_cgi_file_length( std::ifstream& cgi_response_file, st
 	return cgi_file_length;
 }
 
-void ft::CGI_handler::write() {
+int ft::CGI_handler::write() {
 	std::ifstream cgi_response_file;
 	cgi_response_file.open( BUFFER_FILE_CGIOUT + std::to_string( *fd ) );
 	if(!cgi_response_file.is_open())
-		std::cout << RED << strerror( errno ) << RESET << std::endl;
+		return 500;
 		
 	std::string content_type;
 	std::getline( cgi_response_file, content_type );
@@ -230,6 +235,9 @@ void ft::CGI_handler::write() {
 
 	std::ofstream response_file;
 	response_file.open( BUFFER_FILE_OUT + std::to_string( *fd ), std::ios::binary );
+	if(!response_file.is_open()) {
+		return 500;
+	}
 	response_file << generate_response_head( 200 ) << "Content-Length: " << cgi_file_length << "\r\n";
 
 	char buffer[CGI_BUFFER_SIZE + 1];
@@ -241,6 +249,7 @@ void ft::CGI_handler::write() {
 	cgi_response_file.close();
 	std::remove( (BUFFER_FILE_CGIOUT + std::to_string( *fd )).c_str() );
 	response_file.close();
+	return 0;
 }
 
 std::string ft::CGI_handler::generate_response_head( const int& code ) {

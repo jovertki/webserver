@@ -42,7 +42,7 @@ namespace ft {
 		}
 	}
 
-	void Request_handler::open_file( std::ofstream& file ) {
+	int Request_handler::open_file( std::ofstream& file ) {
 		if(parsing_header) {
 			//open anew
 			file.open( BUFFER_FILE + std::to_string( *fd ), std::ios::binary );
@@ -52,8 +52,9 @@ namespace ft {
 			file.open( BUFFER_FILE + std::to_string( *fd ), std::ios::binary | std::ios::app );
 		}
 		if(!file.is_open()) {
-			//ERROR, WHICH ONE??
+			return 500;
 		}
+		return 0;
 	}
 
 	int Request_handler::new_bytes_to_read() {
@@ -77,7 +78,6 @@ namespace ft {
 		}
 		else {
 			return EMPTY;
-			//ERROR: INVALID METHOD
 		}
 	}
 
@@ -91,7 +91,7 @@ namespace ft {
 			*query_string = "";
 	}
 
-	void Request_handler::params_init( std::stringstream& ss ) {
+	int Request_handler::params_init( std::stringstream& ss ) {
 		std::string buffer;
 		getline( ss, buffer ); //empty line
 		getline( ss, buffer );//first line of headers
@@ -112,17 +112,24 @@ namespace ft {
 			params->insert( make_pair( key, buffer.substr( colon + 2, buffer.size() - colon - 2 ) ) );
 			// request.insert_param( make_pair( key, buffer.substr( colon + 2, buffer.size() - colon - 2 ) ) );
 			if(!getline( ss, buffer )) {
-				//ERROR INVALID REQUEST
+				//ERRORresolved INVALID REQUEST
+				return 1;
 			}
-
 		}
+		return 0;
 	}
 	int Request_handler::find_header_length( const std::string& input_buffer ) {
 		std::string buffer_string( input_buffer );
-		return buffer_string.find( "\r\n\r\n" );
+		int out = buffer_string.find( "\r\n\r\n" );
+		if(out == std::string::npos) {
+			std::cout << YELLOW << input_buffer << RESET << std::endl;
+			return -1;
+		}
+		else
+			return out;
 	}
 
-	void Request_handler::header_parse( const std::string& input_buffer ) {
+	int Request_handler::header_parse( const std::string& input_buffer ) {
 		std::stringstream ss;
 		ss << input_buffer;
 		std::string token;
@@ -131,9 +138,20 @@ namespace ft {
 		ss >> *requested_url;
 		parse_query_string();
 		ss >> *httpver;
-		params_init( ss );
+		if(*method == EMPTY || *httpver == "" || *requested_url == "") {
+			return 400;// bad request
+		}
+		if(*httpver != "HTTP/1.1") {
+			return 505; //bad version
+		}
+		if(params_init( ss )) {
+			return 400;
+		}
 		header_length = find_header_length( input_buffer );
-		full_request_length = header_length + 4 + atol( (*params)["HTTP_CONTENT_LENGTH"].c_str() );//!!!!!!! POSSIBLE ERROR
+		if(header_length == -1) {
+			return 413; //headers too long
+		}
+		full_request_length = header_length + 4 + atol( (*params)["HTTP_CONTENT_LENGTH"].c_str() );
 		total_bytes_read = header_length + 4;
 		if(is_multipart())
 			multipart_boundary = set_boundary();
@@ -142,13 +160,23 @@ namespace ft {
 			// std::cout << "URL is |" << *requested_url << "|" << std::endl;
 			// std::cout << "HTTPVER is |" << *httpver << "|" << std::endl;
 		}
+		return 0;
 	}
 
-	void Request_handler::handle_regular_body( const std::string& buffer, std::ofstream& body_file ) {
-		for(int i = 0; i < buffer.size() && (total_bytes_read < full_request_length || is_chunked()); i++) {
-			body_file << buffer[i];
-			total_bytes_read++;
+	int Request_handler::handle_regular_body( std::string& buffer, std::ofstream& body_file ) {
+		if(!is_chunked() && full_request_length - total_bytes_read < buffer.size()) {
+			buffer.resize( full_request_length - total_bytes_read);
 		}
+		body_file << buffer;
+		if(body_file.fail()) {
+			return 500;
+		}
+		total_bytes_read += buffer.size();
+		return 0;
+		// for(int i = 0; i < buffer.size() && (total_bytes_read < full_request_length || is_chunked()); i++) {
+		// 	body_file << buffer[i];
+		// 	total_bytes_read++;
+		// }
 	}
 
 	bool Request_handler::body_exists() {
@@ -176,27 +204,33 @@ namespace ft {
 	}
 	int Request_handler::handle( std::string& buffer ) {
 		std::ofstream body_file;
-		open_file( body_file );
+		if(open_file( body_file )) {
+			return 500;
+		}
 		int begin_pos = 0;
 		int is_over = 0;
 
 
-        if(parsing_header) {
-			header_parse( buffer );
+		if(parsing_header) {
+			int error_code = header_parse( buffer );
+			if(error_code) {
+				return error_code;
+			}
 			begin_pos = header_length + 4;
 			buffer.erase( buffer.begin(), buffer.begin() + begin_pos );
 			parsing_header = false;
 		}
 		if(body_exists()) {
 			if(is_chunked()) {
-				 is_over = parseChunkedBody(buffer);//returns 1 if we have read everything, 0 otherwise
-//                std::cout << RED << buffer << RESET <<std::endl;
-//                exit(1);
+				is_over = parseChunkedBody(buffer);//returns 1 if we have read everything, 0 otherwise
             }
 			if(is_multipart()) {
 				handle_multipart( buffer );
 			}
-			handle_regular_body( buffer, body_file );
+			int error_code = handle_regular_body( buffer, body_file );
+			if(error_code) {
+				return error_code;
+			}
 		}
 		if((!is_chunked() && full_request_length - total_bytes_read <= 0) || is_over) {//meaning we have read everything
 			long file_len = body_file.tellp();
@@ -292,7 +326,6 @@ namespace ft {
 		if(buffer.size() != 0) {
 			std::size_t filename_start = buffer.find( "filename=" );
 			std::size_t filename_end = buffer.find( "\r\n", filename_start );
-			// std::string filename( buffer.begin() + filename_start, buffer.begin() + filename_end );
 			std::string filename( buffer.substr( filename_start + 10, filename_end - filename_start - 11 ) );
 			data_header_end = buffer.find( "\r\n\r\n" ) + 4;
 			(*params)["UPLOAD_FILENAME"] = filename;
