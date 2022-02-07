@@ -16,10 +16,6 @@ ConfigInfo::ConfigInfo(const char* arg) : servers() {
 //    std::cout << "ErrorPage 2222 on server 1(second) = " << getErrorPage(0, "/", 22) << std::endl;
 //    std::cout << "ServID = " << getServerID("127.0.0.1", 8080, "cwd.localhost") << std::endl;
     // std::cout << "Check method = " << checkMethod(4, "/", DELETE) << std::endl;
-//     std::cout << "Check rootedURL / = " << getRootedUrl(0, "/") << std::endl;
-//    std::cout << "Check rootedURL /folder = " << getRootedUrl(0, "/folder") << std::endl;
-//    std::cout << "Check rootedURL /folder/25 = " << getRootedUrl(0, "/folder/25") << std::endl;
-//    std::cout << "Check rootedURL /folder/26 = " << getRootedUrl(0, "/folder/26") << std::endl;
     // std::cout << "Check rootedURL /cgi-bin/my_cgi_add_get = " << getRootedUrl( 0, "/cgi-bin/my_cgi_add_get" ) << std::endl;
     // exit(1);
 }
@@ -54,10 +50,10 @@ std::string ConfigInfo::getCGI(const int& servId, const std::string& extentionCg
 std::string ConfigInfo::getLocationByID(const int &servId, std::string locName) const {
     int pos;
 
-    if (servId > servers.size() || locName.front() != '/') {
-        std::cout << BOLDRED << "ERROR !!!!!!!\n\n\n\n ERROR !!!!!!!"
-                                " \n getLocationByID\n\n\nERROR !!!!!!!" << RESET << std::endl;
-    }
+    if (servId > servers.size() || locName.front() != '/') { // to debug reasons
+        std::cout << BOLDRED << "ERROR !!!!!!!\n\n\n\n ERROR !!!!!!!" // to debug reasons
+                                " \n getLocationByID\n\n\nERROR !!!!!!!" << RESET << std::endl; // to debug reasons
+    }// to debug reasons
     while (locName.size() > 1) {
         if (servers[servId].getLocations().find(locName) != servers[servId].getLocations().end()) {
             return locName;
@@ -147,10 +143,7 @@ std::string ConfigInfo::getRootedUrl(const int& servId, std::string locName) con
 
 std::string ConfigInfo::getUploadPath(const int& servId, std::string locName) const {
     locName = getLocationByID( servId, locName );
-    // if(locName == "/")
     locName = servers[servId].getLocations().find( locName )->second.uploadPath;
-    // else
-    //     locName += servers[servId].getLocations().find( locName )->second.uploadPath;
     return locName;
 }
 

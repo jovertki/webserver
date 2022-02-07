@@ -36,16 +36,6 @@ void ServerConfig::checkAndFindValues(std::vector<std::string>& tokens) {
     fillLocFromDefault();
 }
 
-//void ServerConfig::fillLocationInfo() {
-//    int level, maxLevel;
-//
-//    level = 1;
-//    maxLevel = findHigherLevel();
-//    while (maxLevel >= level) {
-//        copyInfoByLocationLevel(level);
-//        level++;
-//    }
-//}
 
 void ServerConfig::fillLocFromDefault() {
     std::map<std::string, Location_info>::iterator it, end;
@@ -55,35 +45,6 @@ void ServerConfig::fillLocFromDefault() {
             copyLocatData(it->first);
     }
 }
-//
-//int ServerConfig::countBackslash(std::string locName) {
-//    int count, pos;
-//
-//    count = 0;
-//    pos = locName.find("/", 1);
-//    while(pos != std::string::npos && pos < locName.size()) {
-//        count++;
-//        pos = locName.find("/", pos + 1);
-//    }
-//    return count;
-//}
-//
-//void ServerConfig::copyInfoByLocationLevel(int const level) {
-//    std::map<std::string, Location_info>::iterator it, end;
-//    int count;
-//
-//    count = 0;
-//    for (it = locations.begin(), end = locations.end(); it != end; ++it) {
-//        if (it->first.size() > 1) {
-//            count = countBackslash(it->first);
-//            if (level == count) {
-////                std::cout << "loc "<< it->first  << " count " << count  << std::endl; // delete
-//                copyLocatData(it->first);
-//            }
-//        }
-//        count = 0;
-//    }
-//}
 
 void ServerConfig::copyLocatData(std::string locName) {
     if (locations[locName].redirection.empty()) {
@@ -95,12 +56,10 @@ void ServerConfig::copyLocatData(std::string locName) {
             locations[locName].index = locations["/"].index;
         if (locations[locName].methods.empty())
             locations[locName].methods = locations["/"].methods;
-//        if (locations[locName].root.empty())
-//            locations[locName].root = locations["/"].root;
         locations[locName].errorPage.insert(locations["/"].errorPage.begin(),
                                             locations["/"].errorPage.end());
     }
-    std::cout << "location name: " << locName << ". Content: " << locations[locName] << std::endl; // delete
+//    std::cout << "location name: " << locName << ". Content: " << locations[locName] << std::endl; // delete
     
 }
 
@@ -135,7 +94,6 @@ void ServerConfig::CheckDefaultParam() {
 void ServerConfig::findMainValues(std::vector<std::string>::iterator iter,
                                std::vector<std::string>::iterator end) {
     while (iter + 3 < end) {
-//        std::cout << *iter << std::endl; // delete
         if (*iter == "listen" && *(iter + 2) == ";" && !listen && *(iter + 1) != "0")
             listen = findIntAndIterate(++iter, 2);
         else if (*iter == "server_name" && *(iter + 2) == ";" && servName.empty())
