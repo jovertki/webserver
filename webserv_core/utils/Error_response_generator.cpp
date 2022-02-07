@@ -41,8 +41,12 @@ namespace ft {
 			"</body>" << std::endl << \
 			"</html>" << std::endl;
 
-		header << "HTTP/1.1" << " " << error_code << " " << response_messeges->at( error_code ) << "\n" <<
-			"Content-Type: text/html;" << std::endl << \
+
+		header << "HTTP/1.1" << " " << error_code << " " << response_messeges->at( error_code ) << "\n";
+		if(error_code == 413) {
+			header << "Connection: close;" << std::endl;
+		}
+		header << "Content-Type: text/html;" << std::endl << \
 			"Content-Length: " << body.str().size() << std::endl << std::endl;
 
 		std::ostringstream out;

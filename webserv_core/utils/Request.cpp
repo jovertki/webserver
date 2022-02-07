@@ -159,6 +159,7 @@ void ft::Request::clear() {
 	lastPos = 0;
 	servID = -1;
 	fd_settings = NULL;
+	cease_after_msg = false;
 }
 
 void ft::Request::set_param( const std::string& key, const std::string& value ) {
