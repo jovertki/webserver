@@ -28,7 +28,7 @@ namespace ft {
 		bool generate_response( Request& );
 		// bool is_directory( const std::string& path )const;
 		void list_contents( const std::string& path, Request& request );
-		void handle_errors( const int& error_code, Request& request );
+		void handle_errors( const int& error_code, Request& request);
 		bool response_POST( Request& request );
 		bool response_GET( Request& request );
 		bool response_DELETE( Request& request );
@@ -55,6 +55,8 @@ namespace ft {
 		std::string generate_response_head( const int& code, Request& request );
 
 		void generate_upload_response( Request& request );
+		int remove_buffer_files( const int& fdset_fd );
+		bool respond_out_of_line( Request& request, pollfd& fdset );
 	};
 }
 

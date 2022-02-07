@@ -12,14 +12,14 @@ ft::Request::Request() {
 
 void ft::Request::set_cgi( char** envp, const std::string& py_int, const std::string& pl_int) {
 	if(!cgi_handler.is_initialised()) {
-		cgi_handler = CGI_handler( envp, &fd, &requested_url, \
+		cgi_handler = CGI_handler( envp, &(fd_settings->fd), &requested_url, \
 			& query_string, &method, &params, py_int, pl_int, &rooted_url);
 	}
 }
 
 void ft::Request::set_request_handler() {
 	if(!rhandler.is_initialised()){
-		rhandler = Request_handler( &fd, &method, &requested_url, \
+		rhandler = Request_handler( &(fd_settings->fd), &method, &requested_url, \
 			& httpver, &params, &query_string);
 	}
 }
@@ -148,7 +148,6 @@ std::string ft::Request::get_param_value( const std::string& n ) {
 }
 
 void ft::Request::clear() {
-	fd = -1;
 	method = 0;
 	requested_url = "";
 	httpver = "";
@@ -159,6 +158,7 @@ void ft::Request::clear() {
 	stage = REQUEST_PENDING;
 	lastPos = 0;
 	servID = -1;
+	fd_settings = NULL;
 }
 
 void ft::Request::set_param( const std::string& key, const std::string& value ) {
@@ -198,12 +198,12 @@ int ft::Request::execute_handler() {
 }
 
 int ft::Request::get_fd() const {
-	return fd;
+	return fd_settings->fd;
 }
 
-void ft::Request::set_fd( const int& n) {
-	fd = n;
-}
+// void ft::Request::set_fd( const int& n) {
+// 	fd = n;
+// }
 
 void ft::Request::set_servID( const int& n ) {
 	servID = n;
@@ -257,4 +257,12 @@ void	ft::Request::set_cookie( const std::string& query_string ) {
 }
 std::string ft::Request::get_cookie() const {
 	return cookie;
+}
+
+void ft::Request::set_fdset( pollfd* n) {
+	fd_settings = n;
+}
+
+void ft::Request::set_fd_events( const short& n) {
+	fd_settings->events = n;
 }

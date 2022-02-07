@@ -146,6 +146,7 @@ void ft::CGI_handler::execute_extention_script( const std::string& filename, cha
 	strcpy( args[0], interpreter.data() );
 	if(execve( interpreter.c_str(), args, cgi_envp ) == -1) {
 		std::cout << RED << "execute_script: " << strerror( errno ) << RESET << std::endl;
+		exit( 1 );
 	}
 }
 
@@ -158,6 +159,7 @@ void ft::CGI_handler::execute_script() {//needs beauty
 	else {//execute binary
 		if(execve( filename.c_str(), NULL, cgi_envp ) == -1) {
 			std::cout << RED << "execute_script: " << strerror( errno ) << RESET << std::endl;
+			exit( 1 );
 		}
 	}
 }
@@ -193,10 +195,12 @@ void ft::CGI_handler::start(){
 	}
 }
 
-void ft::CGI_handler::process(){
-	waitpid( cgi_pid, NULL, WNOHANG );
+void ft::CGI_handler::process() {
+	int status;
+	waitpid( cgi_pid, &status, WNOHANG );
 	if(kill( cgi_pid, 0 ) == -1) {
 		stage = CGI_FINISHED;
+		
 	}
 }
 

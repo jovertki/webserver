@@ -7,7 +7,7 @@
 #include "CGI_handler.hpp"
 #include "Request_handler.hpp"
 #include "../sockets/ListeningSocket.hpp"
-
+#include <sys/poll.h>
 //request stages
 #define REQUEST_PENDING 0
 #define REQUEST_FINISHED_READING 1
@@ -21,7 +21,7 @@ namespace ft {
 		const ListeningSocket* server_socket;
 		int				servID;
 		
-		int 			fd;
+		// int 			fd;
 		int				method;
 		std::string 	requested_url;
 		std::string 	httpver;
@@ -33,7 +33,9 @@ namespace ft {
 		std::string			cookie;
 		CGI_handler 	cgi_handler;
 		Request_handler rhandler;
-		
+
+		pollfd* fd_settings;
+
 	public:
 		std::string 	get_requested_filename() const;
 		//used in sending response
@@ -70,13 +72,18 @@ namespace ft {
 		void set_requested_url(const std::string&);
 		void set_httpver(const std::string&);
 		void set_query_string( const std::string& );
-		void set_fd( const int& );
+		// void set_fd( const int& );
 		void set_params( const std::map <std::string, std::string>& );
 		void set_param( const std::string& key, const std::string& value );
+		void set_fdset( pollfd* );
+		void set_fd_events(const short& );
+
+
+		
 		void insert_param( const std::pair<std::string, std::string>& );
 		void print_params()const;
 		int param_exists( const std::string& ) const;
-
+		
 		bool is_pending() const;
 		bool is_finished_reading() const;
 		bool responce_is_generated() const;

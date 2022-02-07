@@ -123,7 +123,7 @@ bool ft::WebServer::response_GET( Request& request ) {
 			// std::cout << RED << request.get_requested_url() << RESET << std::endl;
 		}
 		else {
-			handle_errors( 503, request );
+			handle_errors( 403, request );
 			return true;
 		}
 	}
@@ -176,7 +176,7 @@ bool ft::WebServer::generate_response( Request& request ) {
 	return true;
 }
 
-void ft::WebServer::handle_errors(const int& error_code, Request& request ) {
+void ft::WebServer::handle_errors(const int& error_code, Request& request) {
 
 	std::ofstream response_file;
 	response_file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ), std::ios::binary );
@@ -191,6 +191,7 @@ void ft::WebServer::handle_errors(const int& error_code, Request& request ) {
 	}
 	response_file.close();
 	request.set_stage( RESPONCE_GENERATED );
+	request.set_fd_events( POLLOUT | POLLERR );
 }
 
 void ft::WebServer::list_contents( const std::string& path, Request& request ) {
@@ -332,6 +333,7 @@ void ft::WebServer::init_response_msgs() {
 	response_messeges[415] = "Unsupported Media Type";
 	response_messeges[416] = "Range Not Satisfiable";
 	response_messeges[417] = "Expectation Failed";
+	response_messeges[418] = "I am a teapot :-)";
 	response_messeges[421] = "Misdirected Request";
 	response_messeges[422] = "Unprocessable Entity";
 	response_messeges[423] = "Locked";
@@ -370,7 +372,8 @@ void ft::WebServer::check_new_clients( std::vector<pollfd>& fdset, std::map<int,
 			requests[temp.fd] = Request();
 			requests[temp.fd].set_socket( &socket_array[i] );
 			std::cout << RED << socket_array[i].get_ip() << " " << socket_array[i].get_port() << RESET << std::endl;
-			requests[temp.fd].set_fd( temp.fd );
+			// requests[temp.fd].set_fd( temp.fd );
+			requests[temp.fd].set_fdset( &fdset[fdset.size() - 1] );
 			if(DEBUG_MODE) {
 				std::cout << GREEN << i << ", on fd = " << fdset[i].fd << " request is accepted" << RESET << std::endl;
 
@@ -379,20 +382,29 @@ void ft::WebServer::check_new_clients( std::vector<pollfd>& fdset, std::map<int,
 	}
 }
 
+int ft::WebServer::remove_buffer_files( const int& fdset_fd ) {
+	if(std::remove( (BUFFER_FILE + std::to_string( fdset_fd )).c_str() )) {
+		//error
+		return 1;
+	}
+	if(std::remove( (BUFFER_FILE_OUT + std::to_string( fdset_fd )).c_str() )) {
+		//error
+		return 1;
+	}
+	return 0;
+}
 
 void ft::WebServer::respond( pollfd& fdset, Request& request ) {
 	int fdset_fd = fdset.fd;
 	if(send_response( request )) {
 		//this is highly questionable
-		if(std::remove( (BUFFER_FILE + std::to_string( fdset_fd )).c_str() )) {
-			//error
-		}
-		if(std::remove( (BUFFER_FILE_OUT + std::to_string( fdset_fd )).c_str() )) {
-			//error
+		if(remove_buffer_files( fdset_fd )) {
+			//error deleting
 		}
 		const ListeningSocket* temp_sock = request.get_socket();
 		request = Request();
-		request.set_fd( fdset_fd );
+		// request.set_fd( fdset_fd );
+		request.set_fdset( &fdset );
 		request.set_socket( temp_sock );
 		fdset.events = (POLLIN | POLLERR);
 		request.set_stage(REQUEST_PENDING);
@@ -403,6 +415,57 @@ void ft::WebServer::respond( pollfd& fdset, Request& request ) {
 int ft::WebServer::get_serverID( Request& request ) {
 	return config.getServerID( request.get_serverIP(), request.get_serverPort(), request.get_serverName() );
 }
+
+
+
+bool ft::WebServer::respond_out_of_line( Request& request, pollfd& fdset ) {
+	int serverID = request.get_servID();
+	std::string requested_url = request.get_requested_url();
+	bool is_chunked = request.is_chunked();
+
+	
+	if(serverID == -1) {//happends once per request
+		request.set_servID( get_serverID( request ) );
+		serverID = request.get_servID();
+		// std::cout << RED << "getRootedUrl = " << config.getRootedUrl( serverID, requested_url) << RESET << std::endl;
+		if(serverID == -1) {
+			//ERRORresolved no server with such servername
+			handle_errors( 418, request );
+			return true;
+		}
+		request.set_rooted_url( config.getRootedUrl( serverID, requested_url ) );
+		// if REDIRECTION{
+		// 	do smth
+		// return true;
+		// }
+		if(!is_chunked && strtol( request.get_param_value( "HTTP_CONTENT_LENGTH" ).c_str(), NULL, 10 ) > \
+			config.getBodySize( serverID, requested_url )) {
+			//ERROR
+			handle_errors( 413, request );
+			std::cout << RED << "CONTENT LENGTH > BODY SIZE" << RESET << std::endl;
+			return true;
+		}
+
+		if(!config.checkMethod( serverID, requested_url, static_cast<method>(request.get_method()) )) {
+			//ERRORresolved
+			std::cout << RED << "METHOD FORBIDDEN" << RESET << std::endl;
+			handle_errors( 405, request );
+			return true;
+		}
+
+		// request.set_param( "UPLOAD_PATH", request.get_rooted_url() + config.getUploadPath( serverID, requested_url ) + "/" );
+		// std::cout << MAGENTA << request.get_param_value( "UPLOAD_PATH" );
+	}
+	if(is_chunked && get_file_size( BUFFER_FILE + std::to_string( fdset.fd ) ) > \
+		config.getBodySize( serverID, requested_url )) {
+		//ERRORresolved
+		handle_errors( 413, request );
+		std::cout << RED << "chunked CONTENT LENGTH > BODY SIZE" << RESET << std::endl;
+		return true;
+	}
+	return false;
+}
+
 
 int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 	request.set_request_handler();
@@ -417,35 +480,11 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 	std::cout << MAGENTA << request.get_requested_url() << RESET << std::endl;
 	request.print_params();
 
-	if(request.get_servID() == -1) {//happends once per request
-		request.set_servID( get_serverID( request ) );
-
-		// std::cout << RED << "getRootedUrl = " << config.getRootedUrl( request.get_servID(), request.get_requested_url()) << RESET << std::endl;
-		if(request.get_servID() == -1) {
-			//ERROR no server with such servername
-		}
-		request.set_rooted_url( config.getRootedUrl( request.get_servID(), request.get_requested_url() ) );
-		// if REDIRECTION{
-		// 	do smth
-		// }
-		if(!request.is_chunked() && strtol( request.get_param_value( "HTTP_CONTENT_LENGTH" ).c_str(), NULL, 10 ) > \
-			config.getBodySize( request.get_servID(), request.get_requested_url() )) {
-			//ERROR
-			std::cout << RED << "CONTENT LENGTH > BODY SIZE" << RESET << std::endl;
-		}
-		
-		// if(!config.checkMethod( request.get_servID(), request.get_requested_url(), static_cast<method>(request.get_method()) )) {
-		// 	//ERROR
-		// 	std::cout << RED << "METHOD FORBIDDEN" << RESET << std::endl;
-		// }
-		
-		// request.set_param( "UPLOAD_PATH", request.get_rooted_url() + config.getUploadPath( request.get_servID(), request.get_requested_url() ) + "/" );
-		// std::cout << MAGENTA << request.get_param_value( "UPLOAD_PATH" );
+	if(respond_out_of_line( request, fdset )) {
+		return -1;
 	}
-	if(request.is_chunked() && get_file_size( BUFFER_FILE + std::to_string( fdset.fd ) ) > \
-		config.getBodySize( request.get_servID(), request.get_requested_url() )) {
-		//ERROR
-		std::cout << RED << "chunked CONTENT LENGTH > BODY SIZE" << RESET << std::endl;
+	else {
+		
 	}
 	request.set_cgi( envp, config.getCGI( request.get_servID(), ".py" ), config.getCGI( request.get_servID(), ".pl" ) );
 	if(handler_ret == 1) { //returns if read is complete
@@ -455,15 +494,13 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 		if(DEBUG_MODE)
 			std::cout << GREEN << "read 0 on fd " << fdset.fd << RESET << std::endl;
 		close( fdset.fd );
-		if(std::remove( (BUFFER_FILE + std::to_string( fdset.fd )).c_str() )) {
-			//error ignore?
-		}
-		if(std::remove( (BUFFER_FILE_OUT + std::to_string( fdset.fd )).c_str() )) {
-			//error ignore?
+		if(remove_buffer_files( fdset.fd )) {
+			//error deleting
 		}
 	}
 	else if(handler_ret == -1) {
-		//ERROR returns if headers are too long
+		handle_errors( 418, request );
+		//ERRORresolved returns if headers are too long
 	}
 	return handler_ret;
 }
@@ -483,8 +520,10 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 				fdset.erase( fdset.begin() + i );
 			}
 			else if(recieve_ret == 1) {//we have read everything
-				current_request.set_stage(REQUEST_FINISHED_READING);
-
+				current_request.set_stage( REQUEST_FINISHED_READING );
+			}
+			else if(recieve_ret == -1) {
+				//do nothing, everything is already set in place
 			}
 		}
 		else if(current_request.is_finished_reading()) {
