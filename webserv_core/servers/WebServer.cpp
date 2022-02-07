@@ -230,16 +230,25 @@ void ft::WebServer::list_contents( const std::string& path, Request& request ) {
 	}
 	body << "<br><br><br><br><br><br><br><br><br>";
 	body << "<form method=\"GET\" action=\"" << request.get_requested_url() << "\">" << \
-		"<input type=\"hidden\" name=\"color\" value=\"Beige\">"<< \
-		"<button style=\"background-color:beige;\" type=\"submit\">Beige</button></form>";
-	body << "<form method=\"GET\" action=\"" << request.get_requested_url() << "\">" << \
-		"<input type=\"hidden\" name=\"color\" value=\"CadetBlue\">" << \
-		"<button style=\"background-color:CadetBlue;\" type=\"submit\">Blue</button></form>";
+		"<input type=\"hidden\" name=\"color\" value=\"Lavender\">"<< \
+		"<button style=\"background-color:Lavender;height:50px;width:50px;\" type=\"submit\"></button></form>";
+	body << "<form method=\"GET\" action=\"" << request.get_requested_url() << "\">"  \
+         << "<input type=\"hidden\" name=\"color\" value=\"HoneyDew\">" \
+        << "<button style=\"background-color:HoneyDew;height:50px;width:50px; type=\"submit\"></button></form>";
 
+    body << "<form method=\"GET\" action=\"" << request.get_requested_url() << "\">" << \
+		"<input type=\"hidden\" name=\"color\" value=\"LightCyan\">" << \
+		"<button style=\"background-color:LightCyan;height:50px;width:50px;\" type=\"submit\"></button></form>";
+    body << "<form method=\"GET\" action=\"" << request.get_requested_url() << "\">" << \
+		"<input type=\"hidden\" name=\"color\" value=\"Cornsilk\">" << \
+		"<button style=\"background-color:Cornsilk;height:50px;width:50px;\" type=\"submit\"></button></form>";
+    body << "<form method=\"GET\" action=\"" << request.get_requested_url() << "\">" << \
+		"<input type=\"hidden\" name=\"color\" value=\"PaleGreen\">" << \
+		"<button style=\"background-color:PaleGreen;height:50px;width:50px;\" type=\"submit\"></button></form>";
 	
 	body << "<form method=\"GET\" action=\"" << request.get_requested_url() << "\">" << \
-		"<input type=\"hidden\" name=\"color\" value=\"DarkOliveGreen\">" << \
-		"<button style=\"background-color:DarkOliveGreen;\" type=\"submit\">Green</button></form>";
+		"<input type=\"hidden\" name=\"color\" value=\"Pink\">" << \
+		"<button style=\"background-color:Pink;height:50px;width:50px;\" type=\"submit\"></button></form>";
 	body << "</body>" << std::endl << \
 		"</html>" << std::endl;
 
