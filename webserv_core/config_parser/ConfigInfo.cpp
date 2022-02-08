@@ -56,7 +56,7 @@ std::string ConfigInfo::getLocationByID(const int &servId, std::string locName) 
 
     if (servId > servers.size() || locName.front() != '/') { // to debug reasons
         std::cout << BOLDRED << "ERROR !!!!!!!\n\n\n\n ERROR !!!!!!!" // to debug reasons
-                                " \n getLocationByID\n\n\nERROR !!!!!!!" << RESET << std::endl; // to debug reasons
+                                " \n getLocationByID\n\n\nERROR !!!!!!! ServID = "  << servId << RESET << std::endl; // to debug reasons
     }// to debug reasons
     while (locName.size() > 1) {
         if (servers[servId].getLocations().find(locName) != servers[servId].getLocations().end()) {
@@ -185,16 +185,16 @@ void ConfigInfo::_checkServNames() {
         if (nameToCheck.size()) {
             for (itCheck = it, ++itCheck; itCheck != end; ++itCheck) {
                 if (itCheck->getServName() == nameToCheck)
-                    throw utils::parseExeption("Error config: duplicate serv names");
+                    throw std::invalid_argument("Error config: duplicate serv names");
             }
             if (nameToCheck.find("/") != std::string::npos)
-                throw utils::parseExeption("Error config: serv name with \"/\"");
+                throw std::invalid_argument("Error config: serv name with \"/\"");
         }
     }
     res = NOT_FOUND;
     for (int i = 0; i < servers.size(); ++i) {
         res = checkHostPortDublicates(i);
         if (res != NOT_FOUND && servers[i].getServName() == servers[res].getServName())
-            throw utils::parseExeption("Error config: duplicate host port without server_name");
+            throw std::invalid_argument("Error config: duplicate host port without server_name");
     }
 }

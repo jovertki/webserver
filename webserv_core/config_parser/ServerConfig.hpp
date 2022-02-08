@@ -21,14 +21,14 @@ public:
     const std::map<std::string, Location_info> &getLocations() const;
 
 private:
-    void checkSlashes(std::string& toCheck) const;
+    static void checkSlashes(std::string& toCheck) ;
     void copyLocatData(std::string locName);
     void fillLocFromDefault();
     void checkAndFindValues(std::vector<std::string>& tokens);
     void CheckDefaultParam();
-    int findAutoIndex(std::vector<std::string>::iterator& iter);
-    int findIntAndIterate(std::vector<std::string>::iterator& iter, int iterPlus);
-    void findErrorPage(std::vector<std::string>::iterator& iter,
+    static int findAutoIndex(std::vector<std::string>::iterator& iter);
+    static int findIntAndIterate(std::vector<std::string>::iterator& iter);
+    static void findErrorPage(std::vector<std::string>::iterator& iter,
                                      std::map<int, std::string>& errorPage);
     void findMainValues(std::vector<std::string>::iterator iter,
                      std::vector<std::string>::iterator end);
@@ -36,11 +36,10 @@ private:
                   std::vector<std::string>::iterator& end);
     void findLocation(std::vector<std::string>::iterator& iter,
                         std::vector<std::string>::iterator& end);
-    std::string findStringAndIterate(std::vector<std::string>::iterator& iter,
-                                     int iterPlus);
-    std::vector<method> findMethods(std::vector<std::string>::iterator& iter,
+    static std::string findStringAndIterate(std::vector<std::string>::iterator& iter);
+    static std::vector<method> findMethods(std::vector<std::string>::iterator& iter,
                                     std::vector<std::string>::iterator& end);
-    Location_info findLocationParameters(std::vector<std::string>::iterator& iter,
+    static Location_info findLocationParameters(std::vector<std::string>::iterator& iter,
                                           std::vector<std::string>::iterator& end);
-    std::map<int, std::string> findReturn(std::vector<std::string>::iterator& iter);
+    static std::map<int, std::string> findReturn(std::vector<std::string>::iterator& iter);
 };
