@@ -312,8 +312,13 @@ void ft::WebServer::launch( std::vector<pollfd>& fdset ) {
 		if(DEBUG_MODE) {
 			std::cout << "waiting" << std::endl;
 		}
-		newest_global_loop( fdset );
-
+		try {
+			newest_global_loop( fdset );
+		}
+		catch(std::exception &e)
+		{
+			std::cout << e.what() << std::endl;
+		}
 		if(DEBUG_MODE) {
 			std::cout << "==== DONE ====" << std::endl;
 		}
@@ -325,7 +330,7 @@ int ft::WebServer::send_response( Request& request ) const {
 	unsigned int needToReturn = 0;
 	file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ) );
 	if(!file.is_open()) {
-		std::cout << RED << "send_response: " << strerror( errno ) << " " << (BUFFER_FILE_OUT + std::to_string( request.get_fd())) << RESET << std::endl; // exeption
+		// std::cout << RED << "send_response: " << strerror( errno ) << " " << (BUFFER_FILE_OUT + std::to_string( request.get_fd())) << RESET << std::endl; // exeption
 		return 2;
 	}
 	file.seekg( request.lastPos, std::ios_base::beg );
@@ -353,8 +358,9 @@ std::string ft::WebServer::generate_response_head( const int& code, Request& req
 	std::stringstream ss;
 	ss << "HTTP/1.1 " << code << " " << response_messeges[code] << "\r\n";
 	// if(request.get_param_value("HTTP_COOKIE") ==  )
-	if(request.get_param_value( "HTTP_COOKIE" ) != "color=" + request.get_cookie())
-		ss << "Set-Cookie:color=" << request.get_cookie() << "\n";
+	std::string cookie = request.get_cookie();
+	if(request.get_param_value( "HTTP_COOKIE" ) != "color=" + cookie)
+		ss << "Set-Cookie:color=" << cookie << "\n";
 	return ss.str();
 }
 
@@ -422,7 +428,8 @@ void ft::WebServer::check_new_clients( std::vector<pollfd>& fdset, std::map<int,
 			fdset.push_back( temp );
 			requests[temp.fd] = Request();
 			requests[temp.fd].set_socket( &socket_array[i] );
-			std::cout << RED << socket_array[i].get_ip() << " " << socket_array[i].get_port() << RESET << std::endl;
+			if(DEBUG_MODE)
+				std::cout << RED << socket_array[i].get_ip() << " " << socket_array[i].get_port() << RESET << std::endl;
 			// requests[temp.fd].set_fd( temp.fd );
 			requests[temp.fd].set_fdset( &fdset[fdset.size() - 1] );
 			if(DEBUG_MODE) {
@@ -489,7 +496,7 @@ bool ft::WebServer::respond_out_of_line( Request& request, pollfd& fdset ) {
 		body_size = config.getBodySize( serverID, requested_url );
 		if(!config.checkMethod( serverID, requested_url, static_cast<method>(request.get_method()) )) {
 			//ERRORresolved
-			std::cout << RED << "METHOD FORBIDDEN" << RESET << std::endl;
+			// std::cout << RED << "METHOD FORBIDDEN" << RESET << std::endl;
 			handle_errors( 405, request );
 			return true;
 		}
@@ -502,7 +509,7 @@ bool ft::WebServer::respond_out_of_line( Request& request, pollfd& fdset ) {
 			//ERRORresolved
 			handle_errors(413, request );
 			std::cout << body_size << std::endl;
-			std::cout << std::endl << RED << "CONTENT LENGTH > BODY SIZE : " << request.get_param_value( "HTTP_CONTENT_LENGTH" ) << ">" << body_size << RESET << std::endl << std::endl;
+			// std::cout << std::endl << RED << "CONTENT LENGTH > BODY SIZE : " << request.get_param_value( "HTTP_CONTENT_LENGTH" ) << ">" << body_size << RESET << std::endl << std::endl;
 			return true;
 		}
 
@@ -514,7 +521,7 @@ bool ft::WebServer::respond_out_of_line( Request& request, pollfd& fdset ) {
 	if(is_chunked && body_size && get_file_size( BUFFER_FILE + std::to_string( fdset.fd ) ) > body_size) {
 		//ERRORresolved
 		handle_errors( 413, request );
-		std::cout << RED << "chunked CONTENT LENGTH > BODY SIZE" << RESET << std::endl;
+		// std::cout << RED << "chunked CONTENT LENGTH > BODY SIZE" << RESET << std::endl;
 		return true;
 	}
 	return false;
@@ -566,6 +573,58 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 	return handler_ret;
 }
 
+
+void ft::WebServer::remove_hungup( std::vector<pollfd>& fdset, std::map<int, Request>& requests, const int& i) {
+	pollfd& current_pollfd = fdset[i];
+	Request& current_request = requests[current_pollfd.fd];
+	
+	remove_buffer_files( current_pollfd.fd );
+	close( current_pollfd.fd );
+	requests.erase( current_pollfd.fd );
+	fdset.erase( fdset.begin() + i );
+}
+
+
+void ft::WebServer::recieve_avaliable( std::vector<pollfd>& fdset, std::map<int, Request>& requests, const int& i ) {
+	pollfd& current_pollfd = fdset[i];
+	Request& current_request = requests[current_pollfd.fd];
+	if(DEBUG_MODE) {
+		std::cout << GREEN << i << ", fd = " << current_pollfd.fd << " is read" << RESET << std::endl;
+	}
+	int recieve_ret = recieve_request( current_pollfd, current_request );
+	if(recieve_ret == 2) {//connection closed
+		close( current_pollfd.fd );
+		remove_buffer_files( current_pollfd.fd );
+		requests.erase( current_pollfd.fd );
+		fdset.erase( fdset.begin() + i );
+	}
+	else if(recieve_ret == 1) {//we have read everything
+		current_request.set_stage( REQUEST_FINISHED_READING );
+	}
+	else if(recieve_ret == -1) {
+		//do nothing, everything is already set in place
+	}
+}
+
+
+void ft::WebServer::respond_avaliable( std::vector<pollfd>& fdset, std::map<int, Request>& requests, const int& i ) {
+	pollfd& current_pollfd = fdset[i];
+	Request& current_request = requests[current_pollfd.fd];
+	if(DEBUG_MODE) {
+		std::cout << GREEN << "socket " << i << ", fd = " << current_pollfd.fd << " is being written to" << RESET << std::endl;
+	}
+	if(respond( current_pollfd, current_request )) {
+		if(current_request.cease_after_msg) {
+			close( current_pollfd.fd );
+			remove_buffer_files( current_pollfd.fd );
+			requests.erase( current_pollfd.fd );
+			fdset.erase( fdset.begin() + i );
+		}
+		else {
+			reset_request( current_pollfd, current_request );
+		}
+	}
+}
 void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int, Request>& requests ) {
 	for(int i = fdset.size() - 1; i >= get_size_serverInfo(); --i) {
 		pollfd& current_pollfd = fdset[i];
@@ -573,28 +632,10 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 		
 		if(current_pollfd.revents & POLLHUP || current_pollfd.revents & POLLERR || \
 			current_pollfd.revents & POLLNVAL) {
-			remove_buffer_files( current_pollfd.fd );
-			close( current_pollfd.fd );
-			requests.erase( current_pollfd.fd );
-			fdset.erase( fdset.begin() + i );
+			remove_hungup( fdset, requests, i );
 		}
 		else if(current_pollfd.revents & POLLIN && current_request.is_pending()) {
-			if(DEBUG_MODE) {
-				std::cout << GREEN << i << ", fd = " << current_pollfd.fd << " is read" << RESET << std::endl;
-			}
-			int recieve_ret = recieve_request( current_pollfd, current_request );
-			if(recieve_ret == 2) {//connection closed
-				close( current_pollfd.fd );
-				remove_buffer_files( current_pollfd.fd );
-				requests.erase( current_pollfd.fd );
-				fdset.erase( fdset.begin() + i );
-			}
-			else if(recieve_ret == 1) {//we have read everything
-				current_request.set_stage( REQUEST_FINISHED_READING );
-			}
-			else if(recieve_ret == -1) {
-				//do nothing, everything is already set in place
-			}
+			recieve_avaliable( fdset, requests, i );
 		}
 		else if(current_request.is_finished_reading()) {
 			if(generate_response( current_request )) {//response is ready
@@ -602,20 +643,7 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 			}
 		}
 		else if(current_pollfd.revents & POLLOUT && current_request.responce_is_generated()) {
-			if(DEBUG_MODE) {
-				std::cout << GREEN << "socket " << i << ", fd = " << current_pollfd.fd << " is being written to" << RESET << std::endl;
-			}
-			if(respond( current_pollfd, current_request )) {
-				if(current_request.cease_after_msg) {
-					close( current_pollfd.fd );
-					remove_buffer_files( current_pollfd.fd );
-					requests.erase( current_pollfd.fd );
-					fdset.erase( fdset.begin() + i );
-				}
-				else {
-					reset_request( current_pollfd, current_request );
-				}
-			}
+			respond_avaliable( fdset, requests, i );
 		}
 	}
 }
@@ -626,7 +654,8 @@ void ft::WebServer::reset_request( pollfd& fdset, Request& request ) {
 	request = Request();
 	// request.set_fd( fdset_fd );
 	request.set_fdset( &fdset );
-	std::cout << BLUE << "FD = " << request.get_fd() << " is reset" << RESET << std::endl;
+	if(DEBUG_MODE)
+		std::cout << BLUE << "FD = " << request.get_fd() << " is reset" << RESET << std::endl;
 	request.set_socket( temp_sock );
 	fdset.events = (POLLIN | POLLERR | POLLNVAL | POLLHUP);
 	request.set_stage( REQUEST_PENDING );
@@ -637,13 +666,8 @@ void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 	bool is_cheking = true;
 	while(true) {
 		// system( "leaks webserv" );
-		// for(int DEBUG_temp = 0; DEBUG_temp < 50; DEBUG_temp++) {
 		
 		int ret = poll( &fdset[0], fdset.size(), TIMEOUT );
-		// for(int i = 0; i < fdset.size(); i++) {
-		// 	std::cout << RED << i << " = " << fdset[i].fd << " | " << fdset[i].events << " | " << fdset[i].revents << RESET << std::endl;
-		
-		// }
 		if(ret == 0) {
 			//??????
 			//close all and delete files????

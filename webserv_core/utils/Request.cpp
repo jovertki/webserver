@@ -233,7 +233,8 @@ std::string ft::Request::get_serverName() const {
 	if(params.find( "HTTP_HOST" ) != params.end()) {
 		out = params.at( "HTTP_HOST" );
 		out = out.substr( 0, out.find( ":" ) );
-		std::cout << MAGENTA << out << RESET << std::endl;
+		if(DEBUG_MODE)
+			std::cout << MAGENTA << out << RESET << std::endl;
 	}
 	return out;
 }

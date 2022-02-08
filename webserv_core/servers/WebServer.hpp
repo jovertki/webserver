@@ -59,6 +59,9 @@ namespace ft {
 		bool respond_out_of_line( Request& request, pollfd& fdset );
 		void reset_request( pollfd& fdset, Request& request );
 		void hard_close_connection( Request& request );
+		void remove_hungup( std::vector<pollfd>& fdset, std::map<int, Request>& requests, const int& i );
+		void recieve_avaliable( std::vector<pollfd>& fdset, std::map<int, Request>& requests, const int& i );
+		void respond_avaliable( std::vector<pollfd>& fdset, std::map<int, Request>& requests, const int& i );
 	};
 }
 
