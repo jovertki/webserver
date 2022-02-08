@@ -52,7 +52,7 @@ namespace ft {
 		bool is_multipart();
 		int get_method( const std::string& token );
 		void parse_query_string();
-		int find_header_length( const std::string& input_buffer );
+		static int find_header_length( const std::string& input_buffer );
 		int params_init( std::stringstream& ss );
 		void handle_multipart( std::string& buffer);
 		void multipart_parse_data_header( std::string& buffer );
