@@ -157,7 +157,7 @@ void ft::Request::clear() {
 	rhandler = Request_handler();
 	stage = REQUEST_PENDING;
 	lastPos = 0;
-	servID = -1;
+	servID = -2;
 	fd_settings = NULL;
 	cease_after_msg = false;
 }

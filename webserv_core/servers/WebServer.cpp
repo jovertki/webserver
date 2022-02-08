@@ -26,7 +26,7 @@ ft::WebServer::WebServer( char** envp, ConfigInfo& config ) : envp( envp ), id()
 			config.getServers()[i].getHost(), BACKLOG ) );
 		pollfd temp;
 		temp.fd = get_socket_array().back().get_sock();
-		temp.events = (POLLIN | POLLERR);
+		temp.events = (POLLIN | POLLERR | POLLHUP | POLLNVAL);
 		temp.revents = 0;
 		fdset.push_back( temp );
 	}
@@ -189,7 +189,7 @@ bool ft::WebServer::generate_response( Request& request ) {
 
 void ft::WebServer::hard_close_connection( Request& request ) {
 	request.set_stage( RESPONCE_GENERATED );
-	request.set_fd_events( POLLOUT | POLLERR );
+	request.set_fd_events( POLLOUT | POLLERR | POLLHUP | POLLNVAL );
 }
 
 void ft::WebServer::handle_errors( const int& error_code, Request& request ) {
@@ -226,7 +226,7 @@ void ft::WebServer::handle_errors( const int& error_code, Request& request ) {
 		response_file << error_handler.generate_errorpage( error_code, request.get_cookie(), request.cease_after_msg );
 	response_file.close();
 	request.set_stage( RESPONCE_GENERATED );
-	request.set_fd_events( POLLOUT | POLLERR );
+	request.set_fd_events( POLLOUT | POLLERR | POLLHUP | POLLNVAL );
 }
 
 void ft::WebServer::list_contents( const std::string& path, Request& request ) {
@@ -320,28 +320,33 @@ void ft::WebServer::launch( std::vector<pollfd>& fdset ) {
 	}
 }
 
-bool ft::WebServer::send_response( Request& request ) const {
+int ft::WebServer::send_response( Request& request ) const {
 	std::ifstream file;
 	unsigned int needToReturn = 0;
 	file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ) );
 	if(!file.is_open()) {
 		std::cout << RED << "send_response: " << strerror( errno ) << " " << (BUFFER_FILE_OUT + std::to_string( request.get_fd())) << RESET << std::endl; // exeption
+		return 2;
 	}
 	file.seekg( request.lastPos, std::ios_base::beg );
 	char buffer[30000];
 	file.read( buffer, 30000 );
 	// check gcount
 	unsigned int bytes_written = write( request.get_fd(), buffer, file.gcount() );
+	if(bytes_written < 1) {
+		return 2;
+	}
+	
 	if(bytes_written != file.gcount())
 		needToReturn = file.gcount() - bytes_written;
 	request.lastPos = file.tellg();
 	request.lastPos -= needToReturn;
 	if(file.eof()) {
 		file.close();
-		return true;
+		return 1;
 	}
 	file.close();
-	return false;
+	return 0;
 }
 
 std::string ft::WebServer::generate_response_head( const int& code, Request& request){
@@ -413,7 +418,7 @@ void ft::WebServer::check_new_clients( std::vector<pollfd>& fdset, std::map<int,
 			temp.fd = accepter( i );
 			if(temp.fd == -1) //skip errors on accept
 				continue;
-			temp.events = (POLLIN | POLLERR);
+			temp.events = (POLLIN | POLLERR | POLLHUP | POLLNVAL);
 			fdset.push_back( temp );
 			requests[temp.fd] = Request();
 			requests[temp.fd].set_socket( &socket_array[i] );
@@ -442,13 +447,19 @@ int ft::WebServer::remove_buffer_files( const int& fdset_fd ) {
 
 bool ft::WebServer::respond( pollfd& fdset, Request& request ) {
 	int fdset_fd = fdset.fd;
-	if(send_response( request )) {
+	int ret = send_response( request );
+	if(ret == 1) {
 		//this is highly questionable
 		if(remove_buffer_files( fdset_fd )) {
 			//error deleting
 		}
 		return true;
-
+	}
+	else if(ret == 2) {
+		request.cease_after_msg = true;
+		hard_close_connection( request );
+		// handle_errors( 500, request );
+		return true;
 	}
 	return false;
 }
@@ -466,16 +477,16 @@ bool ft::WebServer::respond_out_of_line( Request& request, pollfd& fdset ) {
 	bool is_chunked = request.is_chunked();
 	int body_size = 0;
 	
-	if(serverID == -1) {//happends once per request
+	if(serverID == -2) {//happends once per request
 		request.set_servID( get_serverID( request ) );
 		serverID = request.get_servID();
-		body_size = config.getBodySize( serverID, requested_url );
 		// std::cout << RED << "getRootedUrl = " << config.getRootedUrl( serverID, requested_url) << RESET << std::endl;
 		if(serverID == -1) {
 			//ERRORresolved no server with such servername
 			handle_errors( 421, request );
 			return true;
 		}
+		body_size = config.getBodySize( serverID, requested_url );
 		if(!config.checkMethod( serverID, requested_url, static_cast<method>(request.get_method()) )) {
 			//ERRORresolved
 			std::cout << RED << "METHOD FORBIDDEN" << RESET << std::endl;
@@ -550,7 +561,7 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 	}
 	request.set_cgi( envp, config.getCGI( request.get_servID(), ".py" ), config.getCGI( request.get_servID(), ".pl" ) );
 	if(handler_ret == 1) { //returns if read is complete
-		fdset.events = (POLLOUT | POLLERR);
+		fdset.events = (POLLOUT | POLLERR | POLLHUP | POLLNVAL);
 	}
 	return handler_ret;
 }
@@ -560,7 +571,14 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 		pollfd& current_pollfd = fdset[i];
 		Request& current_request = requests[current_pollfd.fd];
 		
-		if(current_pollfd.revents & POLLIN && current_request.is_pending()) {
+		if(current_pollfd.revents & POLLHUP || current_pollfd.revents & POLLERR || \
+			current_pollfd.revents & POLLNVAL) {
+			remove_buffer_files( current_pollfd.fd );
+			close( current_pollfd.fd );
+			requests.erase( current_pollfd.fd );
+			fdset.erase( fdset.begin() + i );
+		}
+		else if(current_pollfd.revents & POLLIN && current_request.is_pending()) {
 			if(DEBUG_MODE) {
 				std::cout << GREEN << i << ", fd = " << current_pollfd.fd << " is read" << RESET << std::endl;
 			}
@@ -599,13 +617,6 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 				}
 			}
 		}
-		else if(current_pollfd.revents & POLLHUP || current_pollfd.revents & POLLERR || \
-			current_pollfd.revents & POLLNVAL) {
-			remove_buffer_files( current_pollfd.fd );
-			close( current_pollfd.fd );
-			requests.erase( current_pollfd.fd );
-			fdset.erase( fdset.begin() + i );
-		}
 	}
 }
 
@@ -617,7 +628,7 @@ void ft::WebServer::reset_request( pollfd& fdset, Request& request ) {
 	request.set_fdset( &fdset );
 	std::cout << BLUE << "FD = " << request.get_fd() << " is reset" << RESET << std::endl;
 	request.set_socket( temp_sock );
-	fdset.events = (POLLIN | POLLERR);
+	fdset.events = (POLLIN | POLLERR | POLLNVAL | POLLHUP);
 	request.set_stage( REQUEST_PENDING );
 }
 
@@ -627,6 +638,7 @@ void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 	while(true) {
 		// system( "leaks webserv" );
 		// for(int DEBUG_temp = 0; DEBUG_temp < 50; DEBUG_temp++) {
+		
 		int ret = poll( &fdset[0], fdset.size(), TIMEOUT );
 		// for(int i = 0; i < fdset.size(); i++) {
 		// 	std::cout << RED << i << " = " << fdset[i].fd << " | " << fdset[i].events << " | " << fdset[i].revents << RESET << std::endl;
