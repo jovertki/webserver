@@ -16,6 +16,8 @@ ConfigInfo::ConfigInfo(const char* arg) : servers() {
         exit(-1);
     }
     std::cout << MAGENTA << "..........\n" << servers.size() << " servers successfully parsed" << RESET << std::endl;
+    int i = -1;
+    std::cout << "redir " << getRedirect(0, "/c/t", i) << i << std::endl;
 }
 
 ConfigInfo::~ConfigInfo() {}
@@ -48,7 +50,7 @@ std::string ConfigInfo::getCGI(const int& servId, const std::string& extentionCg
 std::string ConfigInfo::getLocationByID(const int &servId, std::string locName) const {
     int pos;
 
-    if (servId > servers.size() || locName.front() != '/') { // to debug reasons
+    if (servId < 0 || servId >= servers.size() || locName.front() != '/') { // to debug reasons
         std::cout << BOLDRED << "ERROR !!!!!!!\n\n\n\n ERROR !!!!!!!" // to debug reasons
                                 " \n getLocationByID\n\n\nERROR !!!!!!! ServID = "  << servId << RESET << std::endl; // to debug reasons
         return "/";
