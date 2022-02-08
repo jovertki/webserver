@@ -145,6 +145,8 @@ void ServerConfig::findLocation(std::vector<std::string>::iterator& iter,
 
     if (locations.find(locationName) != locations.end() || *(iter + 1) != "{")
         throw utils::parseExeption("ServerParse::duplicate locations!");
+    if (locationName.front() != '/' || (locationName.back() == '/' && locationName.size() > 1))
+        throw utils::parseExeption("ServerParse::location should start with / and shouldn't end with / !");
     iter += 2;
     locations[locationName] = findLocationParameters(iter, end);
 //    std::cout << locations[locationName] << std::endl; // delete
@@ -171,10 +173,14 @@ Location_info ServerConfig::findLocationParameters(std::vector<std::string>::ite
             res.redirection = findReturn(++iter);
         else if (*iter == "error_page" && *(iter + 3) == ";")
             findErrorPage(++iter, res.errorPage);
-        else if (*iter == "index" && *(iter + 2) == ";" && res.index.empty())
+        else if (*iter == "index" && *(iter + 2) == ";" && res.index.empty()) {
             res.index = findStringAndIterate(++iter, 2);
-        else if (*iter == "upload_path" && *(iter + 2) == ";" && res.uploadPath.empty())
+            checkSlashes(res.index);
+        }
+        else if (*iter == "upload_path" && *(iter + 2) == ";" && res.uploadPath.empty()) {
             res.uploadPath = findStringAndIterate(++iter, 2);
+            checkSlashes( res.uploadPath);
+        }
         else
             throw utils::parseExeption("ServerParse::locations!");
     }
@@ -208,6 +214,12 @@ std::map<int, std::string> ServerConfig::findReturn(std::vector<std::string>::it
         ++iter;
     }
     return resMap;
+}
+
+void ServerConfig::checkSlashes(std::string& toCheck) const {
+    if (toCheck.size() < 2 || toCheck.front() != '/' || toCheck.back() == '/')
+        throw std::invalid_argument("ServerParse::index or upload path s");
+//        throw utils::parseExeption("ServerParse::index or upload path should start with / and shouldn't end with /");
 }
 
 

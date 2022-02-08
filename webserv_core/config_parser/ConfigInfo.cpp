@@ -11,6 +11,10 @@ ConfigInfo::ConfigInfo(const char* arg) : servers() {
         std::cerr << e.what() << std::endl;
         exit(-1);
     }
+    catch (std::invalid_argument &e) {
+        std::cerr << e.what() << std::endl;
+        exit(-1);
+    }
     //delete next line
     std::cout << "..........\n" << servers.size() << " servers successfully parsed" << std::endl;
 //    std::cout << "ErrorPage 2222 on server 1(second) = " << getErrorPage(0, "/", 22) << std::endl;
@@ -183,6 +187,8 @@ void ConfigInfo::_checkServNames() {
                 if (itCheck->getServName() == nameToCheck)
                     throw utils::parseExeption("Error config: duplicate serv names");
             }
+            if (nameToCheck.find("/") != std::string::npos)
+                throw utils::parseExeption("Error config: serv name with \"/\"");
         }
     }
     res = NOT_FOUND;

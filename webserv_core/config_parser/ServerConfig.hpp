@@ -21,10 +21,7 @@ public:
     const std::map<std::string, Location_info> &getLocations() const;
 
 private:
-
-//    void copyInfoByLocationLevel(int const level);
-//    int findHigherLevel();
-//    int countBackslash(std::string locName);
+    void checkSlashes(std::string& toCheck) const;
     void copyLocatData(std::string locName);
     void fillLocFromDefault();
     void checkAndFindValues(std::vector<std::string>& tokens);
