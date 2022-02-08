@@ -29,8 +29,8 @@ namespace ft {
 		// bool is_directory( const std::string& path )const;
 		void list_contents( const std::string& path, Request& request );
 		void handle_errors( const int& error_code, Request& request);
-		bool response_POST( Request& request );
-		bool response_GET( Request& request );
+		// bool response_POST( Request& request );
+		bool response_GET_POST( Request& request );
 		bool response_DELETE( Request& request );
 		bool execute_cgi( Request& request );
 		void header_parse( const char*, Request& );
@@ -62,6 +62,7 @@ namespace ft {
 		void remove_hungup( std::vector<pollfd>& fdset, std::map<int, Request>& requests, const int& i );
 		void recieve_avaliable( std::vector<pollfd>& fdset, std::map<int, Request>& requests, const int& i );
 		void respond_avaliable( std::vector<pollfd>& fdset, std::map<int, Request>& requests, const int& i );
+		void generate_redirect_response( const int& code, Request& request, const std::string& redirect_url );
 	};
 }
 

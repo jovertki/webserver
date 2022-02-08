@@ -105,13 +105,7 @@ void ft::WebServer::generate_upload_response( Request& request) {
 	response_file.close();
 }
 
-bool ft::WebServer::response_GET( Request& request ) {
-
-	//check if rights are correct
-	// if(rigthts are incorrect) {
-	// 	handle_errors( some code );
-	// 	return true;
-	// }
+bool ft::WebServer::response_GET_POST( Request& request ) {
 	if(is_directory( request.get_rooted_url())) {
 		if(config.getAutoIndex( request.get_servID(), request.get_requested_url()/*AUTOINDEX IS ON*/ )) {
 			list_contents( request.get_rooted_url() , request );
@@ -178,9 +172,9 @@ bool ft::WebServer::generate_response( Request& request ) {
 	//NYI check availability of method in location
 	int method = request.get_method();
 	if(method == GET)
-		return response_GET( request );
+		return response_GET_POST( request );
 	else if(method == POST)
-		return response_GET( request );//replace with GET??
+		return response_GET_POST( request );//replace with GET??
 	else if(method == DELETE)
 		return response_DELETE( request );
 	return true;
@@ -286,8 +280,12 @@ void ft::WebServer::list_contents( const std::string& path, Request& request ) {
 	body << "<form method=\"GET\" action=\"" << request.get_requested_url() << "\">" << \
 		"<input type=\"hidden\" name=\"color\" value=\"Pink\">" << \
 		"<button style=\"background-color:Pink;height:50px;width:50px;\" type=\"submit\"></button></form>";
-    body << "</div>";
-        body << "</body>" << std::endl << \
+	body << "</div>";
+	body << "<a name=\"Upload file here\" href=\"" << request.get_requested_url();
+	if(request.get_requested_url()[request.get_requested_url().size() - 1] != '/')
+		body << "/";
+	body << "upload.html\" </a><br>";
+	body << "</body>" << std::endl << \
 		"</html>" << std::endl;
 
 	header << generate_response_head( 200, request ) << \
@@ -476,7 +474,15 @@ int ft::WebServer::get_serverID( Request& request ) {
 	return config.getServerID( request.get_serverIP(), request.get_serverPort(), request.get_serverName() );
 }
 
+void ft::WebServer::generate_redirect_response( const int& code, Request& request, const std::string& redirect_url ) {
+	std::ofstream response_file;
+	response_file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ), std::ios::binary );
 
+	response_file << generate_response_head( code, request );
+	if(code != 302)
+		response_file << "Location: " << redirect_url;
+	response_file.close();
+}
 
 bool ft::WebServer::respond_out_of_line( Request& request, pollfd& fdset ) {
 	int serverID = request.get_servID();
@@ -487,7 +493,6 @@ bool ft::WebServer::respond_out_of_line( Request& request, pollfd& fdset ) {
 	if(serverID == -2) {//happends once per request
 		request.set_servID( get_serverID( request ) );
 		serverID = request.get_servID();
-		// std::cout << RED << "getRootedUrl = " << config.getRootedUrl( serverID, requested_url) << RESET << std::endl;
 		if(serverID == -1) {
 			//ERRORresolved no server with such servername
 			handle_errors( 421, request );
@@ -496,15 +501,16 @@ bool ft::WebServer::respond_out_of_line( Request& request, pollfd& fdset ) {
 		body_size = config.getBodySize( serverID, requested_url );
 		if(!config.checkMethod( serverID, requested_url, static_cast<method>(request.get_method()) )) {
 			//ERRORresolved
-			// std::cout << RED << "METHOD FORBIDDEN" << RESET << std::endl;
-			handle_errors( 405, request );
+			handle_errors( 405, request );//method forbidden
 			return true;
 		}
 		request.set_rooted_url( config.getRootedUrl( serverID, requested_url ) );
-		// if REDIRECTION{
-		// 	do smth
-		// return true;
-		// }
+		int return_code = 0;
+		std::string redirect_url = config.getRedirect( serverID, requested_url, &return_code );
+		if(return_code != 0) {
+			generate_redirect_response( return_code, request, redirect_url );
+			return true;
+		}
 		if(!is_chunked && body_size && strtol( request.get_param_value( "HTTP_CONTENT_LENGTH" ).c_str(), NULL, 10 ) > body_size) {
 			//ERRORresolved
 			handle_errors(413, request );
