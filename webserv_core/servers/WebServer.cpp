@@ -498,19 +498,19 @@ bool ft::WebServer::respond_out_of_line( Request& request, pollfd& fdset ) {
 			handle_errors( 421, request );
 			return true;
 		}
-		body_size = config.getBodySize( serverID, requested_url );
-		if(!config.checkMethod( serverID, requested_url, static_cast<method>(request.get_method()) )) {
-			//ERRORresolved
-			handle_errors( 405, request );//method forbidden
-			return true;
-		}
-		request.set_rooted_url( config.getRootedUrl( serverID, requested_url ) );
 		int return_code = 0;
 		std::string redirect_url = config.getRedirect( serverID, requested_url, &return_code );
 		if(return_code != 0) {
 			generate_redirect_response( return_code, request, redirect_url );
 			return true;
 		}
+		if(!config.checkMethod( serverID, requested_url, static_cast<method>(request.get_method()) )) {
+			//ERRORresolved
+			handle_errors( 405, request );//method forbidden
+			return true;
+		}
+		body_size = config.getBodySize( serverID, requested_url );
+		request.set_rooted_url( config.getRootedUrl( serverID, requested_url ) );
 		if(!is_chunked && body_size && strtol( request.get_param_value( "HTTP_CONTENT_LENGTH" ).c_str(), NULL, 10 ) > body_size) {
 			//ERRORresolved
 			handle_errors(413, request );
