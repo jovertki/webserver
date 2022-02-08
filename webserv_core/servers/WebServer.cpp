@@ -258,6 +258,7 @@ void ft::WebServer::list_contents( const std::string& path, Request& request ) {
 	else {
 		/* could not open directory */
 	}
+	
 	body << "<br><br><br><br><br><br><br><br><br>";
     body << "<div style=\"display:flex\">";
 	body << "<form method=\"GET\" action=\"" << request.get_requested_url() << "\">" << \
@@ -281,10 +282,13 @@ void ft::WebServer::list_contents( const std::string& path, Request& request ) {
 		"<input type=\"hidden\" name=\"color\" value=\"Pink\">" << \
 		"<button style=\"background-color:Pink;height:50px;width:50px;\" type=\"submit\"></button></form>";
 	body << "</div>";
-	body << "<a name=\"Upload file here\" href=\"" << request.get_requested_url();
+	
+	body << "<br><br>";
+	body << "<a href=\"" << request.get_requested_url();
 	if(request.get_requested_url()[request.get_requested_url().size() - 1] != '/')
 		body << "/";
-	body << "upload.html\" </a><br>";
+	body << "upload.html\">Upload file here</a><br>";
+	
 	body << "</body>" << std::endl << \
 		"</html>" << std::endl;
 
@@ -499,7 +503,9 @@ bool ft::WebServer::respond_out_of_line( Request& request, pollfd& fdset ) {
 			return true;
 		}
 		int return_code = 0;
-		std::string redirect_url = config.getRedirect( serverID, requested_url, &return_code );
+		
+		std::string redirect_url = config.getRedirect( serverID, requested_url, return_code );
+		std::cout << GREEN << serverID << " " << requested_url << " " << return_code << " " << redirect_url << RESET << std::endl;
 		if(return_code != 0) {
 			generate_redirect_response( return_code, request, redirect_url );
 			return true;
