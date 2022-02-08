@@ -52,7 +52,7 @@ std::string ConfigInfo::getLocationByID(const int &servId, std::string locName) 
 
     if (servId < 0 || servId >= servers.size() || locName.front() != '/') { // to debug reasons
         std::cout << BOLDRED << "ERROR !!!!!!!\n\n\n\n ERROR !!!!!!!" // to debug reasons
-                                " \n getLocationByID\n\n\nERROR !!!!!!! ServID = "  << servId << RESET << std::endl; // to debug reasons
+            " \n getLocationByID = " << locName << "\n\n\nERROR !!!!!!!ServID = "  << servId << RESET << std::endl; // to debug reasons
         return "/";
     }// to debug reasons
     while (locName.size() > 1) {

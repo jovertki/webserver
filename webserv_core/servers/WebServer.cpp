@@ -88,10 +88,14 @@ void ft::WebServer::generate_upload_response( Request& request) {
 	std::ostringstream header;
 	std::ostringstream body;
 
-	std::string old_url = request.get_requested_url().substr( 0, request.get_requested_url().find_last_of( "/" ) );
+	std::size_t last_slash = request.get_requested_url().find_last_of( "/" );
+	if(last_slash == 0) {
+		last_slash = 1;
+	}
+	std::string old_url = request.get_requested_url().substr( 0, last_slash );
+	
 	std::string path = config.getRootedUrl( request.get_servID(), old_url ) + \
 		config.getUploadPath( request.get_servID(), request.get_requested_url() ) + "/";
-
 	body << "<!DOCTYPE html><html><body><form id = \"uploadbanner\" enctype = \"multipart/form-data\" method = \"post\" action = \"/cgi-bin/upload";
 	body << "?path=" << path << "\"><input id = \"fileupload\" name = \"myfile\" type = \"file\"/><input type = \"submit\" value = \"submit\" id = \"submit\"/></form></body></html>";
 
@@ -485,7 +489,10 @@ void ft::WebServer::generate_redirect_response( const int& code, Request& reques
 	response_file << generate_response_head( code, request );
 	if(code != 302)
 		response_file << "Location: " << redirect_url;
+	response_file << std::endl << std::endl;
 	response_file.close();
+	request.set_stage( RESPONCE_GENERATED );
+	request.set_fd_events( POLLOUT | POLLERR | POLLHUP | POLLNVAL );
 }
 
 bool ft::WebServer::respond_out_of_line( Request& request, pollfd& fdset ) {
@@ -505,7 +512,7 @@ bool ft::WebServer::respond_out_of_line( Request& request, pollfd& fdset ) {
 		int return_code = 0;
 		
 		std::string redirect_url = config.getRedirect( serverID, requested_url, return_code );
-		std::cout << GREEN << serverID << " " << requested_url << " " << return_code << " " << redirect_url << RESET << std::endl;
+		std::cout << GREEN << "servid =" << serverID << " url = " << requested_url << " returned_code = " << return_code << " returnd url = " << redirect_url << RESET << std::endl;
 		if(return_code != 0) {
 			generate_redirect_response( return_code, request, redirect_url );
 			return true;
