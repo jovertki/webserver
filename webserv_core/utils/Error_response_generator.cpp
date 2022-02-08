@@ -10,7 +10,7 @@ namespace ft {
 
 	Error_response_generator::~Error_response_generator(){}
 	
-	std::string Error_response_generator::generate_errorpage( const int& error_code, const std::string& color) const {
+	std::string Error_response_generator::generate_errorpage( const int& error_code, const std::string& color,const bool& cease_connection) const {
 		std::ostringstream header;
 		std::ostringstream body;
 
@@ -41,8 +41,12 @@ namespace ft {
 			"</body>" << std::endl << \
 			"</html>" << std::endl;
 
-		header << "HTTP/1.1" << " " << error_code << " " << response_messeges->at( error_code ) << "\n" <<
-			"Content-Type: text/html;" << std::endl << \
+
+		header << "HTTP/1.1" << " " << error_code << " " << response_messeges->at( error_code ) << "\n";
+		if(cease_connection) {
+			header << "Connection: close;" << std::endl;
+		}
+		header << "Content-Type: text/html;" << std::endl << \
 			"Content-Length: " << body.str().size() << std::endl << std::endl;
 
 		std::ostringstream out;

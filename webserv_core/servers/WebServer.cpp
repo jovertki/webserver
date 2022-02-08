@@ -15,6 +15,7 @@
 
 ft::WebServer::WebServer( char** envp, ConfigInfo& config ) : envp( envp ), id(), config( config ), error_handler(Error_response_generator(&response_messeges)) { // зачем ID???
 	std::vector<pollfd> fdset;
+	fdset.reserve( BACKLOG + 1 );
 	for(int i = 0; i < config.getServers().size(); i++) {
 		if(config.checkHostPortDublicates( i ) != NOT_FOUND)
 			continue;
@@ -129,11 +130,12 @@ bool ft::WebServer::response_GET( Request& request ) {
 	}
 	if(request.get_requested_filename() == "/upload.html") {
 		generate_upload_response(request);
-		std::cout << RED << "SDJHSDFJSHFKJSDBFKSDJF" << RESET << std::endl;
 		return true;
 	}
-	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > sizeof( "/cgi-bin/" )) { //if it is in /cgi-bin/
-		// request.set_rooted_url( config.getRootedUrl( request.get_servID(), "/" ) );
+	if(request.get_requested_url().find( "/cgi-bin/" ) != std::string::npos \
+		&& request.get_requested_url().find( "/cgi-bin/" ) == 0 && \
+		request.get_requested_url().size() > sizeof( "/cgi-bin/" )) { //if it is in /cgi-bin/
+			// request.set_rooted_url( config.getRootedUrl( request.get_servID(), "/" ) );
 		int exit_code = request.execute_cgi();
 		if(exit_code && exit_code != 1) {
 			if(response_messeges.find( exit_code ) == response_messeges.end()) {
@@ -184,7 +186,13 @@ bool ft::WebServer::generate_response( Request& request ) {
 	return true;
 }
 
-void ft::WebServer::handle_errors(const int& error_code, Request& request) {
+
+void ft::WebServer::hard_close_connection( Request& request ) {
+	request.set_stage( RESPONCE_GENERATED );
+	request.set_fd_events( POLLOUT | POLLERR );
+}
+
+void ft::WebServer::handle_errors( const int& error_code, Request& request ) {
 
 	std::ofstream response_file;
 	response_file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ), std::ios::binary );
@@ -192,24 +200,30 @@ void ft::WebServer::handle_errors(const int& error_code, Request& request) {
 		//press F to pay respects for the server
 	}
 	std::string error_page = config.getErrorPage( request.get_servID(), request.get_requested_url(), error_code );
+	if(error_code == 413) {
+		request.cease_after_msg = true;
+	}
 	if(error_page != "") {
 		int file_size = get_file_size( error_page );
 		std::cout << error_page << std::endl;
 		std::ifstream error_page_file( error_page );
 		char buffer[30000];
 		if(error_page_file.is_open()) {
-			response_file << "HTTP/1.1" << " " << error_code << " " << response_messeges.at( error_code ) << "\n" <<
-				"Content-Type: text/html;" << std::endl << \
+			response_file << "HTTP/1.1" << " " << error_code << " " << response_messeges.at( error_code ) << "\n";
+			if(request.cease_after_msg) {
+				response_file << "Connection: close;" << std::endl;
+			}
+			response_file << "Content-Type: text/html;" << std::endl << \
 				"Content-Length: " << std::to_string( file_size ) << std::endl << std::endl;
 			while(!error_page_file.eof()) {
 				error_page_file.read( buffer, 30000 );
 				response_file.write( buffer, error_page_file.gcount() );
 			}
 		}
-		response_file << error_handler.generate_errorpage( error_code, request.get_cookie());
+		response_file << error_handler.generate_errorpage( error_code, request.get_cookie(), request.cease_after_msg );
 	}
 	else
-		response_file << error_handler.generate_errorpage( error_code, request.get_cookie() );
+		response_file << error_handler.generate_errorpage( error_code, request.get_cookie(), request.cease_after_msg );
 	response_file.close();
 	request.set_stage( RESPONCE_GENERATED );
 	request.set_fd_events( POLLOUT | POLLERR );
@@ -311,7 +325,7 @@ bool ft::WebServer::send_response( Request& request ) const {
 	unsigned int needToReturn = 0;
 	file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ) );
 	if(!file.is_open()) {
-		std::cout << RED << "send_response: " << strerror( errno ) << RESET << std::endl; // exeption
+		std::cout << RED << "send_response: " << strerror( errno ) << " " << (BUFFER_FILE_OUT + std::to_string( request.get_fd())) << RESET << std::endl; // exeption
 	}
 	file.seekg( request.lastPos, std::ios_base::beg );
 	char buffer[30000];
@@ -426,21 +440,17 @@ int ft::WebServer::remove_buffer_files( const int& fdset_fd ) {
 	return 0;
 }
 
-void ft::WebServer::respond( pollfd& fdset, Request& request ) {
+bool ft::WebServer::respond( pollfd& fdset, Request& request ) {
 	int fdset_fd = fdset.fd;
 	if(send_response( request )) {
 		//this is highly questionable
 		if(remove_buffer_files( fdset_fd )) {
 			//error deleting
 		}
-		const ListeningSocket* temp_sock = request.get_socket();
-		request = Request();
-		// request.set_fd( fdset_fd );
-		request.set_fdset( &fdset );
-		request.set_socket( temp_sock );
-		fdset.events = (POLLIN | POLLERR);
-		request.set_stage(REQUEST_PENDING);
+		return true;
+
 	}
+	return false;
 }
 
 
@@ -466,6 +476,12 @@ bool ft::WebServer::respond_out_of_line( Request& request, pollfd& fdset ) {
 			handle_errors( 421, request );
 			return true;
 		}
+		if(!config.checkMethod( serverID, requested_url, static_cast<method>(request.get_method()) )) {
+			//ERRORresolved
+			std::cout << RED << "METHOD FORBIDDEN" << RESET << std::endl;
+			handle_errors( 405, request );
+			return true;
+		}
 		request.set_rooted_url( config.getRootedUrl( serverID, requested_url ) );
 		// if REDIRECTION{
 		// 	do smth
@@ -479,12 +495,6 @@ bool ft::WebServer::respond_out_of_line( Request& request, pollfd& fdset ) {
 			return true;
 		}
 
-		if(!config.checkMethod( serverID, requested_url, static_cast<method>(request.get_method()) )) {
-			//ERRORresolved
-			std::cout << RED << "METHOD FORBIDDEN" << RESET << std::endl;
-			handle_errors( 405, request );
-			return true;
-		}
 
 		// request.set_param( "UPLOAD_PATH", request.get_rooted_url() + config.getUploadPath( serverID, requested_url ) + "/" );
 		// std::cout << MAGENTA << request.get_param_value( "UPLOAD_PATH" );
@@ -504,7 +514,11 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 	request.set_request_handler();
 	int handler_ret = request.execute_handler();
 
-	
+	if(handler_ret == 0) {
+		request.cease_after_msg = true;
+		hard_close_connection( request );
+		return -1;
+	}
 	if(handler_ret > 2) {
 		handle_errors( handler_ret, request );
 		return -1;
@@ -519,7 +533,7 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 		return 2;
 	}
 	else if(handler_ret == -1) {
-		handle_errors( 413, request );
+		handle_errors( 431, request );
 		return -1;
 		//ERRORresolved returns if headers are too long
 	}
@@ -552,6 +566,7 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 			}
 			int recieve_ret = recieve_request( current_pollfd, current_request );
 			if(recieve_ret == 2) {//connection closed
+				close( current_pollfd.fd );
 				requests.erase( current_pollfd.fd );
 				fdset.erase( fdset.begin() + i );
 			}
@@ -571,14 +586,38 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 			if(DEBUG_MODE) {
 				std::cout << GREEN << "socket " << i << ", fd = " << current_pollfd.fd << " is being written to" << RESET << std::endl;
 			}
-			respond( current_pollfd, current_request );
+			if(respond( current_pollfd, current_request )) {
+				if(current_request.cease_after_msg) {
+					close( current_pollfd.fd );
+					requests.erase( current_pollfd.fd );
+					fdset.erase( fdset.begin() + i );
+				}
+				else {
+					reset_request( current_pollfd, current_request );
+				}
+			}
 		}
-
+		else if(current_pollfd.revents & POLLHUP) {
+			close( current_pollfd.fd );
+			requests.erase( current_pollfd.fd );
+			fdset.erase( fdset.begin() + i );
+		}
 	}
 }
 
 
-	void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
+void ft::WebServer::reset_request( pollfd& fdset, Request& request ) {
+	const ListeningSocket* temp_sock = request.get_socket();
+	request = Request();
+	// request.set_fd( fdset_fd );
+	request.set_fdset( &fdset );
+	std::cout << BLUE << "FD = " << request.get_fd() << " is reset" << RESET << std::endl;
+	request.set_socket( temp_sock );
+	fdset.events = (POLLIN | POLLERR);
+	request.set_stage( REQUEST_PENDING );
+}
+
+void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
 	std::map<int, Request> requests;
 	bool is_cheking = true;
 	while(true) {

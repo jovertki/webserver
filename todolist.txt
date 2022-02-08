@@ -10,15 +10,10 @@
 	+upload path
 	+cgi
 	+root SERVER_DIR заменить на геттер от рута
+	+error pages
+	+custom error pages
 
-	error pages
-	custom error pages
 	return (redirection)
-
-
-
-
-
 
 
 

@@ -6,7 +6,7 @@
 
 //get from config
 // #define SERVER_DIR "./html"
-#define ERROR404FILE "./html/error404.html"
+// #define ERROR404FILE "./html/error404.html"
 // #define PYTHON_INTERPRETER "/usr/local/bin/python3"
 // #define PERL_INTERPRETER "/usr/bin/perl"
 

@@ -46,7 +46,7 @@ namespace ft {
 		int get_serverID( Request& request );
 
 		
-		void respond( pollfd& fdset, Request& request );
+		bool respond( pollfd& fdset, Request& request );
 		int recieve_request( pollfd& fdset, Request& request );
 
         void newest_global_loop( std::vector<pollfd>& fdset );
@@ -57,6 +57,8 @@ namespace ft {
 		void generate_upload_response( Request& request );
 		int remove_buffer_files( const int& fdset_fd );
 		bool respond_out_of_line( Request& request, pollfd& fdset );
+		void reset_request( pollfd& fdset, Request& request );
+		void hard_close_connection( Request& request );
 	};
 }
 

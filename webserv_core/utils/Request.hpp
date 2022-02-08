@@ -35,8 +35,8 @@ namespace ft {
 		Request_handler rhandler;
 
 		pollfd* fd_settings;
-
 	public:
+		bool cease_after_msg;
 		std::string 	get_requested_filename() const;
 		//used in sending response
 		unsigned long lastPos;

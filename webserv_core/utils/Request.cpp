@@ -74,7 +74,6 @@ std::string ft::Request::get_requested_url_extention() const {
 	if(last_dot == std::string::npos)
 		return "html";
 	else
-
 		return get_requested_filename().substr( last_dot + 1 );
 }
 
@@ -159,6 +158,7 @@ void ft::Request::clear() {
 	lastPos = 0;
 	servID = -1;
 	fd_settings = NULL;
+	cease_after_msg = false;
 }
 
 void ft::Request::set_param( const std::string& key, const std::string& value ) {
