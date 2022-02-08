@@ -2,15 +2,6 @@
 
 namespace utils {
 
-    parseExeption::parseExeption(const std::string &msg) : m_msg(msg) {}
-
-    parseExeption::~parseExeption() throw() {}
-
-    const char *parseExeption::parseExeption::what() const throw() {
-//        std::cerr << "ServerParse: " << m_msg << std::endl;
-        return (m_msg.c_str());
-    }
-
     int str_to_num(const std::string& to_convert) {
         long int res;
         char *end_c;
@@ -19,7 +10,7 @@ namespace utils {
         if ((errno == ERANGE && res == LONG_MAX) || res > INT_MAX ||
             (errno == ERANGE && res == LONG_MIN) || res < 0
             || to_convert.empty() || *end_c != '\0')
-            throw utils::parseExeption("Error str_to_num!");
+            throw std::invalid_argument("Error str_to_num!");
         return (int)res;
     }
 
@@ -31,7 +22,7 @@ namespace utils {
         if ((errno == ERANGE && res == LONG_MAX) || res > INT_MAX ||
             (errno == ERANGE && res == LONG_MIN) || res < 0
             || to_convert.empty() || *end_c != '\0')
-            throw utils::parseExeption("Error strhex_to_num!");
+            throw std::invalid_argument("Error strhex_to_num!");
         return (int)res;
     }
 
@@ -41,7 +32,7 @@ namespace utils {
 
         char c;
         if (!input.is_open())
-            throw utils::parseExeption("Error config: can't open file ");
+            throw std::invalid_argument("Error config: can't open file ");
         while (input.good())
         {
             c = input.get();
@@ -63,7 +54,7 @@ namespace utils {
                 oneToken.push_back(c);
         }
         if (c != EOF || tokens.empty() || tokens.size() < 3)
-            throw utils::parseExeption("Error make_tokens!");
+            throw std::invalid_argument("Error make_tokens!");
         else
             input.close();
         return tokens;
