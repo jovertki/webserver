@@ -48,7 +48,7 @@ std::string ConfigInfo::getCGI(const int& servId, const std::string& extentionCg
 std::string ConfigInfo::getLocationByID(const int &servId, std::string locName) const {
     int pos;
 
-    if (servId > servers.size() || locName.front() != '/') { // to debug reasons
+    if (servId < 0 || servId >= servers.size() || locName.front() != '/') { // to debug reasons
         std::cout << BOLDRED << "ERROR !!!!!!!\n\n\n\n ERROR !!!!!!!" // to debug reasons
                                 " \n getLocationByID\n\n\nERROR !!!!!!! ServID = "  << servId << RESET << std::endl; // to debug reasons
         return "/";
