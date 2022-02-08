@@ -58,6 +58,7 @@ namespace ft {
 		int remove_buffer_files( const int& fdset_fd );
 		bool respond_out_of_line( Request& request, pollfd& fdset );
 		void reset_request( pollfd& fdset, Request& request );
+		void hard_close_connection( Request& request );
 	};
 }
 

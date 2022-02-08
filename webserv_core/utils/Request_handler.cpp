@@ -28,7 +28,6 @@ namespace ft {
 		long bytes_read;
 
 		bytes_read = read( *fd, temp_buffer, bytes_to_read );
-		std::string buffer( temp_buffer, temp_buffer + bytes_read );//needs code review
         // std::cout << MAGENTA << buffer << RESET <<std::endl;
 		if(bytes_read == -1) {
 			return 0;//error connection
@@ -37,6 +36,7 @@ namespace ft {
 			return 2;
 		}
 		else {
+			std::string buffer( temp_buffer, temp_buffer + bytes_read );//needs code review
 			int ret = handle( buffer);
 			return ret;
 		}
