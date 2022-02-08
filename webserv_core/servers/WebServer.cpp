@@ -13,9 +13,9 @@
 #include <signal.h>
 #include "../utils/utils.hpp"
 
-ft::WebServer::WebServer( char** envp, ConfigInfo& config ) : envp( envp ), id(), config( config ), error_handler(Error_response_generator(&response_messeges)) { // зачем ID???
+ft::WebServer::WebServer( char** envp, ConfigInfo& config ) : envp( envp ), id(), config( config ), error_handler( Error_response_generator( &response_messeges ) ) { // зачем ID???
 	std::vector<pollfd> fdset;
-	fdset.reserve( BACKLOG + 1 );
+	fdset.reserve( 50000);
 	for(int i = 0; i < config.getServers().size(); i++) {
 		if(config.checkHostPortDublicates( i ) != NOT_FOUND)
 			continue;
@@ -567,6 +567,7 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 			int recieve_ret = recieve_request( current_pollfd, current_request );
 			if(recieve_ret == 2) {//connection closed
 				close( current_pollfd.fd );
+				remove_buffer_files( current_pollfd.fd );
 				requests.erase( current_pollfd.fd );
 				fdset.erase( fdset.begin() + i );
 			}
@@ -589,6 +590,7 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 			if(respond( current_pollfd, current_request )) {
 				if(current_request.cease_after_msg) {
 					close( current_pollfd.fd );
+					remove_buffer_files( current_pollfd.fd );
 					requests.erase( current_pollfd.fd );
 					fdset.erase( fdset.begin() + i );
 				}
@@ -597,7 +599,9 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 				}
 			}
 		}
-		else if(current_pollfd.revents & POLLHUP) {
+		else if(current_pollfd.revents & POLLHUP || current_pollfd.revents & POLLERR || \
+			current_pollfd.revents & POLLNVAL) {
+			remove_buffer_files( current_pollfd.fd );
 			close( current_pollfd.fd );
 			requests.erase( current_pollfd.fd );
 			fdset.erase( fdset.begin() + i );

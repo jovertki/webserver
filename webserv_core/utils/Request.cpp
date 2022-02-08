@@ -7,6 +7,7 @@
 ft::Request::Request() {
 	clear();
 	server_socket = NULL;
+	fd_settings = NULL;
 	cookie = "LightGray";
 }
 
