@@ -41,5 +41,5 @@ private:
                                     std::vector<std::string>::iterator& end);
     static Location_info findLocationParameters(std::vector<std::string>::iterator& iter,
                                           std::vector<std::string>::iterator& end);
-    static std::map<int, std::string> findReturn(std::vector<std::string>::iterator& iter);
+    static std::pair<int, std::string> findReturn(std::vector<std::string>::iterator& iter);
 };
