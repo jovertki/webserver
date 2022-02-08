@@ -16,6 +16,8 @@ ConfigInfo::ConfigInfo(const char* arg) : servers() {
         exit(-1);
     }
     std::cout << MAGENTA << "..........\n" << servers.size() << " servers successfully parsed" << RESET << std::endl;
+    int i = -1;
+    std::cout << "redir " << getRedirect(0, "/c/t", i) << i << std::endl;
 }
 
 ConfigInfo::~ConfigInfo() {}
