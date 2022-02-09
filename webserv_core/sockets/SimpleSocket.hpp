@@ -12,6 +12,7 @@ namespace ft {
 		struct sockaddr_in address;
 	public:
 		SimpleSocket( int domain, int service, int protocol, int port, std::string interface );
+		virtual ~SimpleSocket() {}
 		virtual int connect_to_network( int sock, struct sockaddr_in address ) = 0;
 		void test_connection( int );
 
