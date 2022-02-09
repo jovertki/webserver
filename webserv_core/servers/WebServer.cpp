@@ -206,13 +206,14 @@ void ft::WebServer::handle_errors( const int& error_code, Request& request ) {
 				response_file << "Connection: close;" << std::endl;
 			}
 			response_file << "Content-Type: text/html;" << std::endl << \
-				"Content-Length: " << std::to_string( file_size ) << std::endl << std::endl;
+				"Content-Length: " << std::to_string( file_size ) << "\r\n\r\n";
 			while(!error_page_file.eof()) {
 				error_page_file.read( buffer, 30000 );
 				response_file.write( buffer, error_page_file.gcount() );
 			}
 		}
-		response_file << error_handler.generate_errorpage( error_code, request.get_cookie(), request.cease_after_msg );
+		else
+			response_file << error_handler.generate_errorpage( error_code, request.get_cookie(), request.cease_after_msg );
 	}
 	else
 		response_file << error_handler.generate_errorpage( error_code, request.get_cookie(), request.cease_after_msg );
@@ -473,12 +474,14 @@ int ft::WebServer::get_serverID( Request& request ) {
 void ft::WebServer::generate_redirect_response( const int& code, Request& request, const std::string& redirect_url ) {
 	std::ofstream response_file;
 	response_file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ), std::ios::binary );
-
+	if(DEBUG_MODE)
+		std::cout << GREEN << "YOU ARE BEING REDIRECTED" << RESET << std::endl;
 	response_file << generate_response_head( code, request );
 	if(code != 302)
 		response_file << "Location: " << redirect_url;
-	response_file << std::endl << std::endl;
+	response_file << "\r\n\r\n";
 	response_file.close();
+	request.cease_after_msg = true;
 	request.set_stage( RESPONCE_GENERATED );
 	request.set_fd_events( POLLOUT | POLLERR | POLLHUP | POLLNVAL );
 }
@@ -539,7 +542,7 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 	request.set_request_handler();
 	int handler_ret = request.execute_handler();
 
-	if(handler_ret == 0) {
+	if(handler_ret == -2) {
 		request.cease_after_msg = true;
 		hard_close_connection( request );
 		return -1;
@@ -674,7 +677,10 @@ void ft::WebServer::global_loop( std::vector<pollfd>& fdset ) {
 	bool is_cheking = true;
 	while(true) {
 		// system( "leaks webserv" );
-		
+		// for(std::size_t i = 0; i < fdset.size(); i++) {
+		// 	std::cout << RED << i << " = " << fdset[i].fd << " | " << fdset[i].events << " | " << fdset[i].revents << RESET << std::endl;
+		// }
+		// std::cout << BOLDRED << "POLL" << RESET << std::endl;
 		int ret = poll( &fdset[0], fdset.size(), TIMEOUT );
 		if(ret == 0) {}
 		if(ret == -1)

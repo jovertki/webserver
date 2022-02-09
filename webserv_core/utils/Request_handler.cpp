@@ -29,7 +29,7 @@ namespace ft {
 
 		bytes_read = read( *fd, temp_buffer, bytes_to_read );
 		if(bytes_read == -1) {
-			return 0;//error connection
+			return -2;//error connection
 		}
 		else if(bytes_read == 0) {//connection closed
 			return 2;
