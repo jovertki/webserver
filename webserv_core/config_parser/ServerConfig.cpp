@@ -141,8 +141,7 @@ void ServerConfig::findLocation(std::vector<std::string>::iterator& iter,
     if (locationName.front() != '/' || (locationName.back() == '/' && locationName.size() > 1))
         throw std::invalid_argument("ServerParse::location should start with / and shouldn't end with / !");
     iter += 2;
-    locations[locationName] = findLocationParameters(iter, end);
-    std::cout << locations[locationName] << std::endl; // delete
+    locations[locationName] = findLocationParameters( iter, end );
     if (*iter != "}")
         throw std::invalid_argument("ServerParse::locations!");
     if (locationName[locationName.size()] == '/' && locations[locationName].index.size())

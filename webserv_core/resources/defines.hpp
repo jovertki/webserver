@@ -4,13 +4,7 @@
 #define BUFFER_FILE_OUT "./runtime_files/bufferfileout"
 #define BUFFER_FILE_CGIOUT "./runtime_files/bufferfilecgiout"
 
-//get from config
-// #define SERVER_DIR "./html"
-// #define ERROR404FILE "./html/error404.html"
-// #define PYTHON_INTERPRETER "/usr/local/bin/python3"
-// #define PERL_INTERPRETER "/usr/bin/perl"
-
-#define DEBUG_MODE 1
+#define DEBUG_MODE 0
 
 #define BUFFER_SIZE 30000 //is always bigger then 8000, max HTTP header size
 #define CGI_BUFFER_SIZE 30000

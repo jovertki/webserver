@@ -76,6 +76,9 @@ namespace ft {
 		else if(token == "DELETE") {
 			return DELETE;
 		}
+		else if(token == "PUT") {
+			return PUT;
+		}
 		else {
 			return EMPTY;
 		}

@@ -17,6 +17,7 @@ ft::WebServer::WebServer( char** envp, ConfigInfo& config ) : envp( envp ), conf
 	std::vector<pollfd> fdset;
 	fdset.reserve( 50000);
 	for(std::size_t i = 0; i < config.getServers().size(); i++) {
+		std::cout << MAGENTA << "Server http://" << config.getServers()[i].getHost() << ":" << config.getServers()[i].getListen() << " " <<config.getServers()[i].getServName() << RESET << std::endl;
 		if(config.checkHostPortDublicates( i ) != NOT_FOUND)
 			continue;
 		if(DEBUG_MODE)
@@ -45,17 +46,6 @@ int ft::WebServer::accept_connection( const std::size_t& id ) {
 	fcntl( new_socket, F_SETFL, O_NONBLOCK );
 	return new_socket;
 }
-
-// bool ft::WebServer::response_POST( Request& request ) {
-// 	if(request.get_requested_url().find( "/cgi-bin/" ) == 0 && request.get_requested_url().size() > 9 /*sizeof( "/cgi-bin/" )*/) { //if it is in /cgi-bin/
-// 		return request.execute_cgi();
-// 	}
-// 	else {
-// 		//ERRROR ???
-// 	}
-// 	return true;
-// }
-
 
 void ft::WebServer::write_response_to_file( Request& request ) {
 
@@ -113,13 +103,11 @@ bool ft::WebServer::response_GET_POST( Request& request ) {
 	if(is_directory( request.get_rooted_url())) {
 		if(config.getAutoIndex( request.get_servID(), request.get_requested_url()/*AUTOINDEX IS ON*/ )) {
 			list_contents( request.get_rooted_url() , request );
-			// std::cout << RED << request.get_requested_url() << RESET << std::endl;
 			return true;
 		}
 		else if("" != config.getIndex( request.get_servID(), request.get_requested_url() )) {
 			request.set_requested_url( request.get_requested_url() + config.getIndex( request.get_servID(), request.get_requested_url() ) );
 			request.set_rooted_url( config.getRootedUrl( request.get_servID(), request.get_requested_url() ) );
-			// std::cout << RED << request.get_requested_url() << RESET << std::endl;
 		}
 		else {
 			handle_errors( 403, request );
@@ -133,7 +121,6 @@ bool ft::WebServer::response_GET_POST( Request& request ) {
 	if(request.get_requested_url().find( "/cgi-bin/" ) != std::string::npos \
 		&& request.get_requested_url().find( "/cgi-bin/" ) == 0 && \
 		request.get_requested_url().size() > sizeof( "/cgi-bin/" )) { //if it is in /cgi-bin/
-			// request.set_rooted_url( config.getRootedUrl( request.get_servID(), "/" ) );
 		int exit_code = request.execute_cgi();
 		if(exit_code && exit_code != 1) {
 			if(response_messeges.find( exit_code ) == response_messeges.end()) {
@@ -154,15 +141,15 @@ bool ft::WebServer::response_DELETE( Request& request ) {
 	std::ofstream response_file;
 	response_file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ), std::ios::binary );
 	std::stringstream msg;
-	//do smth
 	if(is_directory( request.get_rooted_url() )) {
 		msg << "Your " << request.get_requested_url() << " is a directory, denied";
 		response_file << generate_response_head( 403, request ) << "Content-Type: text/html;\n" << \
 			"Content-Length: " << std::to_string( msg.str().size() ) << "\n\n" << msg.str();
 		return true;
 	}
-	if(std::remove( (request.get_rooted_url() ).c_str() ) < 0) {
-		//error
+	if(std::remove( (request.get_rooted_url()).c_str() ) < 0) {
+		msg << "File " << request.get_rooted_url() << " was not deleted, error occured";
+		response_file << generate_response_head( 200, request ) << "Content-Type: text/html;\n" << "Content-Length: " << std::to_string( msg.str().size() ) << "\n\n" << msg.str();
 	}
 	else {
 		msg << "File " << request.get_rooted_url() << " was successfully DELETED";
@@ -173,12 +160,11 @@ bool ft::WebServer::response_DELETE( Request& request ) {
 }
 
 bool ft::WebServer::generate_response( Request& request ) {
-	//NYI check availability of method in location
 	int method = request.get_method();
 	if(method == GET)
 		return response_GET_POST( request );
 	else if(method == POST)
-		return response_GET_POST( request );//replace with GET??
+		return response_GET_POST( request );
 	else if(method == DELETE)
 		return response_DELETE( request );
 	return true;
@@ -195,15 +181,23 @@ void ft::WebServer::handle_errors( const int& error_code, Request& request ) {
 	std::ofstream response_file;
 	response_file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ), std::ios::binary );
 	if(!response_file.is_open()) {
-		//press F to pay respects for the server
+		//press F to pay respects for the server, emergency, no way around
 	}
-	std::string error_page = config.getErrorPage( request.get_servID(), request.get_requested_url(), error_code );
+	std::string error_page = "";
+	if(error_code != 421) {
+		std::string loc = config.getLocationByID( request.get_servID(), request.get_requested_url() );
+		if(config.getErrorPage( request.get_servID(), loc, error_code ) != "") {
+			error_page = config.getRootedUrl( request.get_servID(), loc );
+			error_page += config.getErrorPage( request.get_servID(), loc, error_code );
+		}
+	}
+	if(DEBUG_MODE)
+		std::cout << BOLDRED << error_code << " " << error_page << RESET << std::endl;
 	if(error_code == 413) {
 		request.cease_after_msg = true;
 	}
 	if(error_page != "") {
 		int file_size = get_file_size( error_page );
-		std::cout << error_page << std::endl;
 		std::ifstream error_page_file( error_page );
 		char buffer[30000];
 		if(error_page_file.is_open()) {
@@ -262,7 +256,7 @@ void ft::WebServer::list_contents( const std::string& path, Request& request ) {
 	else {
 		/* could not open directory */
 	}
-	
+	//buttons for background color
 	body << "<br><br><br><br><br><br><br><br><br>";
     body << "<div style=\"display:flex\">";
 	body << "<form method=\"GET\" action=\"" << request.get_requested_url() << "\">" << \
@@ -286,12 +280,13 @@ void ft::WebServer::list_contents( const std::string& path, Request& request ) {
 		"<input type=\"hidden\" name=\"color\" value=\"Pink\">" << \
 		"<button style=\"background-color:Pink;height:50px;width:50px;\" type=\"submit\"></button></form>";
 	body << "</div>";
-	
+
+	//button for upload
 	body << "<br><br>";
 	body << "<a href=\"" << request.get_requested_url();
 	if(request.get_requested_url()[request.get_requested_url().size() - 1] != '/')
 		body << "/";
-	body << "upload.html\">Upload file here</a><br>";
+	body << "upload.html\">Upload file</a><br>";
 	
 	body << "</body>" << std::endl << \
 		"</html>" << std::endl;
@@ -319,7 +314,7 @@ void ft::WebServer::launch( std::vector<pollfd>& fdset ) {
 			std::cout << "waiting" << std::endl;
 		}
 		try {
-			newest_global_loop( fdset );
+			global_loop( fdset );
 		}
 		catch(std::exception &e)
 		{
@@ -336,13 +331,11 @@ int ft::WebServer::send_response( Request& request ) const {
 	unsigned int needToReturn = 0;
 	file.open( BUFFER_FILE_OUT + std::to_string( request.get_fd() ) );
 	if(!file.is_open()) {
-		// std::cout << RED << "send_response: " << strerror( errno ) << " " << (BUFFER_FILE_OUT + std::to_string( request.get_fd())) << RESET << std::endl; // exeption
 		return 2;
 	}
 	file.seekg( request.lastPos, std::ios_base::beg );
 	char buffer[30000];
 	file.read( buffer, 30000 );
-	// check gcount
 	unsigned int bytes_written = write( request.get_fd(), buffer, file.gcount() );
 	if(bytes_written < 1) {
 		return 2;
@@ -363,7 +356,6 @@ int ft::WebServer::send_response( Request& request ) const {
 std::string ft::WebServer::generate_response_head( const int& code, Request& request){
 	std::stringstream ss;
 	ss << "HTTP/1.1 " << code << " " << response_messeges[code] << "\r\n";
-	// if(request.get_param_value("HTTP_COOKIE") ==  )
 	std::string cookie = request.get_cookie();
 	if(request.get_param_value( "HTTP_COOKIE" ) != "color=" + cookie)
 		ss << "Set-Cookie:color=" << cookie << "\n";
@@ -448,11 +440,9 @@ void ft::WebServer::check_new_clients( std::vector<pollfd>& fdset, std::map<int,
 
 int ft::WebServer::remove_buffer_files( const int& fdset_fd ) {
 	if(std::remove( (BUFFER_FILE + std::to_string( fdset_fd )).c_str() )) {
-		//error
 		return 1;
 	}
 	if(std::remove( (BUFFER_FILE_OUT + std::to_string( fdset_fd )).c_str() )) {
-		//error
 		return 1;
 	}
 	return 0;
@@ -462,16 +452,14 @@ bool ft::WebServer::respond( pollfd& fdset, Request& request ) {
 	int fdset_fd = fdset.fd;
 	int ret = send_response( request );
 	if(ret == 1) {
-		//this is highly questionable
 		if(remove_buffer_files( fdset_fd )) {
-			//error deleting
+			//error deleting, this is fine
 		}
 		return true;
 	}
 	else if(ret == 2) {
 		request.cease_after_msg = true;
 		hard_close_connection( request );
-		// handle_errors( 500, request );
 		return true;
 	}
 	return false;
@@ -512,35 +500,35 @@ bool ft::WebServer::respond_out_of_line( Request& request, pollfd& fdset ) {
 		int return_code = 0;
 		
 		std::string redirect_url = config.getRedirect( serverID, requested_url, return_code );
-		std::cout << GREEN << "servid =" << serverID << " url = " << requested_url << " returned_code = " << return_code << " returnd url = " << redirect_url << RESET << std::endl;
+
+		if(DEBUG_MODE)
+			std::cout << GREEN << "servid =" << serverID << " url = " << requested_url << " returned_code = " << return_code << " returnd url = " << redirect_url << RESET << std::endl;
 		if(return_code != 0) {
 			generate_redirect_response( return_code, request, redirect_url );
 			return true;
 		}
 		if(!config.checkMethod( serverID, requested_url, static_cast<method>(request.get_method()) )) {
 			//ERRORresolved
+			if(request.get_method() == POST) {
+				//clear not read body from socket
+				request.cease_after_msg = true;
+			}
 			handle_errors( 405, request );//method forbidden
 			return true;
 		}
 		body_size = config.getBodySize( serverID, requested_url );
 		request.set_rooted_url( config.getRootedUrl( serverID, requested_url ) );
 		if(!is_chunked && body_size && strtol( request.get_param_value( "HTTP_CONTENT_LENGTH" ).c_str(), NULL, 10 ) > body_size) {
-			//ERRORresolved
+			//ERRORresolved bodysize too big
 			handle_errors(413, request );
 			std::cout << body_size << std::endl;
-			// std::cout << std::endl << RED << "CONTENT LENGTH > BODY SIZE : " << request.get_param_value( "HTTP_CONTENT_LENGTH" ) << ">" << body_size << RESET << std::endl << std::endl;
 			return true;
 		}
-
-
-		// request.set_param( "UPLOAD_PATH", request.get_rooted_url() + config.getUploadPath( serverID, requested_url ) + "/" );
-		// std::cout << MAGENTA << request.get_param_value( "UPLOAD_PATH" );
 	}
 	body_size = config.getBodySize( serverID, requested_url );
 	if(is_chunked && body_size && get_file_size( BUFFER_FILE + std::to_string( fdset.fd ) ) > body_size) {
-		//ERRORresolved
+		//ERRORresolved bodysize too big, chunked requests
 		handle_errors( 413, request );
-		// std::cout << RED << "chunked CONTENT LENGTH > BODY SIZE" << RESET << std::endl;
 		return true;
 	}
 	return false;
@@ -565,7 +553,7 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 			std::cout << GREEN << "read 0 on fd " << fdset.fd << RESET << std::endl;
 		close( fdset.fd );
 		if(remove_buffer_files( fdset.fd )) {
-			//error deleting
+			//error deleting, this is fine
 		}
 		return 2;
 	}
@@ -580,8 +568,10 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 	if(request.get_query_string() != "")
 		request.set_cookie( request.get_query_string() );
 
-	// std::cout << MAGENTA << request.get_requested_url() << RESET << std::endl;
-	// request.print_params();
+	if(DEBUG_MODE){
+		std::cout << MAGENTA << request.get_requested_url() << RESET << std::endl;
+		request.print_params();
+	}
 	if(respond_out_of_line( request, fdset )) {
 		return -1;
 	}
@@ -670,7 +660,7 @@ void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int,
 void ft::WebServer::reset_request( pollfd& fdset, Request& request ) {
 	const ListeningSocket* temp_sock = request.get_socket();
 	request = Request();
-	// request.set_fd( fdset_fd );
+
 	request.set_fdset( &fdset );
 	if(DEBUG_MODE)
 		std::cout << BLUE << "FD = " << request.get_fd() << " is reset" << RESET << std::endl;
@@ -679,19 +669,16 @@ void ft::WebServer::reset_request( pollfd& fdset, Request& request ) {
 	request.set_stage( REQUEST_PENDING );
 }
 
-void ft::WebServer::newest_global_loop( std::vector<pollfd>& fdset ) {
+void ft::WebServer::global_loop( std::vector<pollfd>& fdset ) {
 	std::map<int, Request> requests;
 	bool is_cheking = true;
 	while(true) {
 		// system( "leaks webserv" );
 		
 		int ret = poll( &fdset[0], fdset.size(), TIMEOUT );
-		if(ret == 0) {
-			//??????
-			//close all and delete files????
-		}
+		if(ret == 0) {}
 		if(ret == -1)
-			std::cout << "Fail from poll\n";
+			throw (std::exception());
 		else if(ret > 0) {
 			if(!is_cheking) {
 				work_with_clients( fdset, requests );

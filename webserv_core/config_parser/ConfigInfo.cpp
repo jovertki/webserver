@@ -15,9 +15,8 @@ ConfigInfo::ConfigInfo(const char* arg) : servers() {
         std::cerr << e.what() << std::endl;
         exit(-1);
     }
-    std::cout << MAGENTA << "..........\n" << servers.size() << " servers successfully parsed" << RESET << std::endl;
-    int i = -1;
-    std::cout << "redir " << getRedirect(0, "/c/t", i) << i << std::endl;
+    // std::cout << MAGENTA << "..........\n" << servers.size() << " servers successfully parsed" << RESET << std::endl;
+    // std::cout << "redir " << getRedirect(0, "/c/t", i) << -1 << std::endl;
 }
 
 ConfigInfo::~ConfigInfo() {}
@@ -50,9 +49,11 @@ std::string ConfigInfo::getCGI(const int& servId, const std::string& extentionCg
 std::string ConfigInfo::getLocationByID(const int &servId, std::string locName) const {
     std::size_t pos;
 
-    if (servId < 0 || servId >= static_cast<int>(servers.size()) || locName.front() != '/') { // to debug reasons
-        std::cout << BOLDRED << "ERROR !!!!!!!\n\n\n\n ERROR !!!!!!!" // to debug reasons
-            " \n getLocationByID = " << locName << "\n\n\nERROR !!!!!!!ServID = "  << servId << RESET << std::endl; // to debug reasons
+    if(servId < 0 || servId >= static_cast<int>(servers.size()) || locName.front() != '/') { // to debug reasons
+        if(DEBUG_MODE)
+            std::cout << BOLDRED << locName << " ServID = " << servId << RESET << std::endl;
+        // std::cout << BOLDRED << "ERROR !!!!!!!\n\n\n\n ERROR !!!!!!!" // to debug reasons
+        //     " \n getLocationByID = " << locName << "\n\n\nERROR !!!!!!!ServID = "  << servId << RESET << std::endl; // to debug reasons
         return "/";
     }// to debug reasons
     while (locName.size() > 1) {

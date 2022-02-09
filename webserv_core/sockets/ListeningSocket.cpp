@@ -4,7 +4,7 @@ ft::ListeningSocket::ListeningSocket( int domain, int service, int protocol, int
 BindingSocket( domain, service, protocol, port, interface ) {
 	backlog = bklg;
 	start_listening();
-	std::cout << "listening" << std::endl;
+	// std::cout << "listening" << std::endl;
 	test_connection( listening );
 
 	this->port = port;
