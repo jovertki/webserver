@@ -22,7 +22,7 @@ public:
     std::string getRootedUrl(const int& servId, std::string locName) const ;
     std::string getUploadPath(const int& servId, std::string locName) const ;
     std::string getIndex(const int& servId, std::string locName) const ;
-    std::string getRedirect(const int& servId, std::string locName, const int& errorNum) const ;
+    std::string getRedirect(const int& servId, std::string locName, int& errorNum) const ;
     std::string getErrorPage(const int& servId, std::string locName, const int& errorNum) const ;
     int getServerID(const std::string& hostIP, const int& portVal, std::string serverName = "");
 private:

@@ -11,6 +11,7 @@ namespace ft{
 		std::string ip;
 	public:
 		ListeningSocket( int domain, int service, int protocol, int port, std::string interface, int bklg );
+		virtual ~ListeningSocket() {}
 		void start_listening();
 
 

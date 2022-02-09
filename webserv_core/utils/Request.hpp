@@ -65,7 +65,7 @@ namespace ft {
 		void set_cgi( char** envp, const std::string& py_int = "", const std::string& pl_int = "");
 		void set_request_handler();
 
-		void set_socket(const ListeningSocket*);
+		void set_socket( const ListeningSocket* );
 		void set_rooted_url(const std::string&);
 		void set_servID(const int&);
 		void set_method( const int& );

@@ -3,7 +3,7 @@
 
 int main(int argc, char** argv, char **envp) {
 
-    std::string conf_name = "configs/test_wrong.conf";
+    std::string conf_name = "configs/default.conf";
 
     if(argc == 2)
         conf_name = std::string(argv[1]);

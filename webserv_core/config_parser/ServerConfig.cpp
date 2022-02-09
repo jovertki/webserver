@@ -28,11 +28,6 @@ void ServerConfig::checkAndFindValues(std::vector<std::string>& tokens) {
         throw std::invalid_argument("Error ServerParse::find values!");
     findMainValues(tokens.begin() + 1, tokens.end());
     CheckDefaultParam();
-    // for (std::map<std::string, Location_info>:: iterator it = locations.begin();
-    // it != locations.end(); ++it) {
-    //    if ((*it).first.back() != '/' && (*it).second.index.size())
-    //        throw utils::parseExeption("Error ServerParse::location file have index!");
-    // }
     fillLocFromDefault();
 }
 
@@ -47,18 +42,17 @@ void ServerConfig::fillLocFromDefault() {
 }
 
 void ServerConfig::copyLocatData(std::string locName) {
-    if (locations[locName].redirection.empty()) {
-        if (locations[locName].autoIndex == NOT_ASSIGN)
-            locations[locName].autoIndex = locations["/"].autoIndex;
-        if (locations[locName].bodySize == NOT_ASSIGN)
-            locations[locName].bodySize = locations["/"].bodySize;
-        if (locations[locName].index.empty() && locName.back() == '/')
-            locations[locName].index = locations["/"].index;
-        if (locations[locName].methods.empty())
-            locations[locName].methods = locations["/"].methods;
-        locations[locName].errorPage.insert(locations["/"].errorPage.begin(),
-                                            locations["/"].errorPage.end());
-    }
+    if (locations[locName].redirection.first == 0)
+    if (locations[locName].autoIndex == NOT_ASSIGN)
+        locations[locName].autoIndex = locations["/"].autoIndex;
+    if (locations[locName].bodySize == NOT_ASSIGN)
+        locations[locName].bodySize = locations["/"].bodySize;
+    if (locations[locName].index.empty() && locName.back() == '/')
+        locations[locName].index = locations["/"].index;
+    if (locations[locName].methods.empty())
+        locations[locName].methods = locations["/"].methods;
+    locations[locName].errorPage.insert(locations["/"].errorPage.begin(),
+                                        locations["/"].errorPage.end());
 //    std::cout << "location name: " << locName << ". Content: " << locations[locName] << std::endl; // delete
     
 }
@@ -101,7 +95,7 @@ void ServerConfig::findMainValues(std::vector<std::string>::iterator iter,
         else if (*iter == "host" && *(iter + 2) == ";" && host.empty())
             host = findStringAndIterate(++iter);
         else if (*iter == "cgi" && *(iter + 3) == ";")
-            findCgi(++iter, end);
+            findCgi(++iter);
         else if (*iter == "location" && *(iter + 2) == "{")
             findLocation(++iter, end);
         else
@@ -127,8 +121,7 @@ int ServerConfig::findIntAndIterate(std::vector<std::string>::iterator& iter) {
     return res;
 }
 
-void ServerConfig::findCgi(std::vector<std::string>::iterator& iter,
-                           std::vector<std::string>::iterator& end) {
+void ServerConfig::findCgi(std::vector<std::string>::iterator& iter) {
     std::string key;
 
     key = *iter;
@@ -148,8 +141,7 @@ void ServerConfig::findLocation(std::vector<std::string>::iterator& iter,
     if (locationName.front() != '/' || (locationName.back() == '/' && locationName.size() > 1))
         throw std::invalid_argument("ServerParse::location should start with / and shouldn't end with / !");
     iter += 2;
-    locations[locationName] = findLocationParameters(iter, end);
-//    std::cout << locations[locationName] << std::endl; // delete
+    locations[locationName] = findLocationParameters( iter, end );
     if (*iter != "}")
         throw std::invalid_argument("ServerParse::locations!");
     if (locationName[locationName.size()] == '/' && locations[locationName].index.size())
@@ -169,7 +161,7 @@ Location_info ServerConfig::findLocationParameters(std::vector<std::string>::ite
             res.root = findStringAndIterate(++iter);
         else if (*iter == "autoindex" && *(iter + 2) == ";" && res.autoIndex == NOT_ASSIGN)
             res.autoIndex = findAutoIndex(++iter);
-        else if (*iter == "return" && res.redirection.empty())
+        else if (*iter == "return" && res.redirection.first == 0)
             res.redirection = findReturn(++iter);
         else if (*iter == "error_page" && *(iter + 3) == ";")
             findErrorPage(++iter, res.errorPage);
@@ -201,21 +193,21 @@ void ServerConfig::findErrorPage(std::vector<std::string>::iterator& iter,
     iter += 2;
 }
 
-std::map<int, std::string> ServerConfig::findReturn(std::vector<std::string>::iterator& iter) {
-    std::map<int, std::string> resMap;
-    int resInt;
+std::pair<int, std::string> ServerConfig::findReturn(std::vector<std::string>::iterator& iter) {
+    std::pair<int, std::string> res;
 
-    resInt = utils::str_to_num(*iter);
+    res.first = utils::str_to_num(*iter);
+    if (res.first > 308 ||  res.first < 300)
+        throw std::invalid_argument("ServerParse::return number should be in 300 - 308 fields");
     ++iter;
-    if (*iter != ";") {
-        resMap[resInt] = *iter;
+    if (*(iter + 1) == ";") {
+        res.second = *iter;
         iter += 2;
     }
     else {
-        resMap[resInt];
-        ++iter;
+        throw std::invalid_argument("ServerParse::return number without parameter");
     }
-    return resMap;
+    return res;
 }
 
 void ServerConfig::checkSlashes(std::string& toCheck) {

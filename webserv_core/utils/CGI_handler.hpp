@@ -19,16 +19,16 @@ namespace ft {
 		bool is_initialised();
 		int execute();
 	private:
+		char** envp;
 		int stage;
 		pid_t cgi_pid;
-		char** envp;
 		std::map<int, std::string> response_messeges;
 
 		//request stuff
 		int* fd;
-		int* method;
 		std::string* requested_url;
 		std::string* query_string;
+		int* method;
 		std::map <std::string, std::string>* params;
 		std::string* rooted_url;
 		

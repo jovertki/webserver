@@ -13,7 +13,9 @@
 	+error pages
 	+custom error pages
 
-	return (redirection)
+	+return (redirection)
+
+
 
 
 
@@ -23,7 +25,12 @@
 
 poll = 0
 
-проверить ошибку при загрузке файла из папки в ту же папку
+
+test server name <-!!!!!! do this 
+
+
+
+
 
 сделать логичные папки для демонстрации
 сделать логичные конфиги для демонстрации

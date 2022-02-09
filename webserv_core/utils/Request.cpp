@@ -7,6 +7,7 @@
 ft::Request::Request() {
 	clear();
 	server_socket = NULL;
+	fd_settings = NULL;
 	cookie = "LightGray";
 }
 
@@ -156,7 +157,7 @@ void ft::Request::clear() {
 	rhandler = Request_handler();
 	stage = REQUEST_PENDING;
 	lastPos = 0;
-	servID = -1;
+	servID = -2;
 	fd_settings = NULL;
 	cease_after_msg = false;
 }
@@ -232,7 +233,8 @@ std::string ft::Request::get_serverName() const {
 	if(params.find( "HTTP_HOST" ) != params.end()) {
 		out = params.at( "HTTP_HOST" );
 		out = out.substr( 0, out.find( ":" ) );
-		std::cout << MAGENTA << out << RESET << std::endl;
+		if(DEBUG_MODE)
+			std::cout << MAGENTA << out << RESET << std::endl;
 	}
 	return out;
 }

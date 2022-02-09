@@ -15,13 +15,8 @@ ConfigInfo::ConfigInfo(const char* arg) : servers() {
         std::cerr << e.what() << std::endl;
         exit(-1);
     }
-    //delete next line
-    std::cout << "..........\n" << servers.size() << " servers successfully parsed" << std::endl;
-//    std::cout << "ErrorPage 2222 on server 1(second) = " << getErrorPage(0, "/", 22) << std::endl;
-//    std::cout << "ServID = " << getServerID("127.0.0.1", 8080, "cwd.localhost") << std::endl;
-    // std::cout << "Check method = " << checkMethod(4, "/", DELETE) << std::endl;
-    // std::cout << "Check rootedURL /cgi-bin/my_cgi_add_get = " << getRootedUrl( 0, "/cgi-bin/my_cgi_add_get" ) << std::endl;
-    // exit(1);
+    // std::cout << MAGENTA << "..........\n" << servers.size() << " servers successfully parsed" << RESET << std::endl;
+    // std::cout << "redir " << getRedirect(0, "/c/t", i) << -1 << std::endl;
 }
 
 ConfigInfo::~ConfigInfo() {}
@@ -52,11 +47,14 @@ std::string ConfigInfo::getCGI(const int& servId, const std::string& extentionCg
 
 /* Any locName will be truncated with "/" */
 std::string ConfigInfo::getLocationByID(const int &servId, std::string locName) const {
-    int pos;
+    std::size_t pos;
 
-    if (servId > servers.size() || locName.front() != '/') { // to debug reasons
-        std::cout << BOLDRED << "ERROR !!!!!!!\n\n\n\n ERROR !!!!!!!" // to debug reasons
-                                " \n getLocationByID\n\n\nERROR !!!!!!! ServID = "  << servId << RESET << std::endl; // to debug reasons
+    if(servId < 0 || servId >= static_cast<int>(servers.size()) || locName.front() != '/') { // to debug reasons
+        if(DEBUG_MODE)
+            std::cout << BOLDRED << locName << " ServID = " << servId << RESET << std::endl;
+        // std::cout << BOLDRED << "ERROR !!!!!!!\n\n\n\n ERROR !!!!!!!" // to debug reasons
+        //     " \n getLocationByID = " << locName << "\n\n\nERROR !!!!!!!ServID = "  << servId << RESET << std::endl; // to debug reasons
+        return "/";
     }// to debug reasons
     while (locName.size() > 1) {
         if (servers[servId].getLocations().find(locName) != servers[servId].getLocations().end()) {
@@ -78,7 +76,10 @@ std::string ConfigInfo::getLocationByID(const int &servId, std::string locName) 
 bool ConfigInfo::checkMethod(const int& servId, std::string locName, const method& methodForCheck) const {
     std::vector<method> tempMethod;
 
-    locName = getLocationByID(servId, locName);
+    // std::cout << BOLDRED << 1 << RESET << std::endl;
+    locName = getLocationByID( servId, locName );
+    if (servId < 0)
+        return false;
     tempMethod = servers[servId].getLocations().find(locName)->second.methods;
     for (int i = 0; i + tempMethod.begin() < tempMethod.end(); ++i) {
         if (*(i + tempMethod.begin()) == methodForCheck)
@@ -112,48 +113,80 @@ int ConfigInfo::getServerID(const std::string& hostIP, const int& portVal, std::
 
 /* Return empty srting if no error page for this number */
 std::string ConfigInfo::getErrorPage(const int& servId, std::string locName, const int& errorNum) const {
-    locName = getLocationByID(servId, locName);
+
+    // std::cout << BOLDRED << 2 << RESET << std::endl;
+    locName = getLocationByID( servId, locName );
     std::map<int, std::string> copyReturn;
 
+    if (servId < 0)
+        return "";
     copyReturn = servers[servId].getLocations().find(locName)->second.errorPage;
     return copyReturn[errorNum];
 }
 
-std::string ConfigInfo::getRedirect(const int& servId, std::string locName, const int& redirectNum) const {
-    locName = getLocationByID(servId, locName);
-    std::map<int, std::string> copyReturn;
+std::string ConfigInfo::getRedirect(const int& servId, std::string locName, int& redirectNum) const {
 
-    copyReturn = servers[servId].getLocations().find(locName)->second.redirection;
-    return copyReturn[redirectNum];
+    // std::cout << BOLDRED << 3 << RESET << std::endl;
+    locName = getLocationByID( servId, locName );
+
+    if (servId < 0)
+        return "";
+    redirectNum = servers[servId].getLocations().find(locName)->second.redirection.first;
+    return servers[servId].getLocations().find(locName)->second.redirection.second;
 }
 
 int ConfigInfo::getAutoIndex(const int& servId, std::string locName) const {
-    locName = getLocationByID(servId, locName);
-    return servers[servId].getLocations().find(locName)->second.autoIndex;
+    // std::cout << BOLDRED << 4 << RESET << std::endl;
+
+    locName = getLocationByID( servId, locName );
+
+    if (servId < 0)
+        return 0;
+    return servers[servId].getLocations().find( locName )->second.autoIndex;
 }
 
 int ConfigInfo::getBodySize(const int& servId, std::string locName) const {
-    locName = getLocationByID(servId, locName);
-    return servers[servId].getLocations().find(locName)->second.bodySize;
+    // std::cout << BOLDRED << 5 << RESET << std::endl;
+
+    locName = getLocationByID( servId, locName );
+
+    if (servId < 0)
+        return 0;
+    return servers[servId].getLocations().find( locName )->second.bodySize;
 }
 
 std::string ConfigInfo::getRootedUrl(const int& servId, std::string locName) const {
-    std::string findLocName = getLocationByID(servId, locName);
-    if  ( findLocName == locName && servers[servId].getLocations().find(locName)->second.root.size())
+    // std::cout << BOLDRED << 6 << RESET << std::endl;
+
+    std::string findLocName = getLocationByID( servId, locName );
+
+    if (servId < 0)
+        return "";
+    if(findLocName == locName && servers[servId].getLocations().find( locName )->second.root.size())
         return servers[servId].getLocations().find(locName)->second.root;
     else
         return servers[servId].getLocations().find("/")->second.root + locName;
 }
 
 std::string ConfigInfo::getUploadPath(const int& servId, std::string locName) const {
+    // std::cout << BOLDRED << 7 << RESET << std::endl;
+
     locName = getLocationByID( servId, locName );
+
+    if (servId < 0)
+        return "";
     locName = servers[servId].getLocations().find( locName )->second.uploadPath;
     return locName;
 }
 
 std::string ConfigInfo::getIndex(const int& servId, std::string locName) const {
-    locName = getLocationByID(servId, locName);
-    return servers[servId].getLocations().find(locName)->second.index;
+
+    // std::cout << BOLDRED << 8 << RESET << std::endl;
+    locName = getLocationByID( servId, locName );
+
+    if (servId < 0)
+        return "";
+    return servers[servId].getLocations().find( locName )->second.index;
 }
 
 std::vector<ServerConfig> ConfigInfo::getServers()const {
@@ -192,7 +225,7 @@ void ConfigInfo::_checkServNames() {
         }
     }
     res = NOT_FOUND;
-    for (int i = 0; i < servers.size(); ++i) {
+    for (std::size_t i = 0; i < servers.size(); ++i) {
         res = checkHostPortDublicates(i);
         if (res != NOT_FOUND && servers[i].getServName() == servers[res].getServName())
             throw std::invalid_argument("Error config: duplicate host port without server_name");

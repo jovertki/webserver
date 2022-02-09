@@ -30,8 +30,8 @@ ft::CGI_handler::CGI_handler( char** envp, int* afd, \
 	int* amethod, std::map <std::string, std::string>* aparams, \
 	const std::string& py_int, const std::string& pl_int, std::string* arooted_url ) : envp( envp ), stage( CGI_NOT_STARTED ), \
 	cgi_pid( -1 ), fd( afd ), requested_url( arequested_url ), \
-	query_string( aquery_string ), method( amethod ), params( aparams ), \
-	python_interpretator( py_int ), perl_interpretator( pl_int ), rooted_url(arooted_url){
+	query_string( aquery_string ), method( amethod ), params( aparams ), rooted_url(arooted_url), \
+	python_interpretator( py_int ), perl_interpretator( pl_int ){
 	init_response_msgs();
 }
 

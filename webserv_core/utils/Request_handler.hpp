@@ -28,18 +28,18 @@ namespace ft {
         std::size_t chunkRead;
         std::string end;
 
-		//multipart
-		bool parsing_data_header;
-		std::string multipart_boundary;
-
 		//request data pointers
 		int* fd;
-		std::string *query_string;
 		int* method;
 		std::string* requested_url;
 		std::string* httpver;
 		std::map <std::string, std::string>* params;
+		std::string *query_string;
 		
+		//multipart
+		bool parsing_data_header;
+		std::string multipart_boundary;
+
 		int open_file( std::ofstream& file );
 		int new_bytes_to_read();
 		

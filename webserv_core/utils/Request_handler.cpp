@@ -76,6 +76,9 @@ namespace ft {
 		else if(token == "DELETE") {
 			return DELETE;
 		}
+		else if(token == "PUT") {
+			return PUT;
+		}
 		else {
 			return EMPTY;
 		}
@@ -104,7 +107,7 @@ namespace ft {
 			}
 			std::string key = buffer.substr( 0, colon );
 			key = "HTTP_" + key;
-			for(int i = 0; i < key.size(); i++) {
+			for(std::size_t i = 0; i < key.size(); i++) {
 				if(key[i] == '-')
 					key[i] = '_';
 				key[i] = std::toupper( key[i] );
@@ -120,7 +123,7 @@ namespace ft {
 	}
 	int Request_handler::find_header_length( const std::string& input_buffer ) {
 		std::string buffer_string( input_buffer );
-		int out = buffer_string.find( "\r\n\r\n" );
+		std::size_t out = buffer_string.find( "\r\n\r\n" );
 		if(out == std::string::npos) {
 			std::cout << YELLOW << input_buffer << RESET << std::endl;
 			return -1;
@@ -164,7 +167,7 @@ namespace ft {
 	}
 
 	int Request_handler::handle_regular_body( std::string& buffer, std::ofstream& body_file ) {
-		if(!is_chunked() && full_request_length - total_bytes_read < buffer.size()) {
+		if(!is_chunked() && full_request_length - total_bytes_read < static_cast<long>(buffer.size())) {
 			buffer.resize( full_request_length - total_bytes_read);
 		}
 		body_file << buffer;

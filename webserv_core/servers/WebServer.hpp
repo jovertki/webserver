@@ -10,10 +10,9 @@
 namespace ft {
 	class WebServer {
 	private:
-		std::vector<ListeningSocket> socket_array;
-//		std::vector<ServerConfig> serverInfo;
-		ConfigInfo config;
 		char** envp;
+		ConfigInfo config;
+		std::vector<ListeningSocket> socket_array;
 
 		std::map<int, std::string> response_messeges;
 		Error_response_generator error_handler;
@@ -23,19 +22,18 @@ namespace ft {
 		int id;
 		
 	private:
-		int accepter( int id );
-		int handler( Request& );
+		int accept_connection( const std::size_t& );
 		bool generate_response( Request& );
 		// bool is_directory( const std::string& path )const;
 		void list_contents( const std::string& path, Request& request );
 		void handle_errors( const int& error_code, Request& request);
-		bool response_POST( Request& request );
-		bool response_GET( Request& request );
+		// bool response_POST( Request& request );
+		bool response_GET_POST( Request& request );
 		bool response_DELETE( Request& request );
 		bool execute_cgi( Request& request );
 		void header_parse( const char*, Request& );
 		char** create_appended_envp( Request& request );
-		bool send_response( Request& )const;
+		int send_response( Request& )const;
 		void init_response_msgs();
 		void handle_multipart( Request& request, \
 			char* buffer, long& bytes_read, std::ofstream& body_file);
@@ -49,7 +47,7 @@ namespace ft {
 		bool respond( pollfd& fdset, Request& request );
 		int recieve_request( pollfd& fdset, Request& request );
 
-        void newest_global_loop( std::vector<pollfd>& fdset );
+        void global_loop( std::vector<pollfd>& fdset );
 		std::vector<ListeningSocket> get_socket_array()const;
 		int get_size_serverInfo() const;
 		std::string generate_response_head( const int& code, Request& request );
@@ -59,6 +57,10 @@ namespace ft {
 		bool respond_out_of_line( Request& request, pollfd& fdset );
 		void reset_request( pollfd& fdset, Request& request );
 		void hard_close_connection( Request& request );
+		void remove_hungup( std::vector<pollfd>& fdset, std::map<int, Request>& requests, const int& i );
+		void recieve_avaliable( std::vector<pollfd>& fdset, std::map<int, Request>& requests, const int& i );
+		void respond_avaliable( std::vector<pollfd>& fdset, std::map<int, Request>& requests, const int& i );
+		void generate_redirect_response( const int& code, Request& request, const std::string& redirect_url );
 	};
 }
 
