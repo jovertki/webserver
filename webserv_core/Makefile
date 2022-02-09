@@ -17,7 +17,7 @@ DEP		= $(patsubst %.o, %.d,$(OBJ))
 # CFLAGS	= -g -fstandalone-debug
 
 #CFLAGS	= -g -std=c++98
-CFLAGS	= -Wall -Werror -Wextra -Wshadow -Wno-shadow -std=c++98 -g
+CFLAGS	= -Wall -Werror -Wextra -Wshadow -Wno-shadow -std=c++98
 CC		= clang++
 
 all: $(NAME)
