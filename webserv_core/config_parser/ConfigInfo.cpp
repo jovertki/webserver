@@ -48,9 +48,9 @@ std::string ConfigInfo::getCGI(const int& servId, const std::string& extentionCg
 
 /* Any locName will be truncated with "/" */
 std::string ConfigInfo::getLocationByID(const int &servId, std::string locName) const {
-    int pos;
+    std::size_t pos;
 
-    if (servId < 0 || servId >= servers.size() || locName.front() != '/') { // to debug reasons
+    if (servId < 0 || servId >= static_cast<int>(servers.size()) || locName.front() != '/') { // to debug reasons
         std::cout << BOLDRED << "ERROR !!!!!!!\n\n\n\n ERROR !!!!!!!" // to debug reasons
             " \n getLocationByID = " << locName << "\n\n\nERROR !!!!!!!ServID = "  << servId << RESET << std::endl; // to debug reasons
         return "/";
@@ -224,7 +224,7 @@ void ConfigInfo::_checkServNames() {
         }
     }
     res = NOT_FOUND;
-    for (int i = 0; i < servers.size(); ++i) {
+    for (std::size_t i = 0; i < servers.size(); ++i) {
         res = checkHostPortDublicates(i);
         if (res != NOT_FOUND && servers[i].getServName() == servers[res].getServName())
             throw std::invalid_argument("Error config: duplicate host port without server_name");

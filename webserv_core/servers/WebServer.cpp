@@ -13,10 +13,10 @@
 #include <signal.h>
 #include "../utils/utils.hpp"
 
-ft::WebServer::WebServer( char** envp, ConfigInfo& config ) : envp( envp ), id(), config( config ), error_handler( Error_response_generator( &response_messeges ) ) { // зачем ID???
+ft::WebServer::WebServer( char** envp, ConfigInfo& config ) : envp( envp ), config( config ), error_handler( Error_response_generator( &response_messeges ) ), id() {
 	std::vector<pollfd> fdset;
 	fdset.reserve( 50000);
-	for(int i = 0; i < config.getServers().size(); i++) {
+	for(std::size_t i = 0; i < config.getServers().size(); i++) {
 		if(config.checkHostPortDublicates( i ) != NOT_FOUND)
 			continue;
 		if(DEBUG_MODE)
@@ -35,7 +35,7 @@ ft::WebServer::WebServer( char** envp, ConfigInfo& config ) : envp( envp ), id()
 	launch( fdset );
 }
 
-int ft::WebServer::accepter( int id ) {
+int ft::WebServer::accept_connection( const std::size_t& id ) {
 
 	struct sockaddr_in address;
 	address = socket_array[id].get_address();
@@ -309,7 +309,7 @@ void ft::WebServer::list_contents( const std::string& path, Request& request ) {
 void ft::WebServer::launch( std::vector<pollfd>& fdset ) {
 
 	if(DEBUG_MODE) {
-		for(int i = 0; i < config.getServers().size(); i++) {
+		for(std::size_t i = 0; i < config.getServers().size(); i++) {
 			std::cout << BOLDBLUE << (--config.getServers()[i].getLocations().end())->second << RESET << std::endl;;
 		}
 	}
@@ -424,10 +424,10 @@ int ft::WebServer::get_size_serverInfo() const {
 }
 
 void ft::WebServer::check_new_clients( std::vector<pollfd>& fdset, std::map<int, Request>& requests ) {
-	for(int i = 0; i < get_size_serverInfo(); ++i) {
+	for(std::size_t i = 0; i < socket_array.size(); ++i) {
 		if(fdset[i].revents & POLLIN) {
 			pollfd temp;
-			temp.fd = accepter( i );
+			temp.fd = accept_connection( i );
 			if(temp.fd == -1) //skip errors on accept
 				continue;
 			temp.events = (POLLIN | POLLERR | POLLHUP | POLLNVAL);
@@ -595,7 +595,6 @@ int ft::WebServer::recieve_request( pollfd& fdset, Request& request ) {
 
 void ft::WebServer::remove_hungup( std::vector<pollfd>& fdset, std::map<int, Request>& requests, const int& i) {
 	pollfd& current_pollfd = fdset[i];
-	Request& current_request = requests[current_pollfd.fd];
 	
 	remove_buffer_files( current_pollfd.fd );
 	close( current_pollfd.fd );
@@ -645,7 +644,7 @@ void ft::WebServer::respond_avaliable( std::vector<pollfd>& fdset, std::map<int,
 	}
 }
 void ft::WebServer::work_with_clients( std::vector<pollfd>& fdset, std::map<int, Request>& requests ) {
-	for(int i = fdset.size() - 1; i >= get_size_serverInfo(); --i) {
+	for(std::size_t i = fdset.size() - 1; i >= socket_array.size(); --i) {
 		pollfd& current_pollfd = fdset[i];
 		Request& current_request = requests[current_pollfd.fd];
 		

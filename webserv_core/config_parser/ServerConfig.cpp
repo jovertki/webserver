@@ -95,7 +95,7 @@ void ServerConfig::findMainValues(std::vector<std::string>::iterator iter,
         else if (*iter == "host" && *(iter + 2) == ";" && host.empty())
             host = findStringAndIterate(++iter);
         else if (*iter == "cgi" && *(iter + 3) == ";")
-            findCgi(++iter, end);
+            findCgi(++iter);
         else if (*iter == "location" && *(iter + 2) == "{")
             findLocation(++iter, end);
         else
@@ -121,8 +121,7 @@ int ServerConfig::findIntAndIterate(std::vector<std::string>::iterator& iter) {
     return res;
 }
 
-void ServerConfig::findCgi(std::vector<std::string>::iterator& iter,
-                           std::vector<std::string>::iterator& end) {
+void ServerConfig::findCgi(std::vector<std::string>::iterator& iter) {
     std::string key;
 
     key = *iter;

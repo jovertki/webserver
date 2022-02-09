@@ -10,10 +10,9 @@
 namespace ft {
 	class WebServer {
 	private:
-		std::vector<ListeningSocket> socket_array;
-//		std::vector<ServerConfig> serverInfo;
-		ConfigInfo config;
 		char** envp;
+		ConfigInfo config;
+		std::vector<ListeningSocket> socket_array;
 
 		std::map<int, std::string> response_messeges;
 		Error_response_generator error_handler;
@@ -23,8 +22,7 @@ namespace ft {
 		int id;
 		
 	private:
-		int accepter( int id );
-		int handler( Request& );
+		int accept_connection( const std::size_t& );
 		bool generate_response( Request& );
 		// bool is_directory( const std::string& path )const;
 		void list_contents( const std::string& path, Request& request );

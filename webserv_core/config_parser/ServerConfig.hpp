@@ -32,8 +32,7 @@ private:
                                      std::map<int, std::string>& errorPage);
     void findMainValues(std::vector<std::string>::iterator iter,
                      std::vector<std::string>::iterator end);
-    void findCgi(std::vector<std::string>::iterator& iter,
-                  std::vector<std::string>::iterator& end);
+    void findCgi(std::vector<std::string>::iterator& iter);
     void findLocation(std::vector<std::string>::iterator& iter,
                         std::vector<std::string>::iterator& end);
     static std::string findStringAndIterate(std::vector<std::string>::iterator& iter);
